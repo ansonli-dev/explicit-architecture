@@ -1,0 +1,5 @@
+com.example.seedwork.infrastructure.bus.BusAutoConfiguration
+com.example.seedwork.infrastructure.outbox.OutboxAutoConfiguration
+com.example.seedwork.infrastructure.kafka.KafkaIdempotencyAutoConfiguration
+com.example.seedwork.infrastructure.kafka.retry.ConsumerRetryAutoConfiguration
+com.example.seedwork.infrastructure.web.WebAutoConfiguration

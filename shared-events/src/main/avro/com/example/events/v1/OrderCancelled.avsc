@@ -1,0 +1,33 @@
+{
+  "namespace": "com.example.events.v1",
+  "type": "record",
+  "name": "OrderCancelled",
+  "doc": "订单取消时发布",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "UUID，用于消费者幂等去重"
+    },
+    {
+      "name": "orderId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "订单 ID（UUID）"
+    },
+    {
+      "name": "customerId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "客户 ID（UUID）"
+    },
+    {
+      "name": "reason",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "取消原因（如：用户取消、超时未支付、库存不足）"
+    },
+    {
+      "name": "occurredAt",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "事件发生时间（UTC）"
+    }
+  ]
+}

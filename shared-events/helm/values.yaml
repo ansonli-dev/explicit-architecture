@@ -1,0 +1,8 @@
+schemaRegistry:
+  url: "http://schema-registry.infra.svc.cluster.local:8081"
+
+kafka:
+  bootstrapServers: "kafka.infra.svc.cluster.local:29092"
+  adminBootstrapServers: "kafka.infra.svc.cluster.local:39092"
+  adminUsername: "admin"
+  adminPassword: "admin-secret-123"

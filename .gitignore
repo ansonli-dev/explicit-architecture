@@ -1,0 +1,24 @@
+# AI 工具内部文件
+--permission-mode
+.claude/
+.kiro/
+docs/superpowers/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 编译产物（补充各模块 .gitignore 未覆盖的 bin/）
+**/bin/
+
+# 测试文档冗余版本
+docs/testing-strategy/testing-strategies-for-claude.md
+docs/testing-strategy/testing-strategies-plain-text.md
+docs/testing-strategy/testing-strategies-zh.pdf
+docs/testing-strategy/wechat-message.md

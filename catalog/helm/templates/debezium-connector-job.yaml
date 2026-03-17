@@ -1,0 +1,106 @@
+{{- /*
+  post-install / post-upgrade Job：
+  Flyway 建表完成后，向 Debezium Connect 注册 catalog-outbox-connector。
+  幂等：已存在则 PUT 更新 config，不存在则 POST 注册。
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "catalog.fullname" . }}-debezium-connector
+  labels:
+    {{- include "catalog.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        {{- include "catalog.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: debezium-connector
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: register-connector
+          image: curlimages/curl:8.7.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              DEBEZIUM_URL="http://debezium.infra.svc.cluster.local:8083"
+              CONNECTOR_NAME="catalog-outbox-connector"
+
+              echo "Waiting for Debezium Connect..."
+              until curl -sf "${DEBEZIUM_URL}/connectors" > /dev/null; do
+                echo "  not ready, retrying in 10s..."
+                sleep 10
+              done
+              echo "Debezium Connect is ready."
+
+              # heartbeat.interval.ms=0：适用于 outbox 表持续有写入的场景（WAL slot 随业务事件自然推进）。
+              # 若系统可能长时间无业务事件，需启用 heartbeat 防止 WAL 积压，但须同时配合 Filter SMT
+              # 过滤 heartbeat 消息（其 schema 类型为 STRUCT），否则 ByteArrayConverter 会报错导致 task FAILED。
+              # 生产环境建议：
+              #   "heartbeat.interval.ms": "10000"
+              #   "transforms": "filter,outbox"
+              #   "transforms.filter.type": "io.debezium.transforms.Filter"
+              #   "transforms.filter.language": "jsr223.groovy"
+              #   "transforms.filter.condition": "value.schema().name() != 'io.debezium.connector.common.Heartbeat'"
+              # 注：Filter SMT 需要在 Debezium Connect 镜像中安装 JSR-223 Groovy scripting engine。
+
+              CONFIG="{
+                \"connector.class\": \"io.debezium.connector.postgresql.PostgresConnector\",
+                \"tasks.max\": \"1\",
+                \"database.hostname\": \"postgres.infra.svc.cluster.local\",
+                \"database.port\": \"5432\",
+                \"database.user\": \"catalog\",
+                \"database.password\": \"${DB_PASSWORD}\",
+                \"database.dbname\": \"catalog\",
+                \"database.server.name\": \"catalog-db\",
+                \"topic.prefix\": \"debezium\",
+                \"table.include.list\": \"public.outbox_event\",
+                \"slot.name\": \"catalog_outbox_slot\",
+                \"plugin.name\": \"pgoutput\",
+                \"key.converter\": \"org.apache.kafka.connect.storage.StringConverter\",
+                \"value.converter\": \"org.apache.kafka.connect.converters.ByteArrayConverter\",
+                \"transforms\": \"outbox\",
+                \"transforms.outbox.type\": \"io.debezium.transforms.outbox.EventRouter\",
+                \"transforms.outbox.table.field.event.id\": \"event_id\",
+                \"transforms.outbox.table.field.event.key\": \"message_key\",
+                \"transforms.outbox.table.field.event.type\": \"topic\",
+                \"transforms.outbox.table.field.event.payload\": \"avro_payload\",
+                \"transforms.outbox.route.by.field\": \"topic\",
+                \"transforms.outbox.route.topic.replacement\": \"\${routedByValue}\",
+                \"publication.autocreate.mode\": \"filtered\",
+                \"snapshot.mode\": \"never\",
+                \"heartbeat.interval.ms\": \"0\"
+              }"
+
+              # 幂等：已存在 → PUT 更新，不存在 → POST 注册
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DEBEZIUM_URL}/connectors/${CONNECTOR_NAME}")
+              if [ "${STATUS}" = "200" ]; then
+                echo "Connector exists, updating via PUT..."
+                curl -sf -X PUT \
+                  -H "Content-Type: application/json" \
+                  -d "${CONFIG}" \
+                  "${DEBEZIUM_URL}/connectors/${CONNECTOR_NAME}/config"
+              else
+                echo "Registering connector via POST..."
+                curl -sf -X POST \
+                  -H "Content-Type: application/json" \
+                  -d "{\"name\": \"${CONNECTOR_NAME}\", \"config\": ${CONFIG}}" \
+                  "${DEBEZIUM_URL}/connectors"
+              fi
+
+              echo "Done."
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "catalog.fullname" . }}-secret
+                  key: SPRING_DATASOURCE_PASSWORD

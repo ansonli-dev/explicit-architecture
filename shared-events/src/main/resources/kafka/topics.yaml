@@ -1,0 +1,56 @@
+topics:
+  - name: bookstore.order.placed
+    valueSchema: v1/OrderPlaced.avsc
+    partitions: 3
+    replicationFactor: 1
+    producers:
+      - order
+    consumers:
+      - notification
+      - order-read-model
+    description: "Published when an order is successfully placed"
+  - name: bookstore.order.confirmed
+    valueSchema: v1/OrderConfirmed.avsc
+    partitions: 3
+    replicationFactor: 1
+    producers:
+      - order
+    consumers:
+      - notification
+    description: "Published when an order is confirmed after payment"
+  - name: bookstore.order.cancelled
+    valueSchema: v1/OrderCancelled.avsc
+    partitions: 3
+    replicationFactor: 1
+    producers:
+      - order
+    consumers:
+      - notification
+      - catalog
+    description: "Published when an order is cancelled"
+  - name: bookstore.order.shipped
+    valueSchema: v1/OrderShipped.avsc
+    partitions: 3
+    replicationFactor: 1
+    producers:
+      - order
+    consumers:
+      - notification
+    description: "Published when an order is shipped"
+  - name: bookstore.stock.reserved
+    valueSchema: v1/StockReserved.avsc
+    partitions: 3
+    replicationFactor: 1
+    producers:
+      - catalog
+    consumers:
+      - order
+    description: "Published when stock is successfully reserved for an order"
+  - name: bookstore.stock.released
+    valueSchema: v1/StockReleased.avsc
+    partitions: 3
+    replicationFactor: 1
+    producers:
+      - catalog
+    consumers: []
+    description: "Published when stock is released (order cancelled)"

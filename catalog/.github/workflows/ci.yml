@@ -1,0 +1,154 @@
+name: CI
+
+# catalog-service repo — standard microservice pipeline
+# Prerequisites:
+#   - seedwork and shared-events published to GitHub Packages
+#   - build.gradle.kts repositories block includes GitHub Packages (authenticated via GITHUB_TOKEN)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PACT_BROKER_BASE_URL: ${{ secrets.PACTFLOW_BASE_URL }}
+  PACT_BROKER_TOKEN:    ${{ secrets.PACTFLOW_API_TOKEN }}
+  IMAGE:                ghcr.io/${{ github.repository_owner }}/catalog
+
+jobs:
+  # ─── 1. test ──────────────────────────────────────────────────────────────────
+  # Unit tests (domain/application, no Spring context) +
+  # integration tests (Testcontainers: Postgres, Redis, Kafka)
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: build/reports/tests/
+
+  # ─── 2. contract ──────────────────────────────────────────────────────────────
+  # catalog = Provider in BDCT.
+  # Fetches the live OpenAPI spec (springdoc /v3/api-docs) from the test environment,
+  # publishes it to PactFlow as the provider contract, then runs can-i-deploy to
+  # verify all consumers (order-service) are compatible with this version.
+  contract:
+    name: Contract — Provider (OAS → PactFlow)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch OpenAPI spec from test environment
+        run: |
+          curl -f "${{ secrets.E2E_CATALOG_BASE_URL }}/v3/api-docs" \
+               -H "Accept: application/json" \
+               -o catalog-oas.json
+
+      - name: Publish provider contract to PactFlow
+        run: |
+          docker run --rm \
+            -e PACT_BROKER_BASE_URL \
+            -e PACT_BROKER_TOKEN \
+            -v "${{ github.workspace }}/catalog-oas.json:/catalog-oas.json" \
+            pactfoundation/pact-cli:latest \
+            pactflow publish-provider-contract /catalog-oas.json \
+              --provider "catalog-service" \
+              --provider-app-version "${{ github.sha }}" \
+              --branch "${{ github.ref_name }}" \
+              --content-type "application/json" \
+              --verification-success
+
+      - name: Can-I-Deploy gate
+        run: |
+          docker run --rm \
+            -e PACT_BROKER_BASE_URL \
+            -e PACT_BROKER_TOKEN \
+            pactfoundation/pact-cli:latest \
+            pact-broker can-i-deploy \
+              --pacticipant "catalog-service" \
+              --version "${{ github.sha }}" \
+              --to-environment "production"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: catalog-oas
+          path: catalog-oas.json
+
+  # ─── 3. build ─────────────────────────────────────────────────────────────────
+  # Jib builds and pushes to GHCR directly from Gradle — no Dockerfile needed.
+  build:
+    name: Build Image
+    needs: contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build and push image (Jib)
+        run: |
+          ./gradlew jib \
+            -Djib.to.image="${IMAGE}:${{ github.sha }}" \
+            -Djib.to.auth.username="${{ github.actor }}" \
+            -Djib.to.auth.password="${{ secrets.GITHUB_TOKEN }}" \
+            --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── 4. deploy ────────────────────────────────────────────────────────────────
+  # Helm upgrade to test environment. Runs on main only (not PRs).
+  # On success, triggers the E2E suite in bookstore-infra repo.
+  deploy:
+    name: Deploy to Test
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install catalog ./helm/ \
+            --namespace bookstore \
+            --set image.repository="${IMAGE}" \
+            --set image.tag="${{ github.sha }}" \
+            --wait --timeout 5m
+
+      - name: Trigger E2E suite
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.E2E_DISPATCH_TOKEN }}
+          repository: ${{ github.repository_owner }}/bookstore-infra
+          event-type: service-deployed
+          client-payload: |
+            {"service": "catalog", "version": "${{ github.sha }}"}

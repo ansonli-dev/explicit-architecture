@@ -1,0 +1,30 @@
+spring:
+    datasource:
+        url: jdbc:tc:postgresql:16:///order_test
+        driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    elasticsearch:
+        uris: http://localhost:9200  # overridden by @DynamicPropertySource in test
+    kafka:
+        bootstrap-servers: ${spring.embedded.kafka.brokers}
+        producer:
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+        properties:
+            schema.registry.url: mock://test
+            auto.register.schemas: true
+    flyway:
+        enabled: true
+        locations: classpath:db/seedwork,classpath:db/migration
+
+services:
+    catalog:
+        base-url: http://localhost:9999  # overridden by WireMock in test
+
+outbox:
+    relay:
+        strategy: scheduler
+        interval-ms: 500
+
+logging:
+    level:
+        com.example.order: DEBUG

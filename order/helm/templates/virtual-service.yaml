@@ -1,0 +1,47 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "order.fullname" . }}
+  labels:
+    {{- include "order.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - {{ include "order.fullname" . }}
+  gateways:
+    - infra/platform-gateway
+    - mesh
+  http:
+    # 写操作路径（Outbox 事务，允许较长超时）
+    - match:
+        - uri:
+            prefix: /api/v1/orders
+          method:
+            exact: POST
+        - uri:
+            prefix: /api/v1/orders
+          method:
+            exact: DELETE
+      timeout: 10s
+      retries:
+        attempts: 2
+        perTryTimeout: 5s
+        retryOn: gateway-error,connect-failure,retriable-4xx
+      route:
+        - destination:
+            host: {{ include "order.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}
+    # 读操作路径（来自 ElasticSearch，快速响应）
+    - match:
+        - uri:
+            prefix: /api/v1/orders
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: gateway-error,connect-failure,retriable-4xx
+      route:
+        - destination:
+            host: {{ include "order.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}

@@ -1,0 +1,44 @@
+{{- /*
+  Job: create Kafka topics defined in the kafka-topics-config ConfigMap.
+  The ConfigMap is pipeline-created from src/main/resources/kafka/topics.yaml —
+  that file is the single source of truth for topic definitions.
+  Script: helm/scripts/create-topics.sh (embedded in shared-events-scripts ConfigMap).
+  Runs before ACL management and schema registration (hook-weight -10).
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: topic-creation
+  namespace: infra
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: scripts
+          configMap:
+            name: shared-events-scripts
+            defaultMode: 0755
+        - name: topics-config
+          configMap:
+            name: kafka-topics-config
+      containers:
+        - name: create-topics
+          image: confluentinc/cp-kafka:7.6.1
+          command: ["/bin/bash", "/scripts/create-topics.sh"]
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: topics-config
+              mountPath: /config

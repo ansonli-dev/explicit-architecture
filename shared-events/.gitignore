@@ -1,0 +1,31 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spring Boot
+HELP.md
+
+# Secrets — never commit
+.env
+*.env
+local.properties
+application-local.yml
+application-local.properties
+
+# Logs
+*.log
+logs/
+
+# Pact files (generated — uploaded to PactFlow by CI)
+build/pacts/

@@ -1,0 +1,68 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "order.fullname" . }}
+  labels:
+    {{- include "order.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "order.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Istio ingressgateway → order REST API
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-system
+      ports:
+        - port: 8082
+          protocol: TCP
+    # Prometheus scrape (Actuator /actuator/prometheus)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    # 基础设施组件 (都在 bookstore namespace)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: bookstore
+      ports:
+        - port: 5432   # PostgreSQL
+          protocol: TCP
+        - port: 39092  # Kafka (SASL_APP)
+          protocol: TCP
+        - port: 8081   # Schema Registry
+          protocol: TCP
+        - port: 9200   # ElasticSearch
+          protocol: TCP
+        - port: 4317   # OTel Collector (gRPC)
+          protocol: TCP
+    # catalog 服务 (在 catalog namespace)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: catalog
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: catalog
+      ports:
+        - port: 8081
+          protocol: TCP
+    # OTel Collector (gRPC)
+    - ports:
+        - port: 4317
+          protocol: TCP
+    # DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

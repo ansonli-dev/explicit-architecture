@@ -1,0 +1,23 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "catalog.fullname" . }}
+  labels:
+    {{- include "catalog.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - {{ include "catalog.fullname" . }}
+  gateways:
+    - infra/platform-gateway
+    - mesh
+  http:
+    - timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: gateway-error,connect-failure,retriable-4xx
+      route:
+        - destination:
+            host: {{ include "catalog.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}

@@ -1,0 +1,19 @@
+package com.example.order.application.port.outbound;
+
+import com.example.order.application.query.order.StockCheckResponse;
+
+import java.util.UUID;
+
+/**
+ * Secondary port — outbound calls to the catalog service.
+ * <p>
+ * Implemented by {@code infrastructure/client/CatalogRestClient}.
+ * The application layer declares what it needs; infrastructure decides how to deliver it.
+ */
+public interface CatalogClient {
+    StockCheckResponse checkStock(UUID bookId);
+
+    void reserveStock(UUID bookId, UUID orderId, int quantity);
+
+    void releaseStock(UUID bookId, UUID orderId, int quantity);
+}

@@ -1,0 +1,43 @@
+name: E2E Tests
+
+on:
+  # Triggered automatically when any service completes a deploy
+  # (each service CI sends repository_dispatch after helm upgrade succeeds)
+  repository_dispatch:
+    types: [service-deployed]
+  # Manual trigger — useful during local dev before GitHub integration
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      # The test environment is already running — just point the tests at it.
+      # URLs are stored as GitHub Actions secrets and injected here.
+      - name: Run E2E tests
+        working-directory: e2e
+        env:
+          CATALOG_BASE_URL: ${{ secrets.E2E_CATALOG_BASE_URL }}
+          ORDER_BASE_URL: ${{ secrets.E2E_ORDER_BASE_URL }}
+          NOTIFICATION_BASE_URL: ${{ secrets.E2E_NOTIFICATION_BASE_URL }}
+        run: ./gradlew test --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-reports
+          path: e2e/build/reports/tests/
+          if-no-files-found: ignore

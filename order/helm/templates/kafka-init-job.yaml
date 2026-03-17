@@ -1,0 +1,108 @@
+{{- /*
+  pre-install / pre-upgrade Job：
+  在 order 服务部署前创建所属 Kafka topic 并配置 SASL ACL。
+  幂等：topic 已存在时 --if-not-exists 不报错，ACL --add 重复添加无副作用。
+*/ -}}
+{{- if .Values.kafkaInit.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "order.fullname" . }}-kafka-init
+  labels:
+    {{- include "order.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        {{- include "order.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: kafka-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: kafka-init
+          image: confluentinc/cp-kafka:7.6.0
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              BOOTSTRAP_INTERNAL="kafka.infra.svc.cluster.local:29092"
+              BOOTSTRAP_SASL="kafka.infra.svc.cluster.local:39092"
+
+              # 等待 Kafka 可达
+              echo "Waiting for Kafka..."
+              until kafka-topics --bootstrap-server "${BOOTSTRAP_INTERNAL}" --list > /dev/null 2>&1; do
+                sleep 5
+              done
+              echo "Kafka is ready."
+
+              # ── 创建 Topics ──────────────────────────────────────────────
+              for entry in \
+                "bookstore.order.placed|3" \
+                "bookstore.order.confirmed|3" \
+                "bookstore.order.cancelled|3" \
+                "bookstore.order.shipped|3"; do
+                topic="${entry%%|*}"
+                partitions="${entry##*|}"
+                echo "Creating topic: ${topic}"
+                kafka-topics --bootstrap-server "${BOOTSTRAP_INTERNAL}" \
+                  --create --if-not-exists \
+                  --topic "${topic}" \
+                  --partitions "${partitions}" \
+                  --replication-factor 1
+              done
+
+              # ── SASL ACL 配置文件 ────────────────────────────────────────
+              printf 'security.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="%s";\n' "${KAFKA_ADMIN_PASSWORD}" > /tmp/admin.properties
+
+              add_producer_acl() {
+                kafka-acls --bootstrap-server "${BOOTSTRAP_SASL}" \
+                  --command-config /tmp/admin.properties \
+                  --add --allow-principal "User:$1" \
+                  --operation WRITE --operation DESCRIBE --topic "$2"
+              }
+              add_consumer_acl() {
+                kafka-acls --bootstrap-server "${BOOTSTRAP_SASL}" \
+                  --command-config /tmp/admin.properties \
+                  --add --allow-principal "User:$1" \
+                  --operation READ --operation DESCRIBE --topic "$2"
+              }
+
+              # order 是 producer
+              add_producer_acl "order" "bookstore.order.placed"
+              add_producer_acl "order" "bookstore.order.confirmed"
+              add_producer_acl "order" "bookstore.order.cancelled"
+              add_producer_acl "order" "bookstore.order.shipped"
+
+              # order 消费 stock 事件（由 catalog 服务的 kafka-init-job 创建 topic）
+              add_consumer_acl "order" "bookstore.stock.reserved"
+              add_consumer_acl "order" "bookstore.stock.released"
+
+              # order 自身消费（order-read-model）
+              add_consumer_acl "order" "bookstore.order.placed"
+
+              # consumer group ACL — PREFIXED：order 服务只能使用 "order." 前缀的 group，
+              # 否则 Broker 返回 GroupAuthorizationException，强制执行命名规范。
+              kafka-acls --bootstrap-server "${BOOTSTRAP_SASL}" \
+                --command-config /tmp/admin.properties \
+                --add --allow-principal "User:order" \
+                --operation READ --group "order." \
+                --resource-pattern-type PREFIXED
+
+              echo "Kafka init completed."
+          env:
+            - name: KAFKA_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-admin-secret
+                  key: password
+                  optional: true
+{{- end }}

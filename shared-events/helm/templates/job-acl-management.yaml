@@ -1,0 +1,48 @@
+{{- /*
+  Job: apply Kafka ACLs defined in the kafka-topics-config ConfigMap (idempotent via --add).
+  The ConfigMap is pipeline-created from src/main/resources/kafka/topics.yaml —
+  that file is the single source of truth for producer/consumer ACL definitions.
+  Script: helm/scripts/manage-acls.sh (embedded in shared-events-scripts ConfigMap).
+  Runs after topic creation (hook-weight -10 < -9).
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: acl-management
+  namespace: infra
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-9"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: scripts
+          configMap:
+            name: shared-events-scripts
+            defaultMode: 0755
+        - name: topics-config
+          configMap:
+            name: kafka-topics-config
+      containers:
+        - name: apply-acls
+          image: confluentinc/cp-kafka:7.6.1
+          command: ["/bin/bash", "/scripts/manage-acls.sh"]
+          env:
+            - name: KAFKA_ADMIN_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.adminBootstrapServers | quote }}
+            - name: KAFKA_ADMIN_USERNAME
+              value: {{ .Values.kafka.adminUsername | quote }}
+            - name: KAFKA_ADMIN_PASSWORD
+              value: {{ .Values.kafka.adminPassword | quote }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: topics-config
+              mountPath: /config

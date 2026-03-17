@@ -1,0 +1,28 @@
+{
+  "namespace": "com.example.events.v1",
+  "type": "record",
+  "name": "OrderConfirmed",
+  "doc": "订单确认（付款成功）时发布",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "UUID，用于消费者幂等去重"
+    },
+    {
+      "name": "orderId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "订单 ID（UUID）"
+    },
+    {
+      "name": "customerId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "客户 ID（UUID）"
+    },
+    {
+      "name": "occurredAt",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "事件发生时间（UTC）"
+    }
+  ]
+}

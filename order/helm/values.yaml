@@ -1,0 +1,51 @@
+secret:
+  datasource:
+    password: "order-secret-123"
+  kafka:
+    username: "order"
+    password: "order-secret-123"
+
+image:
+  repository: order
+  pullPolicy: Never
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8082
+
+resources:
+  requests:
+    cpu: "1"
+    memory: "512Mi"
+  limits:
+    cpu: "2"
+    memory: "1Gi"
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+env:
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres.infra.svc.cluster.local:5432/order"
+  SPRING_DATASOURCE_USERNAME: "order"
+  SPRING_ELASTICSEARCH_URIS: "http://elasticsearch.infra.svc.cluster.local:9200"
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka.infra.svc.cluster.local:39092"
+  SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: "http://schema-registry.infra.svc.cluster.local:8081"
+  SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+  SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-256"
+  SPRING_KAFKA_PRODUCER_KEY_SERIALIZER: "org.apache.kafka.common.serialization.StringSerializer"
+  SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER: "io.confluent.kafka.serializers.KafkaAvroSerializer"
+  SPRING_KAFKA_CONSUMER_KEY_DESERIALIZER: "org.apache.kafka.common.serialization.StringDeserializer"
+  SPRING_KAFKA_CONSUMER_VALUE_DESERIALIZER: "io.confluent.kafka.serializers.KafkaAvroDeserializer"
+  SPRING_KAFKA_PROPERTIES_AUTO_REGISTER_SCHEMAS: "false"
+  SPRING_KAFKA_PROPERTIES_SPECIFIC_AVRO_READER: "true"
+  CATALOG_URL: "http://catalog.catalog.svc.cluster.local:8081"
+  # OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-collector.infra.svc.cluster.local:4317"
+  # OTEL_SERVICE_NAME: "order"
+  # OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+
+kafkaInit:
+  enabled: false

@@ -1,0 +1,154 @@
+name: CI
+
+# order-service repo — standard microservice pipeline
+# Prerequisites:
+#   - seedwork and shared-events published to GitHub Packages
+#   - build.gradle.kts repositories block includes GitHub Packages (authenticated via GITHUB_TOKEN)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PACT_BROKER_BASE_URL: ${{ secrets.PACTFLOW_BASE_URL }}
+  PACT_BROKER_TOKEN:    ${{ secrets.PACTFLOW_API_TOKEN }}
+  IMAGE:                ghcr.io/${{ github.repository_owner }}/order
+
+jobs:
+  # ─── 1. test ──────────────────────────────────────────────────────────────────
+  # Unit tests (domain/application, no Spring context) +
+  # integration tests (Testcontainers: Postgres, Kafka, Elasticsearch)
+  # @Tag("contract") tests are excluded here — they run in job 2 without Testcontainers.
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Run tests (excluding contract tests)
+        run: ./gradlew test --no-daemon -PexcludeTags=contract
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: build/reports/tests/
+
+  # ─── 2. contract ──────────────────────────────────────────────────────────────
+  # order = Consumer in BDCT.
+  # Runs CatalogClientPactTest: Pact starts its own mock server (no Testcontainers,
+  # no Spring context). The generated pact file is published to PactFlow.
+  # can-i-deploy verifies catalog's current OAS satisfies this consumer pact.
+  contract:
+    name: Contract — Consumer (Pact → PactFlow)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Run consumer Pact tests
+        run: ./gradlew test --tests "com.example.order.contract.*" --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish pact to PactFlow
+        run: |
+          docker run --rm \
+            -e PACT_BROKER_BASE_URL \
+            -e PACT_BROKER_TOKEN \
+            -v "${{ github.workspace }}/build/pacts:/pacts" \
+            pactfoundation/pact-cli:latest \
+            pact-broker publish /pacts \
+              --consumer-app-version "${{ github.sha }}" \
+              --branch "${{ github.ref_name }}"
+
+      - name: Can-I-Deploy gate
+        run: |
+          docker run --rm \
+            -e PACT_BROKER_BASE_URL \
+            -e PACT_BROKER_TOKEN \
+            pactfoundation/pact-cli:latest \
+            pact-broker can-i-deploy \
+              --pacticipant "order-service" \
+              --version "${{ github.sha }}" \
+              --to-environment "production"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pacts
+          path: build/pacts/
+
+  # ─── 3. build ─────────────────────────────────────────────────────────────────
+  build:
+    name: Build Image
+    needs: contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build and push image (Jib)
+        run: |
+          ./gradlew jib \
+            -Djib.to.image="${IMAGE}:${{ github.sha }}" \
+            -Djib.to.auth.username="${{ github.actor }}" \
+            -Djib.to.auth.password="${{ secrets.GITHUB_TOKEN }}" \
+            --no-daemon
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── 4. deploy ────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Test
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install order ./helm/ \
+            --namespace bookstore \
+            --set image.repository="${IMAGE}" \
+            --set image.tag="${{ github.sha }}" \
+            --wait --timeout 5m
+
+      - name: Trigger E2E suite
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.E2E_DISPATCH_TOKEN }}
+          repository: ${{ github.repository_owner }}/bookstore-infra
+          event-type: service-deployed
+          client-payload: |
+            {"service": "order", "version": "${{ github.sha }}"}

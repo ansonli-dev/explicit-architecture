@@ -1,0 +1,47 @@
+secret:
+  datasource:
+    password: "notification-secret-123"
+  kafka:
+    username: "notification"
+    password: "notification-secret-123"
+
+image:
+  repository: notification
+  pullPolicy: Never
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8083
+
+resources:
+  requests:
+    cpu: "1"
+    memory: "768Mi"
+  limits:
+    cpu: "2"
+    memory: "1536Mi"
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+env:
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres.infra.svc.cluster.local:5432/notification"
+  SPRING_DATASOURCE_USERNAME: "notification"
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka.infra.svc.cluster.local:39092"
+  SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: "http://schema-registry.infra.svc.cluster.local:8081"
+  SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: "SASL_PLAINTEXT"
+  SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: "SCRAM-SHA-256"
+  SPRING_KAFKA_PRODUCER_KEY_SERIALIZER: "org.apache.kafka.common.serialization.StringSerializer"
+  SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER: "io.confluent.kafka.serializers.KafkaAvroSerializer"
+  SPRING_KAFKA_CONSUMER_KEY_DESERIALIZER: "org.apache.kafka.common.serialization.StringDeserializer"
+  SPRING_KAFKA_CONSUMER_VALUE_DESERIALIZER: "io.confluent.kafka.serializers.KafkaAvroDeserializer"
+  SPRING_KAFKA_PROPERTIES_AUTO_REGISTER_SCHEMAS: "false"
+  SPRING_KAFKA_PROPERTIES_SPECIFIC_AVRO_READER: "true"
+  NOTIFICATION_EMAIL_LOG_ONLY: "true"
+  # OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-collector.infra.svc.cluster.local:4317"
+  # OTEL_SERVICE_NAME: "notification"
+  # OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"

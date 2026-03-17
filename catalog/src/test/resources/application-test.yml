@@ -1,0 +1,28 @@
+spring:
+    datasource:
+        url: jdbc:tc:postgresql:16:///catalog_test
+        driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    data:
+        redis:
+            host: localhost
+            port: 6379
+    kafka:
+        bootstrap-servers: ${spring.embedded.kafka.brokers}
+        producer:
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+        properties:
+            schema.registry.url: mock://test
+            auto.register.schemas: true
+    flyway:
+        enabled: true
+        locations: classpath:db/seedwork,classpath:db/migration
+
+outbox:
+    relay:
+        strategy: scheduler
+        interval-ms: 500
+
+logging:
+    level:
+        com.example.catalog: DEBUG

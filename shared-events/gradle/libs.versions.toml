@@ -1,0 +1,58 @@
+[versions]
+spring-boot                  = "3.3.5"
+spring-dependency-management = "1.1.6"
+spring-kafka                 = "3.2.4"
+avro                         = "1.12.1"
+avro-gradle-plugin           = "1.9.1"
+kafka-serializer             = "7.6.0"
+flyway                       = "10.15.2"
+postgresql                   = "42.7.4"
+testcontainers               = "1.20.1"
+rest-assured                 = "5.5.0"
+springdoc                    = "2.6.0"
+opentelemetry-sb             = "2.6.0"
+
+[libraries]
+# Spring Boot starters
+spring-boot-starter-web                = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-data-jpa           = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-boot-starter-data-redis         = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+spring-boot-starter-data-elasticsearch = { module = "org.springframework.boot:spring-boot-starter-data-elasticsearch" }
+spring-boot-starter-webflux            = { module = "org.springframework.boot:spring-boot-starter-webflux" }
+spring-boot-starter-actuator           = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-validation         = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-test               = { module = "org.springframework.boot:spring-boot-starter-test" }
+
+# Kafka
+spring-kafka                  = { module = "org.springframework.kafka:spring-kafka",      version.ref = "spring-kafka" }
+spring-kafka-test             = { module = "org.springframework.kafka:spring-kafka-test", version.ref = "spring-kafka" }
+kafka-avro-serializer         = { module = "io.confluent:kafka-avro-serializer",          version.ref = "kafka-serializer" }
+
+# Avro
+avro                          = { module = "org.apache.avro:avro",                        version.ref = "avro" }
+
+# Database
+postgresql                    = { module = "org.postgresql:postgresql",                   version.ref = "postgresql" }
+flyway-core                   = { module = "org.flywaydb:flyway-core",                    version.ref = "flyway" }
+flyway-database-postgresql    = { module = "org.flywaydb:flyway-database-postgresql",     version.ref = "flyway" }
+
+# Observability
+micrometer-registry-prometheus    = { module = "io.micrometer:micrometer-registry-prometheus" }
+opentelemetry-spring-boot-starter = { module = "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter", version.ref = "opentelemetry-sb" }
+
+# API docs
+springdoc-openapi-starter-webmvc  = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+# Testcontainers
+testcontainers-junit-jupiter  = { module = "org.testcontainers:junit-jupiter",    version.ref = "testcontainers" }
+testcontainers-postgresql     = { module = "org.testcontainers:postgresql",        version.ref = "testcontainers" }
+testcontainers-kafka          = { module = "org.testcontainers:kafka",             version.ref = "testcontainers" }
+testcontainers-elasticsearch  = { module = "org.testcontainers:elasticsearch",     version.ref = "testcontainers" }
+
+# REST testing
+rest-assured                  = { module = "io.rest-assured:rest-assured",         version.ref = "rest-assured" }
+
+[plugins]
+spring-boot                   = { id = "org.springframework.boot",                  version.ref = "spring-boot" }
+spring-dependency-management  = { id = "io.spring.dependency-management",           version.ref = "spring-dependency-management" }
+avro                          = { id = "com.github.davidmc24.gradle.plugin.avro",   version.ref = "avro-gradle-plugin" }

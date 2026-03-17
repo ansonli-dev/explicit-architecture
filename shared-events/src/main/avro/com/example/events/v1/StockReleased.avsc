@@ -1,0 +1,33 @@
+{
+  "namespace": "com.example.events.v1",
+  "type": "record",
+  "name": "StockReleased",
+  "doc": "库存释放时发布（订单取消或支付失败）",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "UUID，用于消费者幂等去重"
+    },
+    {
+      "name": "bookId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "书籍 ID（UUID）"
+    },
+    {
+      "name": "orderId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "关联的订单 ID（UUID）"
+    },
+    {
+      "name": "quantity",
+      "type": "int",
+      "doc": "释放数量"
+    },
+    {
+      "name": "occurredAt",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "事件发生时间（UTC）"
+    }
+  ]
+}

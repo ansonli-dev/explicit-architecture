@@ -1,0 +1,28 @@
+{{- /*
+  ConfigMap: embeds all operational scripts (code, managed by Helm).
+  Scripts live in helm/scripts/ — edit them there, not here.
+
+  Schema data (.avsc files) are NOT embedded here — they are mounted from
+  the "avro-schemas" ConfigMap that the pipeline creates from
+  src/main/avro/com/example/events/v1/*.avsc.
+
+  Topic/ACL config (topics.yaml) is NOT embedded here — it is mounted from
+  the "kafka-topics-config" ConfigMap that the pipeline creates from
+  src/main/resources/kafka/topics.yaml.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shared-events-scripts
+  namespace: infra
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-11"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+data:
+  register-schemas.sh: |
+{{ .Files.Get "scripts/register-schemas.sh" | indent 4 }}
+  create-topics.sh: |
+{{ .Files.Get "scripts/create-topics.sh" | indent 4 }}
+  manage-acls.sh: |
+{{ .Files.Get "scripts/manage-acls.sh" | indent 4 }}

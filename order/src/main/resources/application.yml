@@ -1,0 +1,69 @@
+spring:
+    application:
+        name: order
+    threads:
+        virtual:
+            enabled: true
+    datasource:
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/order}
+        username: ${SPRING_DATASOURCE_USERNAME:bookstore}
+        password: ${SPRING_DATASOURCE_PASSWORD:bookstore}
+        driver-class-name: org.postgresql.Driver
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        open-in-view: false
+    flyway:
+        enabled: true
+        locations: classpath:db/seedwork,classpath:db/migration
+    elasticsearch:
+        uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}
+    kafka:
+        bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+        producer:
+            key-serializer: org.apache.kafka.common.serialization.StringSerializer
+            value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+        consumer:
+            group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:order.read-model}
+            key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+            auto-offset-reset: earliest
+            enable-auto-commit: false
+        listener:
+            ack-mode: MANUAL_IMMEDIATE
+        properties:
+            schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8085}
+            specific.avro.reader: true
+            auto.register.schemas: false
+
+server:
+    port: 8082
+
+catalog:
+    service:
+        url: ${CATALOG_SERVICE_URL:http://localhost:8081}
+
+services:
+    catalog:
+        base-url: ${CATALOG_URL:http://localhost:8081}
+
+outbox:
+    relay:
+        strategy: debezium   # debezium | scheduler — Debezium CDC tails WAL; scheduler disabled to prevent duplicates
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health,prometheus
+    metrics:
+        export:
+            prometheus:
+                enabled: true
+
+otel:
+    exporter:
+        otlp:
+            endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+    service:
+        name: ${OTEL_SERVICE_NAME:order}

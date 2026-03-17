@@ -1,0 +1,56 @@
+{{- /*
+  Job: register Avro schemas in Confluent Schema Registry.
+  Script: helm/scripts/register.py (embedded in shared-events-scripts ConfigMap).
+
+  Depends on two ConfigMaps:
+    - shared-events-scripts  (created by this Helm chart, hook-weight -11)
+    - avro-schemas           (pipeline-created from src/main/avro/com/example/events/v1/)
+
+  Pipeline prerequisite — run before helm upgrade:
+    kubectl create configmap avro-schemas -n infra \
+      --from-file=shared-events/src/main/avro/com/example/events/v1/ \
+      --dry-run=client -o yaml | kubectl apply -f -
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: schema-registration
+  namespace: infra
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: scripts
+          configMap:
+            name: shared-events-scripts
+        - name: schemas
+          configMap:
+            name: avro-schemas
+        - name: topics-config
+          configMap:
+            name: kafka-topics-config
+      containers:
+        - name: register
+          image: alpine:3.19
+          command: ["/bin/sh", "-c"]
+          args:
+            - apk add --no-cache bash curl jq >/dev/null 2>&1 && exec bash /scripts/register-schemas.sh
+          env:
+            - name: SCHEMA_REGISTRY_URL
+              value: {{ .Values.schemaRegistry.url | quote }}
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: schemas
+              mountPath: /schemas
+            - name: topics-config
+              mountPath: /config

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: shared-events
+description: >
+  Helm chart for shared-events: pre-registers Avro schemas in Confluent Schema Registry
+  and ensures Kafka topics exist before microservices start.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
