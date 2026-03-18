@@ -1,97 +1,92 @@
 # shared-events — Avro Event Schema SDK
 
-`shared-events` 是所有跨服务 Kafka 事件的**唯一权威来源**（Single Source of Truth）。
+`shared-events` is the **Single Source of Truth** for all cross-service Kafka events.
 
-各微服务均为**独立项目**，通过 `mavenLocal()` 依赖本模块，无 Gradle multi-project 耦合。
-
----
-
-## 定位与职责
-
-```
-事件契约的唯一权威来源（Single Source of Truth）
-├── Schema 层
-│   ├── .avsc 源文件（按版本命名空间组织，源文件是唯一权威）
-│   └── Schema Registry 预注册脚本
-├── Kafka 资源层 [NEW]
-│   ├── topics.yaml（集中定义 Topic 属性、分区、副本）
-│   ├── ACL 权限（在 topics.yaml 中定义 producers/consumers）
-│   └── manage-kafka.sh（自动化创建 Topic 和 ACL）
-├── SDK 层
-│   ├── Avro SpecificRecord Java 类（构建时生成）
-│   ├── KafkaResourceConstants.java（Topic 名称和 Service ID 常量）
-│   └── 发布到 mavenLocal()（各服务唯一引用方式）
-└── 文档层
-    ├── 事件目录（字段说明、生产者/消费者矩阵）
-    ├── 演进规则（BACKWARD 兼容性约束、v2 命名空间策略）
-    └── CHANGELOG.md（版本变更记录）
-```
-
-**各微服务负责：**
-- 声明 Kafka Topic、配置 `schema.registry.url`
-- 在 `infrastructure/messaging/` 适配器层映射领域事件 ↔ Avro 消息
-- 配置 Kafka 序列化器 / 反序列化器
-
-> **严格禁止**：`shared-events` 中不能有业务逻辑、不能有 Spring Bean、不能有仓储代码。
-> 它只是一个 **schema → 代码** 的转换器，输出纯 Avro `SpecificRecord` 类。
+Each microservice is an **independent project** that depends on this module via `mavenLocal()` — there is no Gradle multi-project coupling.
 
 ---
 
-## 目录结构
+## Purpose and Responsibilities
+
+```
+Single Source of Truth for event contracts
+├── Schema layer
+│   ├── .avsc source files (organised by versioned namespaces; source files are the sole authority)
+│   └── Schema Registry pre-registration script
+├── Kafka resource layer [NEW]
+│   ├── topics.yaml (centralised Topic properties: partitions, replication factor)
+│   ├── ACL permissions (producers/consumers defined in topics.yaml)
+│   └── manage-kafka.sh (automates Topic and ACL creation)
+├── SDK layer
+│   ├── Avro SpecificRecord Java classes (generated at build time)
+│   ├── KafkaResourceConstants.java (Topic name and Service ID constants)
+│   └── Published to mavenLocal() (the only way services reference this SDK)
+└── Documentation layer
+    ├── Event catalogue (field descriptions, producer/consumer matrix)
+    ├── Evolution rules (BACKWARD compatibility constraints, v2 namespace strategy)
+    └── CHANGELOG.md (version change history)
+```
+
+**Each microservice is responsible for:**
+- Declaring Kafka Topics and configuring `schema.registry.url`
+- Mapping domain events ↔ Avro messages in the `infrastructure/messaging/` adapter layer
+- Configuring Kafka serializers / deserializers
+
+> **Strictly prohibited**: `shared-events` must not contain business logic, Spring beans, or repository code.
+> It is purely a **schema → code** converter that produces plain Avro `SpecificRecord` classes.
+
+---
+
+## Directory Structure
 
 ```
 shared-events/
 ├── src/
-│   └── main/
-│       └── avro/
-│           └── com/example/events/
-│               ├── v1/                       # 当前版本命名空间
-│               │   ├── OrderPlaced.avsc
-│               │   ├── OrderConfirmed.avsc
-│               │   ├── OrderCancelled.avsc
-│               │   ├── OrderShipped.avsc
-│               │   ├── StockReserved.avsc
-│               │   └── StockReleased.avsc
-│               └── v2/                       # 破坏性变更时创建（当前为空占位）
-├── schema-registry/
-│   └── register-schemas.sh                   # Schema Registry 一键注册脚本
-├── scripts/
-│   └── manage-kafka.sh                       # 一键同步 Topic 和 ACL 权限脚本
-├── src/
 │   ├── main/
-│   │   ├── avro/ ...
+│   │   ├── avro/
+│   │   │   └── com/example/events/
+│   │   │       ├── v1/                       # Current version namespace
+│   │   │       │   ├── OrderPlaced.avsc
+│   │   │       │   ├── OrderConfirmed.avsc
+│   │   │       │   ├── OrderCancelled.avsc
+│   │   │       │   ├── OrderShipped.avsc
+│   │   │       │   ├── StockReserved.avsc
+│   │   │       │   └── StockReleased.avsc
+│   │   │       └── v2/                       # Created on breaking change (currently empty placeholder)
 │   │   ├── java/
 │   │   │   └── com/example/events/
-│   │   │       └── KafkaResourceConstants.java # 类型安全常量
+│   │   │       └── KafkaResourceConstants.java # Type-safe constants
 │   │   └── resources/
 │   │       └── kafka/
-│   │           └── topics.yaml               # 集中化的 Topic 定义
+│   │           └── topics.yaml               # Centralised Topic definitions
+├── scripts/
+│   └── manage-kafka.sh                       # One-shot script to sync Topics and ACLs
 ├── build/
-│   └── generated-main-avro-java/             # 生成的 Java 类（不提交 Git）
-├── CHANGELOG.md                              # 版本变更日志（每次变更必填）
+│   └── generated-main-avro-java/             # Generated Java classes (not committed to Git)
+├── CHANGELOG.md                              # Version change log (required on every change)
 ├── build.gradle.kts
 ├── .gitignore
-└── README.md
+└── README.en.md
 ```
 
-> 生成的 Java 类在 `build/generated-main-avro-java/` 目录，**不提交到 Git**，每次构建自动再生。
+> Generated Java classes live under `build/generated-main-avro-java/`, are **not committed to Git**, and are regenerated automatically on every build.
 
 ---
 
-## 哪些事件属于 shared-events
+## Which Events Belong in shared-events
 
-**只放跨服务消费的事件**（至少有一个服务是消费者）：
+**Only events consumed across service boundaries** (at least one consumer in a different service):
 
-| 事件 | 生产者 | 消费者 |
+| Event | Producer | Consumers |
 |---|---|---|
 | `OrderPlaced` | order | notification |
 | `OrderConfirmed` | order | notification |
-| `OrderCancelled` | order | notification、catalog |
+| `OrderCancelled` | order | notification, catalog |
 | `OrderShipped` | order | notification |
 | `StockReserved` | catalog | order |
-| `StockReleased` | catalog | — |
+| `StockReleased` | catalog | — (no current consumer; available for future subscribers) |
 
-**不放在 shared-events 的事件**：仅在单个服务内部使用的应用事件（如 `order` 内部的 read-model projection 事件），这些直接用 Spring `ApplicationEvent` 或 plain record 即可。
+**Events that do NOT belong here**: application events used only within a single service (e.g., read-model projection events internal to `order`) — use Spring `ApplicationEvent` or a plain record instead.
 
 ---
 
@@ -108,22 +103,22 @@ group = "com.example"
 version = "0.1.0"
 
 dependencies {
-    // Avro runtime（生成类的基类依赖）
+    // Avro runtime (base dependency for generated classes)
     api("org.apache.avro:avro:1.11.3")
-    // Confluent Avro Serializer（消费者/生产者使用，传递依赖给微服务）
+    // Confluent Avro Serializer (used by consumers/producers; transitive dependency for microservices)
     api("io.confluent:kafka-avro-serializer:7.6.0")
 }
 
 repositories {
     mavenCentral()
-    // Confluent 包在独立 Maven 仓库
+    // Confluent packages live in a separate Maven repository
     maven { url = uri("https://packages.confluent.io/maven/") }
 }
 
 avro {
-    isCreateSetters.set(false)            // 生成不可变风格（无 setter）
-    fieldVisibility.set("PRIVATE")        // 字段私有，通过 get 方法访问
-    isEnableDecimalLogicalType.set(true)  // 支持 decimal logical type
+    isCreateSetters.set(false)            // Generate immutable-style classes (no setters)
+    fieldVisibility.set("PRIVATE")        // Private fields accessed via getters
+    isEnableDecimalLogicalType.set(true)  // Support decimal logical type
     outputCharacterEncoding.set("UTF-8")
 }
 
@@ -134,7 +129,7 @@ publishing {
         }
     }
     repositories {
-        // Demo 阶段发布到本地 Maven 仓库，各服务通过 mavenLocal() 引用
+        // During demo phase, publish to local Maven repository; services reference via mavenLocal()
         mavenLocal()
     }
 }
@@ -142,119 +137,119 @@ publishing {
 
 ---
 
-## SDK 版本策略
+## SDK Versioning Strategy
 
-Demo 阶段以 `0.x.y` 起步，使用轻量语义版本（SemVer）：
+Starting at `0.x.y` for the demo phase, using lightweight Semantic Versioning (SemVer):
 
-| 变更类型 | 版本升级 | 示例 |
+| Change type | Version bump | Example |
 |---|---|---|
-| 新增事件（无破坏性） | MINOR | `0.1.0` → `0.2.0` |
-| 新增字段（有 `default`） | PATCH | `0.1.0` → `0.1.1` |
-| 删除/改名字段（破坏性） | MAJOR + 新命名空间 | `0.x.y` → `1.0.0` |
-| 仅文档/注释修改 | PATCH | `0.1.0` → `0.1.1` |
+| New event (non-breaking) | MINOR | `0.1.0` → `0.2.0` |
+| New field (with `default`) | PATCH | `0.1.0` → `0.1.1` |
+| Remove/rename field (breaking) | MAJOR + new namespace | `0.x.y` → `1.0.0` |
+| Documentation/comment change only | PATCH | `0.1.0` → `0.1.1` |
 
-> **CHANGELOG.md 是每次 schema 变更的必填记录**，无论大小。
+> **CHANGELOG.md must be updated on every schema change**, no matter how small.
 
 ---
 
-## 构建与发布（mavenLocal）
+## Build and Publish (mavenLocal)
 
-各微服务为独立 Gradle 项目，通过 `mavenLocal()` 依赖本 SDK。**修改 schema 后必须先发布，各服务才能使用新版本。**
+Each microservice is an independent Gradle project that depends on this SDK via `mavenLocal()`. **After modifying a schema, you must publish first before any service can use the new version.**
 
 ```bash
-# 1. 触发 Avro 代码生成（generateAvroJava 在 compileJava 前自动执行）
+# 1. Trigger Avro code generation (generateAvroJava runs automatically before compileJava)
 ./gradlew generateAvroJava
 
-# 2. 构建并发布到本地 Maven 仓库
+# 2. Build and publish to the local Maven repository
 ./gradlew publishToMavenLocal
 
-# 3. 一次性：生成 + 构建 + 发布
+# 3. All-in-one: generate + build + publish
 ./gradlew build publishToMavenLocal
 ```
 
-各微服务的 `build.gradle.kts` 中引用：
+Reference this SDK from each microservice's `build.gradle.kts`:
 
 ```kotlin
 repositories {
-    mavenLocal()   // 优先查找本地发布的 shared-events
+    mavenLocal()   // Prefer locally published shared-events
     maven { url = uri("https://packages.confluent.io/maven/") }
     mavenCentral()
 }
 
 dependencies {
-    implementation("com.example:shared-events:0.1.0")  // 跟随版本更新
+    implementation("com.example:shared-events:0.1.0")  // Keep in sync with version bumps
 }
 ```
 
-> **注意**：当 `shared-events` 版本升级后，各服务 `build.gradle.kts` 中的版本号也需同步更新。
+> **Note**: When the `shared-events` version is bumped, update the version string in each service's `build.gradle.kts` accordingly.
 
 ---
 
-## Schema 定义规范
+## Schema Definition Standards
 
-### Avsc 文件结构
+### Avsc File Structure
 
 ```json
 {
   "namespace": "com.example.events.v1",
   "type": "record",
   "name": "OrderPlaced",
-  "doc": "事件含义的一句话描述，包含触发时机",
+  "doc": "One-sentence description of the event and when it is emitted",
   "fields": [
     {
       "name": "eventId",
       "type": "string",
-      "doc": "UUID，全局唯一事件标识，消费者用于幂等去重"
+      "doc": "UUID; globally unique event identifier used by consumers for idempotent deduplication"
     },
     {
       "name": "occurredAt",
       "type": { "type": "long", "logicalType": "timestamp-millis" },
-      "doc": "事件发生时间（UTC，毫秒时间戳）"
+      "doc": "Event timestamp (UTC, milliseconds)"
     }
   ]
 }
 ```
 
-**字段规范：**
+**Field standards:**
 
-| 规则 | 说明 |
+| Rule | Explanation |
 |---|---|
-| 每个事件必须有 `eventId`（string/UUID）| 消费者幂等去重的依据 |
-| 每个事件必须有 `occurredAt`（timestamp-millis）| 事件溯源时间戳 |
-| 所有字段必须写 `doc` | 消费团队的契约说明 |
-| 新增字段必须提供 `default` | 保持 BACKWARD 兼容性 |
-| 金额使用 `long`（分）+ `string`（货币码）| 避免浮点精度问题 |
-| UUID 使用 `string` 类型 | Avro 无原生 UUID 类型 |
-| 枚举使用 Avro `enum` 类型 | 配合 Schema Registry 做兼容性检查 |
+| Every event must have `eventId` (string/UUID) | Basis for consumer idempotent deduplication |
+| Every event must have `occurredAt` (timestamp-millis) | Event sourcing timestamp |
+| All fields must include `doc` | Contract description for consuming teams |
+| New fields must provide a `default` | Maintain BACKWARD compatibility |
+| Monetary amounts use `long` (cents) + `string` (currency code) | Avoid floating-point precision issues |
+| UUIDs use `string` type | Avro has no native UUID type |
+| Enumerations use Avro `enum` type | Enables compatibility checking via Schema Registry |
 
-### 示例：OrderPlaced.avsc
+### Example: OrderPlaced.avsc
 
 ```json
 {
   "namespace": "com.example.events.v1",
   "type": "record",
   "name": "OrderPlaced",
-  "doc": "当客户成功下单且库存预留完成时发布",
+  "doc": "Published when a customer successfully places an order and stock has been reserved",
   "fields": [
     {
       "name": "eventId",
       "type": "string",
-      "doc": "UUID，用于消费者幂等去重"
+      "doc": "UUID used for consumer idempotent deduplication"
     },
     {
       "name": "orderId",
       "type": "string",
-      "doc": "订单 ID（UUID）"
+      "doc": "Order ID (UUID)"
     },
     {
       "name": "customerId",
       "type": "string",
-      "doc": "客户 ID（UUID）"
+      "doc": "Customer ID (UUID)"
     },
     {
       "name": "customerEmail",
       "type": "string",
-      "doc": "下单时快照的客户邮箱，用于通知"
+      "doc": "Customer email snapshotted at order time, used for notifications"
     },
     {
       "name": "items",
@@ -264,10 +259,10 @@ dependencies {
           "type": "record",
           "name": "OrderItem",
           "fields": [
-            { "name": "bookId",         "type": "string", "doc": "书籍 ID（UUID）" },
-            { "name": "bookTitle",      "type": "string", "doc": "下单时快照的书名" },
+            { "name": "bookId",         "type": "string", "doc": "Book ID (UUID)" },
+            { "name": "bookTitle",      "type": "string", "doc": "Book title snapshotted at order time" },
             { "name": "quantity",       "type": "int" },
-            { "name": "unitPriceCents", "type": "long",   "doc": "下单时快照的单价（分）" }
+            { "name": "unitPriceCents", "type": "long",   "doc": "Unit price snapshotted at order time (cents)" }
           ]
         }
       }
@@ -275,18 +270,18 @@ dependencies {
     {
       "name": "totalCents",
       "type": "long",
-      "doc": "订单总金额（分）"
+      "doc": "Order total amount (cents)"
     },
     {
       "name": "currency",
       "type": "string",
       "default": "CNY",
-      "doc": "货币码（ISO 4217）"
+      "doc": "Currency code (ISO 4217)"
     },
     {
       "name": "occurredAt",
       "type": { "type": "long", "logicalType": "timestamp-millis" },
-      "doc": "事件发生时间（UTC）"
+      "doc": "Event timestamp (UTC)"
     }
   ]
 }
@@ -294,28 +289,28 @@ dependencies {
 
 ---
 
-## Kafka 资源管理 (Topic & ACL)
+## Kafka Resource Management (Topic & ACL)
 
-本模块作为 Single Source of Truth，不仅管理 Schema，也负责管理 Kafka Topic 和权限。
+This module acts as Single Source of Truth not only for schemas but also for Kafka Topic definitions and permissions.
 
-### Topic 配置 (topics.yaml)
+### Topic Configuration (topics.yaml)
 
-所有 Topic 均在 `src/main/resources/kafka/topics.yaml` 中定义：
+All Topics are defined in `src/main/resources/kafka/topics.yaml`:
 
 ```yaml
 topics:
   - name: bookstore.order.placed
     partitions: 3
     replicationFactor: 1
-    producers: ["order"]      # 拥有 WRITE + DESCRIBE 权限
-    consumers: ["notification"] # 拥有 READ + DESCRIBE 权限
+    producers: ["order"]        # Granted WRITE + DESCRIBE permissions
+    consumers: ["notification"] # Granted READ + DESCRIBE permissions
 ```
 
-### 权限同步脚本 (manage-kafka.sh)
+### Permission Sync Script (manage-kafka.sh)
 
-`scripts/manage-kafka.sh` 脚本通过 Kafka 管理命令自动化执行：
-1. **Topic 创建**：根据配置自动创建不存在的 Topic。
-2. **ACL 绑定**：基于 `producers/consumers` 绑定 Service Principal 权限。
+The `scripts/manage-kafka.sh` script automates the following via Kafka admin commands:
+1. **Topic creation**: Automatically creates Topics that do not yet exist.
+2. **ACL binding**: Binds Service Principal permissions based on `producers`/`consumers` entries.
 
 ```bash
 ./scripts/manage-kafka.sh
@@ -323,44 +318,64 @@ topics:
 
 ---
 
-## SDK 使用规范
+## SDK Usage Guidelines
 
-### 类型安全常量 (KafkaResourceConstants)
+### Type-Safe Constants (KafkaResourceConstants)
 
-各服务**禁止硬编码 Topic 名称**，必须引用本 SDK 提供的常量：
+Services **must not hard-code Topic names**; they must reference constants provided by this SDK:
 
 ```java
-// 示例：引用 Topic 常量
+// Example: reference a Topic constant
 kafkaTemplate.send(KafkaResourceConstants.TOPIC_ORDER_PLACED, key, event);
 ```
 
 ---
 
-## Schema 版本演进规则
+## Schema Evolution Rules
 
 ```mermaid
 flowchart LR
-    A["修改事件 Schema"] --> B{是否破坏性变更?}
-    B -->|否\n新增字段+default\n删除有default的字段| C["在 v1 命名空间中修改\n更新 patch/minor 版本"]
-    B -->|是\n删除必填字段\n修改字段类型/名称| D["创建 v2 命名空间\ncom.example.events.v2"]
-    D --> E["v1 和 v2 共存\n直到所有消费者迁移完成"]
-    E --> F["删除 v1 schema"]
+    A["Modify event Schema"] --> B{Breaking change?}
+    B -->|No\nAdd field+default\nRemove field with default| C["Modify in v1 namespace\nBump patch/minor version"]
+    B -->|Yes\nRemove required field\nChange field type/name| D["Create v2 namespace\ncom.example.events.v2"]
+    D --> E["v1 and v2 coexist\nuntil all consumers have migrated"]
+    E --> F["Remove v1 schema"]
 ```
 
-### 生产者（发布事件）
+**Handling breaking changes:**
+
+1. Create new version `.avsc` files under `src/main/avro/com/example/events/v2/`
+2. Bump the `shared-events` version (`version` in `build.gradle.kts`, MAJOR bump)
+3. Update `CHANGELOG.md` with the reason for the change
+4. Run `./gradlew build publishToMavenLocal` to publish the new version
+5. **Upgrade the producer first**: publish both v1 and v2 messages simultaneously (dual-write transition period)
+6. Gradually upgrade consumers to v2
+7. Once all consumers have migrated, stop the v1 dual-write and remove the v1 schema
+
+---
+
+## Producer (Publishing Events)
+
+Actual Kafka publishing is handled by seedwork's **Outbox Pattern** — services **do not call** `kafkaTemplate.send()` directly.
+
+Each service implements seedwork's `OutboxMapper` SPI in `infrastructure/messaging/outbox/`, mapping domain events to Avro payloads. Seedwork's `OutboxWriteListener` writes the outbox row within the same transaction; then `OutboxRelayScheduler` (or Debezium CDC) publishes asynchronously to Kafka.
 
 ```java
-// infrastructure/messaging/OrderEventPublisher.java  (in order)
-// 应用层通过 port/out 接口调用，此处是适配器实现
+// infrastructure/messaging/outbox/OrderOutboxMapper.java  (in order)
+// Implements seedwork's OutboxMapper SPI — the only place that imports shared-events Avro classes
 
 @Component
-public class KafkaOrderEventPublisher implements OrderEventPublisher {
-
-    private final KafkaTemplate<String, SpecificRecord> kafkaTemplate;
+public class OrderOutboxMapper implements OutboxMapper {
 
     @Override
-    public void publish(com.example.order.core.domain.event.OrderPlaced domainEvent) {
-        // 将领域事件 → Avro 消息（在基础设施适配器层完成映射）
+    public boolean supports(DomainEvent event) {
+        return event instanceof com.example.order.domain.event.OrderPlaced;
+    }
+
+    @Override
+    public OutboxPayload map(DomainEvent event) {
+        var domainEvent = (com.example.order.domain.event.OrderPlaced) event;
+        // Map domain event → Avro message (mapping done in the infrastructure adapter layer)
         var avroEvent = com.example.events.v1.OrderPlaced.newBuilder()
             .setEventId(domainEvent.eventId().toString())
             .setOrderId(domainEvent.orderId().toString())
@@ -372,68 +387,74 @@ public class KafkaOrderEventPublisher implements OrderEventPublisher {
             // ... items mapping
             .build();
 
-        kafkaTemplate.send("bookstore.order.placed",
-                           domainEvent.orderId().toString(),  // key = orderId（分区键）
-                           avroEvent);
-    }
-}
-```
-
-### 消费者（消费事件）
-
-```java
-// infrastructure/messaging/OrderPlacedConsumer.java  (in notification)
-
-@Component
-public class OrderPlacedConsumer {
-
-    private final SendNotificationUseCase sendNotificationUseCase;
-
-    @KafkaListener(topics = "bookstore.order.placed",
-                   groupId = "notification")
-    public void onOrderPlaced(com.example.events.v1.OrderPlaced event) {
-        // Avro 反序列化由 KafkaAvroDeserializer 自动完成
-        // 映射为应用层命令，调用用例
-        sendNotificationUseCase.execute(
-            new SendNotificationCommand(
-                UUID.fromString(event.getCustomerId()),
-                event.getCustomerEmail(),
-                "订单已收到：" + event.getOrderId()
-            )
+        return new OutboxPayload(
+            KafkaResourceConstants.TOPIC_ORDER_PLACED,
+            domainEvent.orderId().toString(),  // key = orderId (partition key)
+            avroEvent
         );
     }
 }
 ```
 
----
+Publishing trigger path (handled transparently by seedwork):
 
-## Schema 版本演进规则
-
-```mermaid
-flowchart LR
-    A["修改事件 Schema"] --> B{是否破坏性变更?}
-    B -->|否\n新增字段+default\n删除有default的字段| C["在 v1 命名空间中修改\n更新 patch/minor 版本"]
-    B -->|是\n删除必填字段\n修改字段类型/名称| D["创建 v2 命名空间\ncom.example.events.v2"]
-    D --> E["v1 和 v2 共存\n直到所有消费者迁移完成"]
-    E --> F["删除 v1 schema"]
+```
+PlaceOrderCommandHandler
+  → OrderPersistence.save(order)                        ← aggregate carries domain events
+      → OutboxWriteListener (BEFORE_COMMIT)             ← seedwork JPA listener
+          → writes outbox_event row atomically
+              → OutboxRelayScheduler / Debezium CDC     ← seedwork / infrastructure
+                  → KafkaOutboxEventPublisher publishes to Kafka
 ```
 
-**破坏性变更的处理流程：**
+---
 
-1. 在 `src/main/avro/com/example/events/v2/` 创建新版本 `.avsc`
-2. 更新 `shared-events` 版本号（`build.gradle.kts` 中 `version`，升 MAJOR）
-3. 更新 `CHANGELOG.md`，记录变更原因
-4. 执行 `./gradlew build publishToMavenLocal` 发布新版本
-5. **生产者先升级**：同时发布 v1 和 v2 消息（双写过渡期）
-6. 消费者逐步升级到 v2
-7. 确认所有消费者迁移完成后，停止 v1 双写，删除 v1 schema
+## Consumer (Consuming Events)
+
+In the actual code, the notification service uses seedwork's `IdempotentKafkaListener` to guarantee idempotent consumption, and routes messages from a single Topic to dedicated handler classes rather than writing business logic directly in the `@KafkaListener` method.
+
+```java
+// interfaces/messaging/consumer/OrderEventConsumer.java  (in notification)
+// Single-entry listener that routes messages to the appropriate handler
+
+@Component
+public class OrderEventConsumer {
+
+    private final OrderPlacedHandler orderPlacedHandler;
+    // ... other handlers
+
+    @IdempotentKafkaListener(topics = KafkaResourceConstants.TOPIC_ORDER_PLACED,
+                              groupId = "notification")
+    public void onOrderPlaced(com.example.events.v1.OrderPlaced event) {
+        // Avro deserialization is handled automatically by KafkaAvroDeserializer
+        orderPlacedHandler.handle(event);
+    }
+}
+
+// interfaces/messaging/consumer/OrderPlacedHandler.java  (in notification)
+// Focused on handling a single event type; dispatches to the application layer via CommandBus
+
+@Component
+public class OrderPlacedHandler {
+
+    private final CommandBus commandBus;
+
+    public void handle(com.example.events.v1.OrderPlaced event) {
+        commandBus.dispatch(new SendOrderNotificationCommand(
+            UUID.fromString(event.getCustomerId()),
+            event.getCustomerEmail(),
+            event.getOrderId()
+        ));
+    }
+}
+```
 
 ---
 
 ## .gitignore
 
 ```gitignore
-# 生成的 Avro Java 类不提交 Git，每次构建自动生成
+# Generated Avro Java classes are not committed to Git; regenerated automatically on every build
 build/
 .gradle/
 ```

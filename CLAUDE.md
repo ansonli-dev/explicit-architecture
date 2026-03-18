@@ -2,6 +2,8 @@
 
 This file provides guidance for Claude Code when working in this repository. Read it fully before making changes.
 
+> **Canonical architecture reference:** `docs/clarified-architecture-en.md` is the authoritative source for architectural decisions. Where this file and the architecture doc conflict, the architecture doc wins.
+
 ---
 
 ## Project Purpose
@@ -62,35 +64,43 @@ Referenced by all three services. Each service resolves `com.example:seedwork:0.
 
 ## Strict Architecture Rules
 
+### The Iron Rule
+
+> **The Domain Model depends on nothing outside itself.** No infrastructure interfaces, no application-layer types, no framework annotations with runtime behavior. This invariant must hold at all times and cannot be relaxed.
+
 ### Layer Dependency Rule (ENFORCE ALWAYS)
 ```
 Interfaces   ──┐
                ├──► Application ──► Domain
 Infrastructure ─┘
 ```
-- `domain` packages: zero framework imports — pure Java. No `@Component`, `@Entity`, `@Transactional` or any other annotation.
-- `application` packages: no JPA/Redis/Kafka imports. `@Service` on CommandHandlers/QueryHandlers is acceptable; Lombok (`@Slf4j`, `@RequiredArgsConstructor`) is acceptable. No raw `@Autowired`.
-- `infrastructure` packages: driven adapters — JPA, Redis, Kafka producers, HTTP clients. `@Transactional` lives here, not in handlers.
-- `interfaces` packages: driving adapters — REST controllers, Kafka consumers. No business logic.
+
+- **`domain` packages:** zero framework imports — pure Java. Only **behaviorally invasive** annotations are prohibited: `@Entity`, `@Transactional`, JPA relationship annotations (`@OneToMany`, etc.). These alter runtime behavior and pollute domain semantics. Pure discovery markers (`@Component`, `@Service`) are acceptable on Domain Services in a single-framework project — they carry no runtime behavior and do not affect testability (`new MyDomainService()` works identically with or without them).
+- **`application` packages:** no JPA/Redis/Kafka imports. `@Service` on CommandHandlers/QueryHandlers is acceptable; Lombok (`@Slf4j`, `@RequiredArgsConstructor`) is acceptable. No raw `@Autowired`.
+- **`infrastructure` packages:** driven adapters — JPA, Redis, Kafka producers, HTTP clients. `@Transactional` lives here, not in handlers.
+- **`interfaces` packages:** driving adapters — REST controllers, Kafka consumers. No business logic.
 
 ### Package Structure (per service)
 
-Four top-level packages. No `core/` wrapper — the absence of framework imports already makes the boundary visible.
-
 ```
 com.example.{service}/
-├── domain/                        ← depends only on seedwork.domain; zero framework deps, zero annotations
+├── domain/                        ← depends only on seedwork.domain; zero framework deps
 │   ├── model/                     ← Aggregates extend AggregateRoot<ID>, IDs implement DomainId<T>
+│   │                                 Value Objects: use records (immutable, structural equality)
+│   ├── ports/                     ← Write-side Repository interfaces (domain language, domain types only)
+│   │                                 e.g. OrderPersistence, BookPersistence, NotificationRepository
 │   ├── event/                     ← Domain Events implement DomainEvent (records with eventId+occurredAt)
-│   └── service/                   ← Domain Services (cross-aggregate, stateless logic)
+│   └── service/                   ← Domain Services (cross-aggregate, stateless pure logic)
 ├── application/                   ← depends on domain + seedwork.application; no JPA/Kafka/Redis imports
 │   ├── port/
-│   │   └── outbound/              ← Secondary Ports: {Aggregate}Persistence, {Target}Client, OrderSearchRepository
+│   │   └── outbound/              ← Secondary Ports that are NOT domain concepts:
+│   │                                 {Target}Client (HTTP), {Aggregate}SearchRepository (ES),
+│   │                                 {Aggregate}Cache (Redis), {Aggregate}ReadRepository (JPA projections)
 │   ├── command/                   ← CommandHandler<C,R> implementations
-│   │   └── {aggregate}/           ← Command record + @Service CommandHandler (package-by-feature)
+│   │   └── {aggregate}/           ← Command record + @Service CommandHandler + Result record (package-by-feature)
 │   └── query/                     ← QueryHandler<Q,R> implementations
 │       └── {aggregate}/           ← Query record + @Service QueryHandler + Response DTO (package-by-feature)
-├── infrastructure/                ← depends on application + all frameworks; @Transactional lives here
+├── infrastructure/                ← depends on application + domain + all frameworks; @Transactional lives here
 │   ├── repository/
 │   │   ├── jpa/                   ← JPA entities + Spring Data repos + persistence adapter
 │   │   └── elasticsearch/         ← ES documents + Spring Data ES repos + search adapter (order only)
@@ -101,14 +111,38 @@ com.example.{service}/
 │   └── client/                    ← HTTP clients for outbound calls (implements {Target}Client)
 └── interfaces/                    ← Primary adapters (driving side); no business logic
     ├── rest/                      ← REST controllers; dispatch via CommandBus / QueryBus
-    └── messaging/consumer/        ← Kafka consumers (only in services that consume events, e.g. notification)
+    └── messaging/consumer/        ← Kafka consumers (only in services that consume events)
 ```
+
+> **Why write-side Repository ports live in `domain/ports/`:** `OrderPersistence` is a domain concept — "the collection of all Orders." It speaks only in domain types (`OrderId`, `Order`). Placing it in the application layer hides this semantic ownership. Client ports (`CatalogClient`), cache ports (`BookCache`), and search ports (`OrderSearchRepository`) are infrastructure abstractions with no domain meaning — they belong in `application/port/outbound/`.
 
 > **Why `interfaces/` is separate from `infrastructure/`**: REST controllers are *primary (driving) adapters* — they receive requests and drive the application. JPA repositories and Kafka producers are *secondary (driven) adapters* — they are driven by the application. Conflating both in `infrastructure/` obscures this fundamental distinction from Hexagonal Architecture.
 
 > **CommandBus / QueryBus as primary ports**: Instead of per-use-case interfaces, a single `CommandBus` and `QueryBus` act as the entry point for the driving side. Controllers depend only on these two interfaces and never import concrete handler classes. Cross-cutting concerns (logging, timing) live in `infrastructure/bus/` — handlers stay focused on business logic.
 
 Only include the adapter packages a service actually uses. Do NOT create empty adapter packages as placeholders.
+
+### Command Result vs Query DTO
+
+**Command Handlers must not return Query-layer DTOs.** Command and query paths are independent — coupling them creates bidirectional dependencies between write and read sides.
+
+| Path | Return Type | Location |
+|------|-------------|----------|
+| Command Handler | `{Action}{Aggregate}Result` record | `application/command/{aggregate}/` |
+| Query Handler | `{Aggregate}{Purpose}Response` record | `application/query/{aggregate}/` |
+
+`PlaceOrderResult` and `OrderDetailResponse` may have similar fields but are separate types. `PlaceOrderResult` is assembled from in-memory domain state — **zero extra IO**. `OrderDetailResponse` may require a DB/ES read.
+
+### Business Logic Placement
+
+**Handlers orchestrate; the Domain decides.** An `if/else` or `throw` based on a business condition (e.g., "insufficient stock," "order already cancelled") belongs in the Domain Model or Domain Service, not in a Handler. The Handler's role is:
+
+1. Load entities via Repository Ports
+2. Call Domain Model / Domain Service with pre-loaded data
+3. Persist results
+4. Dispatch post-commit side effects if needed
+
+If a Handler contains `if (businessCondition) throw new BusinessException(...)`, that check should move to a domain method.
 
 ### Domain Events vs Integration Events
 
@@ -131,33 +165,36 @@ Aggregate.someAction()  →  registers DomainEvent internally
 - Domain objects never import `shared-events` Avro classes; only `OutboxMapper` does.
 
 ### Naming Conventions
-| Concept | Naming Pattern | Example |
-|---|---|---|
-| Command record | `{Action}{Aggregate}Command` | `PlaceOrderCommand` |
-| CommandHandler | `{Action}{Aggregate}CommandHandler` | `PlaceOrderCommandHandler` |
-| Query record | `{Criteria}{Aggregate}Query` | `GetOrderQuery`, `ListOrdersQuery` |
-| QueryHandler | `{Criteria}{Aggregate}QueryHandler` | `ListOrdersQueryHandler` |
-| Response DTO | `{Aggregate}{Purpose}Response` | `OrderDetailResponse`, `OrderSummaryResponse` |
-| Repository Port (port/outbound) | `{Aggregate}Persistence` | `OrderPersistence` |
-| Read Model Port (port/outbound) | `{Aggregate}SearchRepository` | `OrderSearchRepository` |
-| Service Client Port (port/outbound) | `{Target}Client` | `CatalogClient` |
-| Domain Event (in-process) | `{Aggregate}{PastTense}` | `OrderPlaced`, `StockReserved` |
-| JPA Entity | `{Aggregate}JpaEntity` | `OrderJpaEntity` |
-| JPA Repository | `{Aggregate}JpaRepository` | `OrderJpaRepository` |
-| ES Document | `{Aggregate}ElasticDocument` | `OrderElasticDocument` |
-| ES Repository | `{Aggregate}ElasticRepository` | `OrderElasticRepository` |
-| REST Controller (write) | `{Aggregate}CommandController` | `OrderCommandController` |
-| REST Controller (read) | `{Aggregate}QueryController` | `OrderQueryController` |
-| Outbox Mapper (adapter) | `{Service}OutboxMapper` | `OrderOutboxMapper` |
-| Kafka Consumer (adapter) | `{Event}Consumer` | `OrderPlacedConsumer` |
-| HTTP Client (adapter) | `{Target}RestClient` | `CatalogRestClient` |
+
+| Concept | Location | Naming Pattern | Example |
+|---|---|---|---|
+| Command record | `application/command/{aggregate}/` | `{Action}{Aggregate}Command` | `PlaceOrderCommand` |
+| CommandHandler | `application/command/{aggregate}/` | `{Action}{Aggregate}CommandHandler` | `PlaceOrderCommandHandler` |
+| Command Result | `application/command/{aggregate}/` | `{Action}{Aggregate}Result` | `PlaceOrderResult` |
+| Query record | `application/query/{aggregate}/` | `{Criteria}{Aggregate}Query` | `GetOrderQuery`, `ListOrdersQuery` |
+| QueryHandler | `application/query/{aggregate}/` | `{Criteria}{Aggregate}QueryHandler` | `ListOrdersQueryHandler` |
+| Response DTO | `application/query/{aggregate}/` | `{Aggregate}{Purpose}Response` | `OrderDetailResponse`, `OrderSummaryResponse` |
+| Repository Port (write-side) | `domain/ports/` | `{Aggregate}Persistence` | `OrderPersistence` |
+| Read/Search Port (app-side) | `application/port/outbound/` | `{Aggregate}SearchRepository`, `{Aggregate}ReadRepository` | `OrderSearchRepository`, `OrderReadRepository` |
+| Cache Port | `application/port/outbound/` | `{Aggregate}Cache` | `BookCache` |
+| Service Client Port | `application/port/outbound/` | `{Target}Client` | `CatalogClient` |
+| Domain Event (in-process) | `domain/event/` | `{Aggregate}{PastTense}` | `OrderPlaced`, `StockReserved` |
+| JPA Entity | `infrastructure/repository/jpa/` | `{Aggregate}JpaEntity` | `OrderJpaEntity` |
+| JPA Repository | `infrastructure/repository/jpa/` | `{Aggregate}JpaRepository` | `OrderJpaRepository` |
+| ES Document | `infrastructure/repository/elasticsearch/` | `{Aggregate}ElasticDocument` | `OrderElasticDocument` |
+| ES Repository | `infrastructure/repository/elasticsearch/` | `{Aggregate}ElasticRepository` | `OrderElasticRepository` |
+| REST Controller (write) | `interfaces/rest/` | `{Aggregate}CommandController` | `OrderCommandController` |
+| REST Controller (read) | `interfaces/rest/` | `{Aggregate}QueryController` | `OrderQueryController` |
+| Outbox Mapper (adapter) | `infrastructure/messaging/outbox/` | `{Service}OutboxMapper` | `OrderOutboxMapper` |
+| Kafka Consumer (adapter) | `interfaces/messaging/consumer/` | `{Event}Consumer` | `OrderPlacedConsumer` |
+| HTTP Client (adapter) | `infrastructure/client/` | `{Target}RestClient` | `CatalogRestClient` |
 
 ---
 
 ## Technology Decisions
 
 ### Java 21 Features to Use
-- **Records** for DTOs, Commands, Queries, Value Objects, Domain Events
+- **Records** for DTOs, Commands, Queries, Value Objects, Domain Events, Command Results
 - **Pattern matching** (`instanceof`, `switch`) in domain logic
 - **Virtual Threads** (enabled via `spring.threads.virtual.enabled=true`)
 - **Sealed classes** for discriminated unions (e.g., `OrderStatus`)
@@ -167,20 +204,30 @@ Aggregate.someAction()  →  registers DomainEvent internally
 - Use `@ConfigurationProperties` records for typed config (never raw `@Value` in domain/application layers)
 - `@Service` on CommandHandlers/QueryHandlers, `@Component` on Domain Services — standard Spring Boot auto-wiring
 - `@Component` on all infrastructure adapters
-- No `@Transactional` on CommandHandlers — keep it in the persistence adapter
+- **`@Transactional` placement rules:**
+  - **Default:** place on the Persistence Adapter's `save()`. Keeps transaction scope minimal; external I/O in the Handler naturally falls outside.
+  - **Cross-aggregate (same DB):** if a Handler must save two aggregate roots atomically, place `@Transactional` on the CommandHandler to span both `save()` calls. Document this in an ADR — first verify the aggregate boundary is not drawn incorrectly.
+  - **Never on Domain Services:** generates a Spring proxy and creates a hidden infrastructure dependency; Domain Services must remain plain Java.
+  - **Never wrap external I/O in a transaction:** HTTP calls and email sends must not occur inside a `@Transactional` boundary. Pre-fetch calls (read before business logic) are naturally outside when `@Transactional` is on the adapter.
+  - **Post-commit side effects** — choose the mechanism by the nature of the side effect:
+    - Side effect is the **primary purpose** of the command → direct call in Handler after `save()` (transaction already committed at this point)
+    - **Reaction** to state change, multiple consumers, or cross-service → Domain Event (`@TransactionalEventListener(phase = AFTER_COMMIT)` for same-service; Outbox for cross-service)
+    - **Infrastructure operation** (cache invalidation, search index) → inside Persistence Adapter `save()`, Handler does not need to know
+  - **Cross-service atomicity:** impossible at the DB level — use Saga pattern (event-driven steps + compensating transactions).
 
 ### CQRS in order
 - **Write side**: `CommandBus.dispatch(command)` → `PlaceOrderCommandHandler` / `CancelOrderCommandHandler` → `OrderPersistence` (JPA/PostgreSQL)
-- **Read side**: `QueryBus.dispatch(query)` → `GetOrderQueryHandler` / `ListOrdersQueryHandler` → `OrderSearchRepository` (ElasticSearch), bypassing the domain layer entirely
+- **Read side**: `QueryBus.dispatch(query)` → `GetOrderQueryHandler` / `ListOrdersQueryHandler` → `OrderSearchRepository` (ElasticSearch), bypassing the domain layer entirely. ES fallback uses `OrderReadRepository` (JPA projection returning DTO directly — never reconstitutes domain entities on the read path).
 - `SpringCommandBus` / `SpringQueryBus` in `infrastructure/bus/` auto-discover handlers, log dispatch, and measure duration
-- Domain events trigger read-model projections via `OrderPlacedConsumer` (Kafka consumer inside `order`)
+- Domain events trigger read-model projections via `OrderEventConsumer` (Kafka consumer inside `order`)
 
-### Domain Events & Inter Communication
-- Domain events are published to Kafka after successful aggregate state change
-- `shared-events` module contains **only** event schema classes (Java records + JSON schema files) — no business logic
+### Domain Events & Inter-Service Communication
+- Domain events are published to Kafka after successful aggregate state change via the Outbox pattern
+- `shared-events` module contains **only** Avro schema files — no executable business logic
 - Services never call each other's domain layer directly — only via events or REST APIs (ports)
 - Use the **Outbox Pattern** to guarantee at-least-once event delivery (write event to `outbox` table in same transaction, then relay via Kafka)
-- `outbox.relay.strategy` in each service's `application.yml` defaults to `debezium` (production). Override to `scheduler` (env var `OUTBOX_RELAY_STRATEGY=scheduler`) when running without Debezium — e.g. e2e against the test environment. The scheduler polls the outbox table internally; events still flow through Kafka correctly.
+- `outbox.relay.strategy` in each service's `application.yml` defaults to `debezium` (production). Override to `scheduler` (env var `OUTBOX_RELAY_STRATEGY=scheduler`) when running without Debezium.
+- Cross-service stock operations (e.g., releasing reserved stock on order cancel) are event-driven: `OrderCancelled` integration event carries item details; catalog service consumes it and releases stock idempotently. No synchronous HTTP calls for cross-service state changes.
 
 ### Database
 - Each service owns its PostgreSQL database exclusively (no shared tables)
@@ -188,6 +235,7 @@ Aggregate.someAction()  →  registers DomainEvent internally
 - seedwork base tables (outbox, processed_events, consumer_retry_events) are provided as SQL scripts in `classpath:db/seedwork/`; each service must add `classpath:db/seedwork` to `spring.flyway.locations`
 - JPA entities in `infrastructure/repository/jpa/` — never expose them outside that package
 - Map JPA entities ↔ domain objects explicitly in the persistence adapter
+- Use `@Version` on JPA entities for aggregates that can have concurrent state transitions (optimistic locking)
 
 ---
 
@@ -290,18 +338,35 @@ Span naming convention: `{service}.{aggregate}.{operation}` (e.g., `order.order.
 
 ## What NOT To Do
 
-- Do NOT add `@Transactional` to CommandHandler or QueryHandler classes — keep it in the persistence adapter
-- Do NOT import JPA/Redis/Kafka in `domain/` packages — zero framework dependencies
-- Do NOT use any Spring/framework annotation in `domain/` — not even `@Component`
-- Do NOT import JPA/Redis/Kafka in `application/` packages — only `@Service` and Lombok are acceptable
-- Do NOT create shared domain objects across microservices — duplicate if needed
-- Do NOT call `EventDispatcher` or any Kafka publisher from a CommandHandler — publishing is a side-effect of persistence via OutboxWriteListener
-- Do NOT skip the mapper layer — never return JPA entities from the persistence adapter to the application layer
-- Do NOT put business logic in controllers or Kafka consumers
+### Architecture
+- Do NOT put write-side Repository interfaces in `application/port/outbound/` — they belong in `domain/ports/` (they speak domain language and use domain types only)
+- Do NOT import application-layer types in `domain/ports/` — Repository interfaces must only reference domain model types (`OrderId`, `Order`, etc.)
 - Do NOT place REST controllers or Kafka consumers inside `infrastructure/` — they are primary adapters and belong in `interfaces/`
-- Do NOT inject concrete handler classes into controllers — always go through `CommandBus` / `QueryBus`
+- Do NOT inject concrete handler classes into controllers or Kafka consumers — always dispatch via `CommandBus` / `QueryBus`
 - Do NOT add cross-cutting logic (logging, metrics) to individual handlers — put it in the bus implementation
 - Do NOT define per-use-case inbound port interfaces (`PlaceOrderUseCase` etc.) — `CommandBus` / `QueryBus` serve as the inbound ports
+
+### Domain Model
+- Do NOT use behaviorally invasive annotations in `domain/` — no `@Entity`, `@Transactional`, JPA relationship annotations. `@Component`/`@Service` on Domain Services is acceptable.
+- Do NOT import JPA/Redis/Kafka in `domain/` packages — zero infrastructure dependencies
+- Do NOT add repositories or ports as constructor parameters to Domain Services — Domain Services are pure functions; all data is passed in by the Handler
+
+### Application Layer
+- Do NOT import JPA/Redis/Kafka in `application/` packages — only `@Service`, Lombok, and domain/seedwork imports
+- Do NOT have Command Handlers return Query-layer DTOs (`{Aggregate}DetailResponse`, etc.) — use dedicated `{Action}{Aggregate}Result` records assembled from in-memory domain state
+- Do NOT put business logic (if/else on business conditions) in Command Handlers — delegate to the Domain Model or Domain Service; the Handler only orchestrates
+- Do NOT reconstitute domain entities on the read path — Query Handlers return DTOs directly from DB/ES projections, bypassing the domain layer entirely
+
+### Transactions & I/O
+- Do NOT add `@Transactional` to Domain Services — creates a hidden infrastructure dependency via Spring proxy
+- Do NOT wrap external I/O (HTTP calls, email sends) inside a `@Transactional` boundary — holds DB connection during network I/O; rollback cannot undo sent emails
+- Do NOT release cross-service state (e.g., catalog stock) via synchronous HTTP after a DB commit — use the event-driven approach: publish a domain event, let the other service consume it
+
+### Data & Events
+- Do NOT call `EventDispatcher` or any Kafka publisher from a CommandHandler — publishing is a side-effect of persistence via `OutboxWriteListener`
+- Do NOT skip the mapper layer — never return JPA entities from the persistence adapter to the application layer
+- Do NOT create shared domain objects across microservices — duplicate simple types (e.g., `Money`) per bounded context
+- Do NOT put cache management (put/invalidate) in Command Handlers — it is an infrastructure concern that belongs in the Persistence Adapter's `save()`
 
 ---
 
@@ -342,12 +407,14 @@ helm upgrade --install catalog ./catalog/helm -f catalog/helm/values.yaml
 
 1. [ ] Define the domain model change in `domain/model/`
 2. [ ] Add/update domain event in `domain/event/`
-3. [ ] Define any new secondary port in `application/port/outbound/`
-4. [ ] Add `Command<R>` record + `@Service CommandHandler` in `application/command/{aggregate}/`
-5. [ ] Add `Query<R>` record + `@Service QueryHandler` + Response DTO in `application/query/{aggregate}/`
-6. [ ] Implement persistence adapter in `infrastructure/repository/jpa/`
-7. [ ] Add REST endpoint in `interfaces/rest/` — dispatch via `CommandBus` / `QueryBus`
-8. [ ] Add Flyway migration if schema changes
-9. [ ] Write unit tests for domain + handler (no Spring context)
-10. [ ] Write integration test for persistence adapter (Testcontainers)
-11. [ ] Update OpenAPI spec in `docs/api/`
+3. [ ] If the feature needs persistence: define or update the write-side port in `domain/ports/` (domain types only)
+4. [ ] If the feature needs external clients, cache, or search: define ports in `application/port/outbound/`
+5. [ ] Add `Command<Result>` record + `{Action}{Aggregate}Result` record + `@Service CommandHandler` in `application/command/{aggregate}/`
+6. [ ] Add `Query<R>` record + `@Service QueryHandler` + Response DTO in `application/query/{aggregate}/`
+7. [ ] Implement persistence adapter in `infrastructure/repository/jpa/` — include cache invalidation here if needed
+8. [ ] Add REST endpoint in `interfaces/rest/` — dispatch via `CommandBus` / `QueryBus`
+9. [ ] Add Flyway migration if schema changes
+10. [ ] Write unit tests for domain behavior (no mocks, no Spring context)
+11. [ ] Write unit tests for handler (mock ports with Mockito)
+12. [ ] Write integration test for persistence adapter (Testcontainers)
+13. [ ] Update OpenAPI spec in `docs/api/`

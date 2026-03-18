@@ -1,155 +1,189 @@
-# notification — Infrastructure 集成文档
+# notification — Infrastructure Integration Guide
 
-## 服务定位
+## Service Overview
 
-`notification` 是通知领域的边界上下文，**纯事件驱动**，无对外 REST 写入入口。监听订单事件，生成并记录通知（Demo 阶段通过日志模拟发送邮件，无真实 SMTP）。
+`notification` is the bounded context for the notification domain. It is **purely event-driven** with no inbound REST write endpoints. It listens to order events, generates notifications, and records them (email sending is simulated via logging in this demo — no real SMTP is used).
 
-**消费：**
-- Kafka 事件（`OrderPlaced`、`OrderConfirmed`、`OrderCancelled`、`OrderShipped`）
+**Consumes:**
+- Kafka events (`OrderPlaced`, `OrderConfirmed`, `OrderCancelled`, `OrderShipped`)
 
-**对外提供：**
-- REST API（查询通知记录，只读）
+**Exposes:**
+- REST API (query notification records, read-only)
 
 ---
 
-## Infrastructure 集成总览
+## Domain Model
 
-| 中间件 | 用途 | 必须 |
+```mermaid
+classDiagram
+    class Notification {
+        <<Aggregate Root>>
+        +NotificationId id
+        +CustomerId customerId
+        +Channel channel
+        +DeliveryStatus status
+        +Payload payload
+        +send() NotificationSent
+        +markFailed(reason) NotificationFailed
+    }
+    class Channel        { <<Enum>> EMAIL; PUSH }
+    class DeliveryStatus { <<Enum>> PENDING; SENT; FAILED }
+    class Payload        { <<Value Object>> +String subject; +String body }
+    class NotificationSent   { <<Domain Event>> }
+    class NotificationFailed { <<Domain Event>> }
+
+    Notification *-- Channel
+    Notification *-- DeliveryStatus
+    Notification *-- Payload
+    Notification ..> NotificationSent   : emits
+    Notification ..> NotificationFailed : emits
+```
+
+---
+
+## Infrastructure Overview
+
+| Middleware | Purpose | Required |
 |---|---|---|
-| PostgreSQL | 通知记录持久化 | ✅ |
-| Kafka + Schema Registry | 消费 Order 事件 | ✅ |
+| PostgreSQL | Notification record persistence | ✅ |
+| Kafka + Schema Registry | Consume Order events | ✅ |
 | SigNoz / OTel | Traces + Metrics + Logs | ✅ |
-| Redis | ❌ 不使用 | — |
-| Debezium Connect | ❌ 不使用（无 Outbox，不发布跨服务事件） | — |
-| ElasticSearch | ❌ 不使用 | — |
+| Redis | Not used | — |
+| Debezium Connect | Not used (no Outbox, no cross-service event publishing) | — |
+| ElasticSearch | Not used | — |
 
-> **为什么不需要 Outbox？** notification **只消费**事件，不跨服务发布事件，因此不需要 Outbox 模式。通知记录只走 PostgreSQL 即可。
+> **Why no Outbox?** notification **only consumes** events and never publishes cross-service events, so the Outbox pattern is not needed. Notification records are written directly to PostgreSQL.
 
 ---
 
 ## PostgreSQL
 
-### 数据库信息
+### Database Info
 
-| 项目 | 值 |
+| Property | Value |
 |---|---|
-| 数据库名 | `notification` |
-| 用户名 | `notification` |
-| 密码 | `.env` 中 `NOTIFICATION_DBPASSWORD` |
-| 地址（本地） | `localhost:5432` |
+| Database name | `notification` |
+| Username | `bookstore` |
+| Password | `${SPRING_DATASOURCE_PASSWORD:bookstore}` |
+| Address (local) | `localhost:5432` |
 
-### Flyway 迁移脚本
+### Flyway Migration Scripts
 
 ```
 src/main/resources/db/migration/
-├── V1__create_notifications_table.sql
-└── V2__create_processed_events_table.sql  # 消费幂等去重表
+├── V0100__notification_schema.sql          # notification table
+└── V0101__add_notification_timestamps.sql
+
+# Provided by Seedwork (loaded via classpath:db/seedwork):
+├── V0001__seedwork_outbox_events.sql
+├── V0002__seedwork_processed_events.sql    # idempotency deduplication table (managed by seedwork)
+└── V0003__seedwork_consumer_retry_events.sql
 ```
 
-### 幂等去重表
+### Idempotency Deduplication Table
 
-notification 作为 Kafka 消费者，必须处理**至少一次投递**（at-least-once）的重复消费问题（见 [ADR-005](../docs/architecture/ADR-005-outbox-pattern.md)）：
+Idempotency deduplication is handled centrally by seedwork's `IdempotentKafkaListener` / `ProcessedEventStore`. The `processed_event` table is created by seedwork's `V0002__seedwork_processed_events.sql`. No service-level implementation is required.
 
-```sql
--- V2__create_processed_events_table.sql
-CREATE TABLE processed_events (
-    event_id    UUID PRIMARY KEY,           -- 来自 Avro 消息 eventId 字段
-    processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-消费者在处理前先查 `processed_events`，已处理则幂等跳过：
-
-```java
-if (processedEventRepository.existsById(event.getEventId())) {
-    log.debug("Duplicate event {}, skipping", event.getEventId());
-    return;
-}
-// 处理业务逻辑...
-// 同一事务中插入 processed_events
-```
-
-### Spring 配置
+### Spring Configuration
 
 ```yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/notification
-    username: notification
-    password: ${NOTIFICATION_DBPASSWORD}
-    hikari:
-      maximum-pool-size: 5              # 通知服务并发较低
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/notification}
+    username: ${SPRING_DATASOURCE_USERNAME:bookstore}
+    password: ${SPRING_DATASOURCE_PASSWORD:bookstore}
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/seedwork,classpath:db/migration
 ```
 
 ---
 
 ## Kafka + Schema Registry
 
-### 消费 Topic 清单
+### Consumed Topics
 
-| Topic | 触发动作 | 通知内容 |
+| Topic | Action | Notification Content |
 |---|---|---|
-| `bookstore.order.placed` | 创建"订单已收到"通知 | 发送订单确认邮件（日志模拟） |
-| `bookstore.order.confirmed` | 创建"订单已确认"通知 | 通知用户开始备货 |
-| `bookstore.order.cancelled` | 创建"订单已取消"通知 | 告知用户取消原因 |
-| `bookstore.order.shipped` | 创建"订单已发货"通知 | 包含快递单号 |
+| `bookstore.order.placed` | Create "order received" notification | Send order confirmation email (log simulation) |
+| `bookstore.order.confirmed` | Create "order confirmed" notification | Notify customer that fulfillment has started |
+| `bookstore.order.cancelled` | Create "order cancelled" notification | Inform customer of the cancellation reason |
+| `bookstore.order.shipped` | Create "order shipped" notification | Include tracking number |
 
 ### Consumer Group
 
-| Consumer Group | 消费 Topic | 说明 |
+| Consumer Group | Topics Consumed | Description |
 |---|---|---|
-| `notification` | `bookstore.order.*`（全部 4 个） | 一个 Consumer Group 订阅所有 Order 事件 |
+| `notification.order-events` | `bookstore.order.*` (all 4) | A single consumer group subscribes to all Order events |
 
-### Spring Kafka 配置
+### Spring Kafka Configuration
 
 ```yaml
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: notification
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:notification.order-events}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       auto-offset-reset: earliest
-      # 手动提交 Offset（保证处理完成后才提交，避免消息丢失）
+      # Manual offset commit — ensures offset is committed only after successful processing
       enable-auto-commit: false
     listener:
       ack-mode: MANUAL_IMMEDIATE
     properties:
-      schema.registry.url: http://localhost:8085
-      auto.register.schemas: false   # Schema 由 shared-events/manage-kafka.sh 预注册
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8085}
       specific.avro.reader: true
+      auto.register.schemas: false   # Schemas are pre-registered by shared-events/manage-kafka.sh
 ```
 
-> **为什么手动提交 Offset？** 自动提交可能在 DB 写入失败后已提交 Offset，导致消息丢失。手动提交保证"处理成功 + DB 写入 + Offset 提交"的顺序正确性。
+> **Why manual offset commit?** Auto-commit may commit the offset even if the DB write fails, causing message loss. Manual commit ensures the correct order: "processing success + DB write + offset commit".
 
-### 无需声明 Topic
+### No Topic Declarations Needed
 
-notification **不创建**任何 Topic，只消费事件。Topic 统一由 `shared-events/scripts/manage-kafka.sh` 预创建（`setup.sh` 自动执行）。
+notification does **not** create any topics — it only consumes events. All topics are pre-created by `shared-events/scripts/manage-kafka.sh` (executed automatically by `setup.sh`).
+
+### Kafka Consumer Structure
+
+```
+interfaces/messaging/consumer/
+├── OrderEventConsumer.java        # Entry point — single @KafkaListener for all Order topics
+├── OrderPlacedHandler.java        # Handles OrderPlaced event
+├── OrderConfirmedHandler.java     # Handles OrderConfirmed event
+├── OrderShippedHandler.java       # Handles OrderShipped event
+└── OrderCancelledHandler.java     # Handles OrderCancelled event
+```
+
+`OrderEventConsumer` is the sole Kafka entry point. It dispatches to the appropriate handler based on the message type. Idempotency deduplication is handled transparently by seedwork's `IdempotentKafkaListener` — each handler focuses exclusively on business logic.
+
+---
+
+## Application Ports (Outbound)
+
+| Port Interface | Adapter Implementation | Location |
+|---|---|---|
+| `NotificationRepository` | `NotificationPersistenceAdapter` | `infrastructure/repository/jpa/` |
+| `EmailSender` | `LogEmailAdapter` | `infrastructure/client/email/` |
+| `CustomerClient` | `StubCustomerClient` | `infrastructure/client/customer/` |
+
+> `CustomerClient` is used to retrieve customer contact information (e.g., email address). In the demo, `StubCustomerClient` returns fixed test data without calling a real Customer service.
 
 ---
 
 ## Debezium Connect
 
-**notification 不使用 Debezium。**
+**notification does not use Debezium.**
 
-此服务只消费事件，不向其他服务发布事件，不需要 Outbox 模式，因此无 Debezium Connector。
+This service only consumes events and never publishes events to other services. Since the Outbox pattern is not needed, there is no Debezium connector for this service.
 
 ---
 
-## 邮件发送（Demo 模拟）
+## Email Sending (Demo Simulation)
 
-Demo 阶段不使用真实 SMTP，邮件发送通过日志模拟：
+No real SMTP is used in the demo. Email sending is simulated via logging:
 
 ```java
-// infrastructure/email/LogEmailAdapter.java
+// infrastructure/client/email/LogEmailAdapter.java
 @Component
 @ConditionalOnProperty(name = "notification.email.log-only", havingValue = "true")
 public class LogEmailAdapter implements EmailSender {
@@ -166,7 +200,7 @@ public class LogEmailAdapter implements EmailSender {
 # application.yml
 notification:
   email:
-    log-only: true   # true = 日志模拟；false = 真实 SMTP（仅 prod 使用）
+    log-only: true   # true = log simulation; false = real SMTP (production only)
 ```
 
 ---
@@ -179,27 +213,27 @@ OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4317
 OTEL_EXPORTER_OTLP_PROTOCOL: grpc
 ```
 
-### 自动埋点覆盖范围
+### Auto-Instrumentation Coverage
 
-| 信号 | 自动覆盖内容 |
+| Signal | Coverage |
 |---|---|
-| **Traces** | Kafka 消费（含 `traceparent` 传播，与 order 的 Trace 链路连通）、JDBC SQL |
-| **Metrics** | JVM 堆/GC、Kafka consumer lag（监控通知是否积压）、HikariCP |
-| **Logs** | 注入 `trace_id`、`span_id` |
+| **Traces** | Kafka consumption (with `traceparent` propagation, connects to the order service trace chain), JDBC SQL |
+| **Metrics** | JVM heap/GC, Kafka consumer lag (monitor notification backlog), HikariCP |
+| **Logs** | `trace_id` and `span_id` injected |
 
-### Trace 传播
+### Trace Propagation
 
-Debezium 发布的 Kafka 消息头中包含 `traceparent`，notification 的 OTel Agent 自动提取并创建**子 Span**，使得整条链路可追溯：
+Kafka messages published by Debezium include a `traceparent` header. The notification service's OTel agent automatically extracts it and creates a **child span**, making the full trace chain observable end-to-end:
 
 ```
 Customer → order (HTTP) → PostgreSQL (Outbox) → Debezium → Kafka
-  → notification (Kafka Consumer) → PostgreSQL (通知记录)
+  → notification (Kafka Consumer) → PostgreSQL (notification record)
                                           → LogEmailAdapter
 ```
 
-SigNoz 中可查看跨服务的完整 Trace。
+The complete cross-service trace is visible in SigNoz.
 
-### Span 命名约定
+### Span Naming Convention
 
 ```
 notification.notification.handle-order-placed
@@ -213,49 +247,49 @@ notification.notification.get-notifications
 
 ## Istio / Kubernetes
 
-### 服务端口
+### Service Ports
 
-| 端口 | 说明 |
+| Port | Description |
 |---|---|
-| `8083` | REST API（只读：查询通知记录） |
-| `8080` | Actuator（内部） |
+| `8083` | REST API (read-only: query notification records) |
+| `8080` | Actuator (internal) |
 
-### Helm Chart 文件（`helm/templates/`）
+### Helm Chart Files (`helm/templates/`)
 
-| 文件 | 内容 |
+| File | Contents |
 |---|---|
-| `deployment.yaml` | 单副本（通知服务无状态，可按 Kafka Consumer Group 语义扩容） |
-| `service.yaml` | ClusterIP，端口 8083 |
-| `hpa.yaml` | CPU > 70% 触发扩容，最大 3 副本（多实例时 Kafka 自动分配 Partition） |
-| `networkpolicy.yaml` | 放行：Ingress Gateway → 8083；Egress → PostgreSQL:5432、Kafka:29092、Schema Registry:8081 |
-| `virtual.yaml` | 路由到 notification，超时 5s |
-| `destination-rule.yaml` | 熔断器配置 |
-| `configmap.yaml` | 含 `NOTIFICATION_EMAIL_LOG_ONLY=true` |
-| `serviceaccount.yaml` | 独立 ServiceAccount |
+| `deployment.yaml` | Single replica (stateless; can scale by Kafka consumer group partition assignment) |
+| `service.yaml` | ClusterIP, port 8083 |
+| `hpa.yaml` | Scale out at CPU > 70%, max 3 replicas (Kafka automatically redistributes partitions across instances) |
+| `networkpolicy.yaml` | Allow: Ingress Gateway → 8083; Egress → PostgreSQL:5432, Kafka:29092, Schema Registry:8081 |
+| `virtual.yaml` | Route to notification, 5s timeout |
+| `destination-rule.yaml` | Circuit breaker configuration |
+| `configmap.yaml` | Includes `NOTIFICATION_EMAIL_LOG_ONLY=true` |
+| `serviceaccount.yaml` | Dedicated ServiceAccount |
 
-### VirtualService 路由规则
+### VirtualService Routing Rules
 
 ```
-bookstore.local/api/v1/notifications*  → notification:8083（只读查询）
+bookstore.local/api/v1/notifications*  → notification:8083 (read-only queries)
 ```
 
 ---
 
-## 本地启动
+## Local Startup
 
 ```bash
-# 1. 启动基础设施（自动完成 Topic 创建、Schema 注册）
+# 1. Start infrastructure (topic creation and schema registration happen automatically)
 cd ../infrastructure && ./setup.sh && cd -
 
-# 2. 确认 shared-events SDK 已发布
+# 2. Ensure the shared-events SDK is published to mavenLocal
 cd ../shared-events && ./gradlew publishToMavenLocal && cd -
 
-# 3. 启动服务
+# 3. Start the service
 ./gradlew bootRun
 ```
 
-> **启动顺序依赖**：order（及其 Debezium Connector）需先启动并成功发布消息，notification 才会有数据可消费。
+> **Startup dependency**: the `order` service (and its Debezium connector) must be started first and have published messages before `notification` has any events to consume.
 
-服务启动后可访问：
-- 查询通知：`GET http://localhost:8083/api/v1/notifications?customerId={id}`
-- 健康检查：`http://localhost:8083/actuator/health`
+Once started, the service is accessible at:
+- Query notifications: `GET http://localhost:8083/api/v1/notifications?customerId={id}`
+- Health check: `http://localhost:8083/actuator/health`

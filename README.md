@@ -51,7 +51,7 @@ sequenceDiagram
     deactivate NS
 ```
 
-**Cross consistency** is handled via a Choreography-based Saga (see [ADR-006](docs/architecture/ADR-006-database-per.md)) and guaranteed event delivery via the Outbox Pattern (see [ADR-005](docs/architecture/ADR-005-outbox-pattern.md)).
+**Cross-service consistency** is handled via a Choreography-based Saga (see [ADR-006](docs/architecture/ADR-006-database-per-service.md)) and guaranteed event delivery via the Outbox Pattern (see [ADR-005](docs/architecture/ADR-005-outbox-pattern.md)).
 
 ---
 
@@ -70,7 +70,7 @@ graph LR
         subgraph APP["application/"]
             CMD["CommandHandlers\n(write side)"]
             QRY["QueryHandlers\n(read side)"]
-            POUT["«port out»\nRepository / EventDispatcher"]
+            POUT["«port outbound»\nRepository / Client interfaces"]
         end
         subgraph DOM["domain/"]
             AGG["Entities · Aggregates"]
@@ -114,116 +114,13 @@ graph LR
 
 ## Domain Model Overview
 
-### catalog
+Each microservice owns its domain model completely (no shared domain objects across services).
 
-```mermaid
-classDiagram
-    class Book {
-        <<Aggregate Root>>
-        +BookId id
-        +Title title
-        +Author author
-        +Money price
-        +Category category
-        +StockLevel stockLevel
-        +reserve(quantity) StockReserved
-        +restock(quantity) void
-    }
-    class BookId      { <<Value Object>> +UUID value }
-    class Title       { <<Value Object>> +String value }
-    class Author      { <<Value Object>> +String name; +String biography }
-    class Money       { <<Value Object>> +long cents; +String currency }
-    class StockLevel  { <<Value Object>> +int total; +int reserved; +available() int }
-    class Category    { <<Entity>>       +UUID id; +String name }
-    class BookAdded   { <<Domain Event>> }
-    class StockReserved { <<Domain Event>> }
-    class StockReleased { <<Domain Event>> }
-
-    Book *-- BookId
-    Book *-- Title
-    Book *-- Author
-    Book *-- Money
-    Book *-- StockLevel
-    Book --> Category
-    Book ..> BookAdded     : emits
-    Book ..> StockReserved : emits
-    Book ..> StockReleased : emits
-```
-
-### order
-
-```mermaid
-classDiagram
-    class Order {
-        <<Aggregate Root>>
-        +OrderId id
-        +CustomerId customerId
-        +OrderStatus status
-        +Money totalAmount
-        +place() OrderPlaced
-        +confirm() OrderConfirmed
-        +ship(tracking) OrderShipped
-        +cancel(reason) OrderCancelled
-    }
-    class OrderItem {
-        <<Entity>>
-        +UUID bookId
-        +String bookTitle
-        +Money unitPrice
-        +int quantity
-    }
-    class OrderStatus {
-        <<Sealed Interface>>
-        Pending
-        Confirmed
-        Shipped
-        Cancelled
-    }
-    class Money         { <<Value Object>> +long cents; +String currency }
-    class OrderPlaced   { <<Domain Event>> }
-    class OrderConfirmed{ <<Domain Event>> }
-    class OrderShipped  { <<Domain Event>> }
-    class OrderCancelled{ <<Domain Event>> }
-
-    Order "1" *-- "1..*" OrderItem
-    Order       *-- OrderStatus
-    Order       *-- Money
-    Order ..> OrderPlaced    : emits
-    Order ..> OrderConfirmed : emits
-    Order ..> OrderShipped   : emits
-    Order ..> OrderCancelled : emits
-```
-
-> **Snapshot pattern**: `OrderItem` stores a snapshot of book title and price at order time — not a live FK to `catalog`. Order history remains accurate even when catalog data changes later.
-
-### notification
-
-```mermaid
-classDiagram
-    class Notification {
-        <<Aggregate Root>>
-        +NotificationId id
-        +CustomerId customerId
-        +Channel channel
-        +DeliveryStatus status
-        +Payload payload
-        +send() NotificationSent
-        +markFailed(reason) NotificationFailed
-    }
-    class Channel        { <<Enum>> EMAIL; PUSH }
-    class DeliveryStatus { <<Enum>> PENDING; SENT; FAILED }
-    class Payload        { <<Value Object>> +String subject; +String body }
-    class NotificationSent   { <<Domain Event>> }
-    class NotificationFailed { <<Domain Event>> }
-
-    Notification *-- Channel
-    Notification *-- DeliveryStatus
-    Notification *-- Payload
-    Notification ..> NotificationSent   : emits
-    Notification ..> NotificationFailed : emits
-```
-
-> **Note on snapshots**: `OrderItem` stores a snapshot of book title and price at order time, not a live reference to `catalog`. This preserves order history accuracy even when catalog data changes.
+| Microservice | Aggregate Root | Domain Events | Details |
+|---|---|---|---|
+| `catalog` | `Book` | `BookAdded`, `StockReserved`, `StockReleased` | [catalog/README.md](catalog/README.md#domain-model) |
+| `order` | `Order` | `OrderPlaced`, `OrderConfirmed`, `OrderShipped`, `OrderCancelled` | [order/README.md](order/README.md#domain-model) |
+| `notification` | `Notification` | `NotificationSent`, `NotificationFailed` | [notification/README.md](notification/README.md#domain-model) |
 
 ---
 
@@ -231,7 +128,7 @@ classDiagram
 
 ```mermaid
 flowchart LR
-    subgraph WS["✏️  Write Side (Commands)"]
+    subgraph WS["Write Side (Commands)"]
         direction TB
         CMD["REST Controller\nPOST /orders\nPUT /orders/{id}/cancel"]
         APPSVC["PlaceOrderCommandHandler\nCancelOrderCommandHandler"]
@@ -243,7 +140,7 @@ flowchart LR
         APPSVC --> OB
     end
 
-    subgraph RELAY["⚡ Outbox Relay"]
+    subgraph RELAY["Outbox Relay"]
         direction TB
         SCH["Relay Scheduler\n~500 ms poll"]
         KF[["Kafka\norder.placed"]]
@@ -251,18 +148,18 @@ flowchart LR
         OB --> SCH --> KF
     end
 
-    subgraph PROJ["🔄 Projector"]
+    subgraph PROJ["Projector"]
         direction TB
-        PRJ["OrderProjector\nKafka Consumer"]
+        PRJ["OrderReadModelProjector\nKafka Consumer (order.read-model)"]
         ESW[("ElasticSearch\nindex write")]
 
         KF --> PRJ --> ESW
     end
 
-    subgraph RS["🔍 Read Side (Queries)"]
+    subgraph RS["Read Side (Queries)"]
         direction TB
         QRY["REST Controller\nGET /orders\nGET /orders/{id}"]
-        QSVC["OrderQueryService\n(bypasses domain layer)"]
+        QSVC["GetOrderQueryHandler\nListOrdersQueryHandler\n(bypasses domain layer)"]
         ESR[("ElasticSearch\nread model")]
 
         QRY --> QSVC --> ESR
@@ -271,80 +168,85 @@ flowchart LR
     ESW -. "same index" .-> ESR
 ```
 
-Read model is **eventually consistent** — typically lags write by <500ms (Outbox poll interval).
+Read model is **eventually consistent** — typically lags write by <500 ms (Outbox poll interval).
+
+Controllers dispatch all operations through `CommandBus` / `QueryBus`. Handlers are never injected directly into controllers.
 
 ---
 
 ## Module Structure (per microservice)
 
-每个服务的目录结构相同，但适配器因服务而异（见下方说明）。
+All three services share the same directory layout. Only the adapters differ per service (see the table below).
 
 ```
 {service}/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/example/{service}/
-│   │   │   ├── domain/                  # zero framework deps — pure Java
-│   │   │   │   ├── model/               # Entities, Aggregates, Value Objects
-│   │   │   │   ├── event/               # Domain Events (in-process, immutable records)
-│   │   │   │   └── service/             # Domain Services (cross-aggregate, stateless)
-│   │   │   ├── application/             # depends on domain only; no Spring/JPA/Kafka imports
+│   │   │   ├── domain/                      # zero framework deps — pure Java
+│   │   │   │   ├── model/                   # Entities, Aggregates, Value Objects
+│   │   │   │   ├── event/                   # Domain Events (in-process, immutable records)
+│   │   │   │   └── service/                 # Domain Services (cross-aggregate, stateless)
+│   │   │   ├── application/                 # depends on domain only; no Spring/JPA/Kafka imports
 │   │   │   │   ├── port/
-│   │   │   │   │   └── out/             # Secondary Ports (Repository + EventDispatcher interfaces)
-│   │   │   │   ├── command/{aggregate}/ # Command record + CommandHandler (package-by-feature)
-│   │   │   │   ├── query/{aggregate}/   # Query record + QueryHandler + Response DTO
-│   │   │   │   └── service/             # Outbound service-client interfaces (e.g., CatalogClient)
-│   │   │   ├── infrastructure/          # driven adapters — framework code lives here
-│   │   │   │   ├── persistence/         # JPA entities + Spring Data repositories
-│   │   │   │   ├── messaging/           # Kafka producers / Outbox relay
-│   │   │   │   ├── cache/               # Redis 适配器（仅 catalog）
-│   │   │   │   ├── search/              # ElasticSearch 适配器（仅 order）
-│   │   │   │   ├── email/               # 邮件适配器（仅 notification，日志模拟）
-│   │   │   │   └── client/              # HTTP clients for outbound calls
-│   │   │   └── interfaces/              # driving adapters — primary (inbound) side
-│   │   │       └── rest/                # REST Controllers + request/response mappers
+│   │   │   │   │   └── outbound/            # Secondary Ports: Persistence, Client, SearchRepository interfaces
+│   │   │   │   ├── command/{aggregate}/     # Command record + @Service CommandHandler (package-by-feature)
+│   │   │   │   └── query/{aggregate}/       # Query record + @Service QueryHandler + Response DTO
+│   │   │   ├── infrastructure/              # driven adapters — all framework code lives here
+│   │   │   │   ├── repository/
+│   │   │   │   │   ├── jpa/                 # JPA entities + Spring Data repos + persistence adapter
+│   │   │   │   │   └── elasticsearch/       # ES documents + ES repo + projector (order only)
+│   │   │   │   ├── messaging/
+│   │   │   │   │   └── outbox/              # OutboxMapper implementation (catalog + order)
+│   │   │   │   ├── cache/                   # Redis adapter (catalog only)
+│   │   │   │   └── client/                  # HTTP clients (order: CatalogRestClient)
+│   │   │   │       └── email/               # Email adapter (notification only — log simulation)
+│   │   │   └── interfaces/                  # primary adapters — driving (inbound) side
+│   │   │       ├── rest/                    # REST Controllers; dispatch via CommandBus / QueryBus
+│   │   │       └── messaging/
+│   │   │           └── consumer/            # Kafka consumers (notification + order read-model projector)
 │   │   └── resources/
 │   │       ├── application.yml
 │   │       └── db/
-│   │           └── migration/           # Flyway 迁移脚本（V1__xxx.sql, V2__xxx.sql …）
+│   │           └── migration/               # Flyway migration scripts (V1__xxx.sql, V2__xxx.sql …)
 │   └── test/
 │       ├── java/com/example/{service}/
-│       │   ├── domain/                  # 纯单元测试，无 Spring 上下文，无 Docker
-│       │   ├── application/             # Handler 单元测试，Mock 掉 Port
-│       │   └── infrastructure/          # 适配器集成测试（@Tag("integration"), Testcontainers）
+│       │   ├── domain/                      # pure unit tests — no Spring context, no Docker
+│       │   ├── application/                 # handler unit tests — mock outbound ports
+│       │   └── infrastructure/              # adapter integration tests (@Tag("integration"), Testcontainers)
 │       └── resources/
 │           └── application-test.yml
-├── helm/                                # 服务自带 Helm Chart
+├── helm/                                    # per-service Helm Chart
 │   ├── Chart.yaml
 │   ├── values.yaml
 │   └── templates/
 │       ├── _helpers.tpl
 │       ├── deployment.yaml
 │       ├── service.yaml
-│       ├── serviceaccount.yaml          # 服务独立 ServiceAccount
+│       ├── serviceaccount.yaml
 │       ├── configmap.yaml
 │       ├── hpa.yaml
-│       ├── networkpolicy.yaml           # 服务特定的流量放行规则
-│       ├── virtual.yaml                 # Istio VirtualService（超时/重试）
-│       ├── destination-rule.yaml        # Istio DestinationRule（熔断器）
+│       ├── networkpolicy.yaml               # service-specific traffic rules
+│       ├── virtual.yaml                     # Istio VirtualService (timeout / retry)
+│       ├── destination-rule.yaml            # Istio DestinationRule (circuit breaker)
 │       └── NOTES.txt
-├── build.gradle.kts
-└── Dockerfile
+└── build.gradle.kts
 ```
 
+> Images are built with **Jib** (no `Dockerfile` required). Run `./gradlew jibDockerBuild` to push to the local Docker daemon.
 
-### 各服务适配器对照
+### Adapter Matrix
 
-| 适配器包 | catalog | order | notification |
+| Adapter Package | catalog | order | notification |
 |---|---|---|---|
 | `interfaces/rest/` | ✅ | ✅ | ✅ |
-| `persistence/` | ✅ | ✅ | ✅ |
-| `messaging/` | ✅（发布库存事件） | ✅（Outbox + 投影消费） | ✅（消费订单事件） |
-| `cache/` | ✅ Redis | — | — |
-| `search/` | — | ✅ ElasticSearch | — |
-| `email/` | — | — | ✅ LogEmailAdapter |
-| `client/` | — | ✅ CatalogRestClient | — |
-
+| `infrastructure/repository/jpa/` | ✅ | ✅ | ✅ |
+| `infrastructure/messaging/outbox/` | ✅ (publishes stock events) | ✅ (Outbox relay) | — |
+| `infrastructure/cache/` | ✅ Redis | — | — |
+| `infrastructure/repository/elasticsearch/` | — | ✅ ElasticSearch | — |
+| `infrastructure/client/email/` | — | — | ✅ LogEmailAdapter |
+| `infrastructure/client/` (HTTP) | — | ✅ CatalogRestClient | — |
+| `interfaces/messaging/consumer/` | — | ✅ OrderReadModelProjector | ✅ OrderEventConsumer |
 
 ### Domain Event vs Integration Event
 
@@ -353,10 +255,9 @@ Read model is **eventually consistent** — typically lags write by <500ms (Outb
 | **Domain Event** | `domain/event/` | In-process; aggregate-owned; triggers outbox write | `OrderPlaced` |
 | **Integration Event** | `shared-events/` (Avro) | Cross-service via Kafka; schema contract | `com.example.events.v1.OrderPlaced` |
 
-Kafka publishing is kept as a pure infrastructure concern via `port/out/{Aggregate}EventPublisher` (interface in Application Core) implemented by `infrastructure/messaging/Kafka{Aggregate}EventPublisher` (adapter). Domain objects never import `shared-events` Avro classes.
+Kafka publishing is a pure infrastructure concern. The Outbox Pattern (via `seedwork`) writes the event row atomically in the same transaction as the aggregate. Domain objects never import `shared-events` Avro classes — only `OutboxMapper` does.
 
-> **测试分层**：单元测试（`domain/`, `application/`）无需 Docker，毫秒级完成。集成测试（`infrastructure/`）标注 `@Tag("integration")`，通过 Testcontainers 按需拉起 PostgreSQL / Redis / Kafka / ES。
-
+> **Test layering**: unit tests (`domain/`, `application/`) require no Docker and finish in milliseconds. Integration tests (`infrastructure/`) are tagged `@Tag("integration")` and spin up PostgreSQL / Redis / Kafka / ES on demand via Testcontainers.
 
 ---
 
@@ -366,16 +267,18 @@ Kafka publishing is kept as a pure infrastructure concern via `port/out/{Aggrega
 |---|---|
 | Language | Java 21 (Virtual Threads, Records, Pattern Matching) |
 | Framework | Spring Boot 3.x |
-| Build | Gradle 8.x (multi-project) |
+| Build | Gradle 8.x (independent projects per service) |
 | Database | PostgreSQL 16 (write store) |
 | Cache | Redis 7 (catalog caching, idempotency keys) |
 | Search | ElasticSearch 8 (order read/query side) |
 | Messaging | Apache Kafka (domain event bus) |
-| Observability | OpenTelemetry (traces + metrics) + Grafana stack |
+| Observability | OpenTelemetry (traces + metrics) + SigNoz |
 | Container | Docker + Kubernetes |
 | Service Mesh | Istio (mTLS, traffic management, canary) |
 | Packaging | Helm 3 |
+| Image Build | Jib (no Dockerfile) |
 | Testing | JUnit 5, Testcontainers, RestAssured |
+| Contract Testing | PactFlow (Bi-Directional Contract Testing) |
 
 ---
 
@@ -383,42 +286,39 @@ Kafka publishing is kept as a pure infrastructure concern via `port/out/{Aggrega
 
 ```
 explicit-architecture/
-├── catalog/            # Book catalog bounded context
+├── catalog/                    # Book catalog bounded context
 │   ├── src/
-│   ├── helm/                   # 服务自带 Helm Chart
-│   ├── build.gradle.kts
-│   └── Dockerfile
-├── order/              # Order management bounded context (CQRS)
-│   ├── src/
-│   ├── helm/
-│   ├── build.gradle.kts
-│   └── Dockerfile
-├── notification/       # Notification bounded context
+│   ├── helm/                   # per-service Helm Chart
+│   └── build.gradle.kts
+├── order/                      # Order management bounded context (CQRS)
 │   ├── src/
 │   ├── helm/
-│   ├── build.gradle.kts
-│   └── Dockerfile
-├── shared-events/              # Event schema SDK（各服务通过 mavenLocal() 依赖）
+│   └── build.gradle.kts
+├── notification/               # Notification bounded context
+│   ├── src/
+│   ├── helm/
+│   └── build.gradle.kts
+├── shared-events/              # Event schema SDK (consumed via mavenLocal())
 │   ├── src/main/avro/com/example/events/
 │   │   ├── v1/                 # OrderPlaced, OrderCancelled, StockReserved …
-│   │   └── v2/                 # 破坏性变更时创建（当前为空占位）
-│   ├── schema-registry/
-│   │   └── register-schemas.sh # Schema Registry 一键注册脚本
-│   ├── CHANGELOG.md            # 版本变更日志（每次 schema 变更必填）
+│   │   └── v2/                 # reserved for breaking changes (currently empty)
+│   ├── scripts/
+│   │   └── register-schemas.sh # one-shot Schema Registry registration script
+│   ├── CHANGELOG.md            # version change log (required on every schema change)
 │   └── build.gradle.kts
-├── infrastructure/             # 公共基础设施能力（中间件、可观测性、公共 K8s 资源）
-│   ├── db/init.sql             # 仅创建数据库和用户
-│   ├── k8s/                    # Namespace、RBAC、Deny-All NetworkPolicy
-│   ├── helm/bookstore/         # 伞形 Chart（引用各服务自带 Chart）
-│   ├── istio/                  # Gateway + 全局 mTLS
-│   └── observability/          # OTel Collector、Prometheus、Grafana
+├── seedwork/                   # Reusable DDD + CQRS framework abstractions
+│   └── build.gradle.kts
+├── e2e/                        # End-to-end tests (REST calls against a live environment)
+│   └── build.gradle.kts
 ├── docs/
 │   ├── architecture/           # Architecture Decision Records (ADRs)
 │   └── api/                    # OpenAPI specs
-├── build.gradle.kts
+├── build.gradle.kts            # root version catalog (shared dependency versions)
 ├── settings.gradle.kts
 └── README.md
 ```
+
+> Each service (`catalog`, `order`, `notification`, `seedwork`, `shared-events`, `e2e`) is an **independent Gradle project** with its own `settings.gradle.kts`. There is no root multi-project build — the root `build.gradle.kts` only provides a shared version catalog.
 
 ---
 
@@ -440,7 +340,7 @@ explicit-architecture/
 # 1. Deploy infrastructure middleware to local Kubernetes (minikube / kind)
 helm upgrade --install bookstore-infra ./infrastructure/helm -f infrastructure/helm/values.yaml
 
-# 2. Publish shared libraries to mavenLocal
+# 2. Publish shared libraries to mavenLocal (required once; repeat after any seedwork/shared-events change)
 cd seedwork && ./gradlew publishToMavenLocal
 cd ../shared-events && ./gradlew publishToMavenLocal
 
@@ -452,16 +352,16 @@ cd catalog && ./gradlew bootRun
 
 ```bash
 # Unit tests only — no Docker, runs in seconds
-./gradlew test -PtestProfile=unit
+cd catalog && ./gradlew test -PtestProfile=unit
 
 # Integration tests — requires Docker (Testcontainers)
-./gradlew test -PtestProfile=integration
+cd catalog && ./gradlew test -PtestProfile=integration
 
-# All tests
-./gradlew test
+# All tests for a single service
+cd order && ./gradlew test
 
-# Single service
-./gradlew :order:test
+# Contract tests (no Testcontainers required)
+cd order && ./gradlew test --tests "com.example.order.contract.*"
 ```
 
 ### Verify the Setup
@@ -485,29 +385,38 @@ curl -X POST http://localhost:8082/api/v1/orders \
 curl http://localhost:8083/api/v1/notifications/00000000-0000-0000-0000-000000000001
 ```
 
+### Build and Push Images (Jib)
+
+```bash
+# Build to local Docker daemon (no registry push)
+cd catalog      && ./gradlew jibDockerBuild
+cd order        && ./gradlew jibDockerBuild
+cd notification && ./gradlew jibDockerBuild
+
+# Push to a registry
+cd catalog      && ./gradlew jib
+cd order        && ./gradlew jib
+cd notification && ./gradlew jib
+```
+
 ### Kubernetes Deployment
 
 ```bash
-# 1. Build and push images
-./gradlew jib --image=<registry>/catalog:latest    # requires jib plugin
-./gradlew jib --image=<registry>/order:latest
-./gradlew jib --image=<registry>/notification:latest
-
-# 2. Install Istio (if not already installed)
+# 1. Install Istio (if not already installed)
 istioctl install --set profile=demo -y
 kubectl label namespace bookstore istio-injection=enabled
 
-# 3. Deploy with Helm umbrella chart
+# 2. Deploy with Helm umbrella chart
 helm install bookstore ./infrastructure/helm/bookstore \
   --namespace bookstore \
   --create-namespace \
   -f infrastructure/helm/bookstore/values-local.yaml
 
-# 4. Check rollout
+# 3. Check rollout
 kubectl -n bookstore rollout status deployment/catalog
 kubectl -n bookstore get pods
 
-# 5. Port-forward for local access
+# 4. Port-forward for local access
 kubectl -n bookstore port-forward svc/catalog 8081:8081
 ```
 
@@ -579,75 +488,75 @@ See [`docs/architecture/`](docs/architecture/) for the full ADR index.
 | ADR | Decision |
 |---|---|
 | [ADR-001](docs/architecture/ADR-001-explicit-architecture-over-layered.md) | Adopt Explicit Architecture over traditional layered architecture |
-| [ADR-002](docs/architecture/ADR-002-cqrs-scope-order.md) | Apply CQRS only to order (PostgreSQL write + ES read) |
+| [ADR-002](docs/architecture/ADR-002-cqrs-scope-order-service.md) | Apply CQRS only to order service (PostgreSQL write + ES read) |
 | [ADR-003](docs/architecture/ADR-003-event-schema-ownership.md) | Centralize Kafka event schemas in `shared-events` module |
-| [ADR-004](docs/architecture/ADR-004-istio-mesh.md) | Use Istio for resilience instead of application-level libraries |
+| [ADR-004](docs/architecture/ADR-004-istio-service-mesh.md) | Use Istio for resilience instead of application-level libraries |
 | [ADR-005](docs/architecture/ADR-005-outbox-pattern.md) | Outbox Pattern for guaranteed at-least-once domain event delivery |
-| [ADR-006](docs/architecture/ADR-006-database-per.md) | Database-per, no shared tables, Choreography Saga |
+| [ADR-006](docs/architecture/ADR-006-database-per-service.md) | Database-per-service, no shared tables, Choreography Saga |
 | [ADR-007](docs/architecture/ADR-007-java21-virtual-threads.md) | Java 21: Virtual Threads, Records, Sealed Classes usage guidelines |
-| [ADR-008](docs/architecture/ADR-008-shared-events-versioning.md) | shared-events SDK 版本策略：SemVer + CHANGELOG 强制 + 破坏性变更命名空间隔离 |
+| [ADR-008](docs/architecture/ADR-008-shared-events-versioning.md) | shared-events SDK versioning: SemVer + mandatory CHANGELOG + namespace isolation for breaking changes |
+| [ADR-009](docs/architecture/ADR-009-kafka-consumer-idempotency-retry.md) | Kafka consumer idempotency and DB-backed retry strategy |
+| [ADR-010](docs/architecture/ADR-010-opentelemetry-observability.md) | OpenTelemetry via Kubernetes Operator for unified observability |
+| [ADR-011](docs/architecture/ADR-011-swaggerhub-pactflow-bdct.md) | API governance with SwaggerHub + PactFlow Bi-Directional Contract Testing |
 
 ---
 
 ## Observability
 
-所有服务通过 **OpenTelemetry** 上报 Traces、Metrics、Logs，统一汇聚到 **SigNoz**。
+All services export traces, metrics, and logs via **OpenTelemetry**, aggregated into **SigNoz** — an all-in-one observability platform that replaces the Jaeger + Prometheus + Grafana + OTel Collector stack.
 
-SigNoz 是 All-in-One 可观测性平台，替代 Jaeger + Prometheus + Grafana + OTel Collector 的组合。
+### Local Observability Endpoints
 
-### 本地可观测性入口
-
-| 工具 | URL | 用途 |
+| Tool | URL | Purpose |
 |---|---|---|
-| SigNoz UI | http://localhost:3301 | Traces、Metrics、Logs、服务地图、告警 |
-| SigNoz OTLP (gRPC) | localhost:4317 | 应用服务上报端点 |
-| SigNoz OTLP (HTTP) | localhost:4318 | 应用服务上报端点（备用） |
+| SigNoz UI | http://localhost:3301 | Traces, Metrics, Logs, Service Map, Alerts |
+| SigNoz OTLP (gRPC) | localhost:4317 | Application telemetry ingest endpoint |
+| SigNoz OTLP (HTTP) | localhost:4318 | Application telemetry ingest endpoint (fallback) |
 
-### 信号采集
+### Signal Collection
 
-| Signal | 采集方式 | 目标 |
+| Signal | Collection Method | Destination |
 |---|---|---|
-| Traces | OTel Java Agent（自动）+ 手动 Span | SigNoz via OTLP gRPC |
-| Metrics | Micrometer OTLP Registry（JVM、HTTP、HikariCP） | SigNoz via OTLP gRPC |
-| Logs | Logback JSON（含 `trace_id`、`span_id` 字段） | SigNoz（与 Trace 自动关联） |
-| 服务网格指标 | Istio Envoy sidecar | Kiali（K8s 环境） |
+| Traces | OTel Java Agent (auto) + manual spans | SigNoz via OTLP gRPC |
+| Metrics | Micrometer OTLP Registry (JVM, HTTP, HikariCP) | SigNoz via OTLP gRPC |
+| Logs | Logback JSON (with `trace_id` / `span_id` fields) | SigNoz (auto-correlated with traces) |
+| Service mesh metrics | Istio Envoy sidecar | Kiali (Kubernetes environment) |
 
-### Trace 传播
+### Trace Propagation
 
-`traceparent`（W3C）头自动传播：
-- **HTTP 调用**：Spring Boot OTel Auto-Instrumentation 自动注入/提取
-- **Kafka 消息**：Debezium 发布的消息通过消息头传播；消费者 OTel agent 自动提取
+`traceparent` (W3C) header is propagated automatically:
+- **HTTP calls**: injected and extracted by Spring Boot OTel Auto-Instrumentation
+- **Kafka messages**: propagated via message headers; extracted automatically by the OTel agent on the consumer side
 
-Span 命名约定：`{service}.{aggregate}.{operation}`
-示例：`order.order.place`、`catalog.book.reserve-stock`
+Span naming convention: `{service}.{aggregate}.{operation}` — e.g., `order.order.place`, `catalog.book.reserve-stock`
 
-### SigNoz 内置告警
+### SigNoz Built-in Alerts
 
-在 SigNoz UI 中配置（无需 AlertManager）：
+Configure alerts in the SigNoz UI (no AlertManager required):
 
-| 告警 | 条件 | 级别 |
+| Alert | Condition | Severity |
 |---|---|---|
-| 服务高错误率 | 任意服务 5xx 率 > 1% | Critical |
-| Kafka 消费积压 | 任意 Consumer Group lag > 1000 | Warning |
-| 数据库连接池耗尽 | `hikaricp_connections_pending > 5` | Warning |
+| High service error rate | Any service 5xx rate > 1% | Critical |
+| Kafka consumer lag | Any consumer group lag > 1000 | Warning |
+| DB connection pool exhausted | `hikaricp_connections_pending > 5` | Warning |
 
 ---
 
 ## Environment Variables
 
-Each service reads configuration from `application.yml` overridable by environment variables.
+Each service reads configuration from `application.yml`; all values are overridable by environment variables.
 
 ### catalog
 
 | Variable | Default | Description |
 |---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/catalog` | PostgreSQL connection |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB user |
-| `SPRING_DATASOURCEPASSWORD` | `bookstore` | DB password |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/catalog` | PostgreSQL connection URL |
+| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB username |
+| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | DB password |
 | `SPRING_DATA_REDIS_HOST` | `localhost` | Redis host |
 | `SPRING_DATA_REDIS_PORT` | `6379` | Redis port |
 | `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector endpoint |
 | `OTEL_SERVICE_NAME` | `catalog` | Service name in traces |
 
 ### order
@@ -655,38 +564,44 @@ Each service reads configuration from `application.yml` overridable by environme
 | Variable | Default | Description |
 |---|---|---|
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/order` | PostgreSQL (write side) |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB user |
-| `SPRING_DATASOURCEPASSWORD` | `bookstore` | DB password |
+| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB username |
+| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | DB password |
 | `SPRING_ELASTICSEARCH_URIS` | `http://localhost:9200` | ElasticSearch (read side) |
 | `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `CATALOG_SERVICE_URL` | `http://localhost:8081` | catalog base URL |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector |
+| `SPRING_KAFKA_CONSUMER_GROUP_ID` | `order.read-model` | Kafka consumer group for the read-model projector |
+| `CATALOG_SERVICE_URL` | `http://localhost:8081` | catalog service base URL |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector endpoint |
+| `OTEL_SERVICE_NAME` | `order` | Service name in traces |
 
 ### notification
 
 | Variable | Default | Description |
 |---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/notification` | PostgreSQL connection |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/notification` | PostgreSQL connection URL |
+| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB username |
+| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | DB password |
 | `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `NOTIFICATION_EMAIL_LOG_ONLY` | `true` | `true` = 日志模拟；`false` = 真实 SMTP（仅 prod） |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector |
+| `SPRING_KAFKA_CONSUMER_GROUP_ID` | `notification.order-events` | Kafka consumer group |
+| `NOTIFICATION_EMAIL_LOG_ONLY` | `true` | `true` = log simulation; `false` = real SMTP (production only) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector endpoint |
+| `OTEL_SERVICE_NAME` | `notification` | Service name in traces |
 
 ---
 
 ## Local Infrastructure Ports
 
-| 服务 | 端口 | 说明 |
+| Service | Port | Notes |
 |---|---|---|
 | catalog | 8081 | REST API |
 | order | 8082 | REST API |
-| notification | 8083 | REST API（邮件通过日志模拟） |
-| PostgreSQL | 5432 | 三个逻辑数据库，`wal_level=logical` |
-| Redis | 6379 | catalog 使用 |
+| notification | 8083 | REST API (email simulated via logs) |
+| PostgreSQL | 5432 | Three logical databases; `wal_level=logical` |
+| Redis | 6379 | Used by catalog |
 | Kafka | 9092 | Domain event bus |
-| Kafka UI | 8080 | Topic / 消息浏览（集成 Schema Registry） |
-| Schema Registry | 8085 | Avro schema 存储（容器内 8081 → 宿主机 8085） |
-| Debezium Connect | 8084 | REST API（注册 Connector，容器内 8083 → 宿主机 8084） |
-| ElasticSearch | 9200 | order 读模型 |
-| SigNoz UI | 3301 | Traces、Metrics、Logs 一体化 |
-| SigNoz OTLP gRPC | 4317 | 应用服务上报 Telemetry |
-| SigNoz OTLP HTTP | 4318 | 应用服务上报 Telemetry（备用） |
+| Kafka UI | 8080 | Topic / message browser (with Schema Registry integration) |
+| Schema Registry | 8085 | Avro schema storage (container port 8081 → host port 8085) |
+| Debezium Connect | 8084 | REST API for registering connectors (container port 8083 → host port 8084) |
+| ElasticSearch | 9200 | order read model |
+| SigNoz UI | 3301 | Unified Traces, Metrics, Logs |
+| SigNoz OTLP gRPC | 4317 | Application telemetry ingest |
+| SigNoz OTLP HTTP | 4318 | Application telemetry ingest (fallback) |

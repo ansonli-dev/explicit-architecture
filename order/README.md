@@ -1,200 +1,242 @@
-# order — Infrastructure 集成文档
+# order — Infrastructure Integration Guide
 
-## 服务定位
+## Service Overview
 
-`order` 是订单管理领域的边界上下文，采用 CQRS 模式：写模型基于 PostgreSQL，读模型基于 ElasticSearch（见 [ADR-002](../docs/architecture/ADR-002-cqrs-scope-order.md)）。
+`order` is the bounded context for order management, implementing CQRS: the write model is backed by PostgreSQL; the read model is backed by ElasticSearch (see [ADR-002](../docs/architecture/ADR-002-cqrs-scope-order.md)).
 
-**对外提供：**
-- REST API（下单、取消、查询订单）
-- Kafka 事件（`OrderPlaced`、`OrderConfirmed`、`OrderCancelled`、`OrderShipped`）
+**Publishes:**
+- REST API (place order, cancel order, query orders)
+- Kafka events (`OrderPlaced`, `OrderConfirmed`, `OrderCancelled`, `OrderShipped`)
 
-**消费：**
-- Kafka 事件（`StockReserved` → 确认订单；`StockReleased` 无需消费）
+**Consumes:**
+- Kafka events (`bookstore.order.*` → projected into ElasticSearch by `OrderReadModelProjector`)
 
 ---
 
-## Infrastructure 集成总览
+## Domain Model
 
-| 中间件 | 用途 | 必须 |
+```mermaid
+classDiagram
+    class Order {
+        <<Aggregate Root>>
+        +OrderId id
+        +CustomerId customerId
+        +OrderStatus status
+        +Money totalAmount
+        +place() OrderPlaced
+        +confirm() OrderConfirmed
+        +ship(tracking) OrderShipped
+        +cancel(reason) OrderCancelled
+    }
+    class OrderItem {
+        <<Entity>>
+        +UUID bookId
+        +String bookTitle
+        +Money unitPrice
+        +int quantity
+    }
+    class OrderStatus {
+        <<Sealed Interface>>
+        Pending
+        Confirmed
+        Shipped
+        Cancelled
+    }
+    class Money         { <<Value Object>> +long cents; +String currency }
+    class OrderPlaced   { <<Domain Event>> }
+    class OrderConfirmed{ <<Domain Event>> }
+    class OrderShipped  { <<Domain Event>> }
+    class OrderCancelled{ <<Domain Event>> }
+
+    Order "1" *-- "1..*" OrderItem
+    Order       *-- OrderStatus
+    Order       *-- Money
+    Order ..> OrderPlaced    : emits
+    Order ..> OrderConfirmed : emits
+    Order ..> OrderShipped   : emits
+    Order ..> OrderCancelled : emits
+```
+
+> **Snapshot pattern**: `OrderItem` stores a snapshot of book title and price at order time — not a live FK to `catalog`. Order history remains accurate even when catalog data changes later.
+
+> **OrderPricingService** (domain service): encapsulates cross-`OrderItem` discount calculation logic, keeping the `Order` aggregate cohesive.
+
+---
+
+## Infrastructure Overview
+
+| Middleware | Purpose | Required |
 |---|---|---|
-| PostgreSQL | 订单聚合写模型 + Outbox 表 | ✅ |
-| Kafka + Schema Registry | 发布 Order 事件；消费 Stock 事件 | ✅ |
-| Debezium Connect | Outbox Relay（订单事件可靠投递） | ✅ |
-| ElasticSearch | 订单查询读模型（CQRS 读侧） | ✅ |
+| PostgreSQL | Order aggregate write model + Outbox table | ✅ |
+| Kafka + Schema Registry | Publish Order events; consume Order events (read-model projection) | ✅ |
+| Debezium Connect | Outbox Relay (guaranteed event delivery) | ✅ |
+| ElasticSearch | Order query read model (CQRS read side) | ✅ |
 | SigNoz / OTel | Traces + Metrics + Logs | ✅ |
-| Redis | ❌ 不使用 | — |
+| Redis | Not used | — |
 
 ---
 
 ## PostgreSQL
 
-### 数据库信息
+### Database Details
 
-| 项目 | 值 |
+| Property | Value |
 |---|---|
-| 数据库名 | `order` |
-| 用户名 | `order` |
-| 密码 | `.env` 中 `ORDER_DBPASSWORD` |
-| 地址（本地） | `localhost:5432` |
+| Database name | `order` |
+| Username | `bookstore` |
+| Password | `bookstore` (default; override in production via `SPRING_DATASOURCE_PASSWORD`) |
+| Host (local) | `localhost:5432` |
 
-### Flyway 迁移脚本
+### Flyway Migration Scripts
 
 ```
 src/main/resources/db/migration/
-├── V1__create_orders_table.sql
-├── V2__create_order_items_table.sql
-└── V3__create_outbox_event_table.sql   # Outbox 表（Debezium 读取）
+├── V0100__order_schema.sql              # order_aggregate and order_item tables
+└── V0101__fix_currency_column_type.sql
+
+# Provided by seedwork (loaded via classpath:db/seedwork):
+├── V0001__seedwork_outbox_events.sql
+├── V0002__seedwork_processed_events.sql
+└── V0003__seedwork_consumer_retry_events.sql
 ```
 
-### Spring 配置
+### Spring Configuration
 
 ```yaml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/order
-    username: order
-    password: ${ORDER_DBPASSWORD}
-    hikari:
-      maximum-pool-size: 10
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/order}
+    username: ${SPRING_DATASOURCE_USERNAME:bookstore}
+    password: ${SPRING_DATASOURCE_PASSWORD:bookstore}
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/seedwork,classpath:db/migration
+  elasticsearch:
+    uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    consumer:
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:order.read-model}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8085}
+      specific.avro.reader: true
+      auto.register.schemas: false
+catalog:
+  service:
+    url: ${CATALOG_SERVICE_URL:http://localhost:8081}
+outbox:
+  relay:
+    strategy: debezium
+server:
+  port: 8082
 ```
 
 ---
 
 ## Kafka + Schema Registry
 
-### Topic 清单
+### Topic List
 
-| Topic | 方向 | Key | Value Schema |
+| Topic | Direction | Key | Value Schema |
 |---|---|---|---|
-| `bookstore.order.placed` | **发布** | `orderId`（UUID） | `com.example.events.v1.OrderPlaced` |
-| `bookstore.order.confirmed` | **发布** | `orderId`（UUID） | `com.example.events.v1.OrderConfirmed` |
-| `bookstore.order.cancelled` | **发布** | `orderId`（UUID） | `com.example.events.v1.OrderCancelled` |
-| `bookstore.order.shipped` | **发布** | `orderId`（UUID） | `com.example.events.v1.OrderShipped` |
-| `bookstore.stock.reserved` | **消费** | `bookId`（UUID） | `com.example.events.v1.StockReserved` |
+| `bookstore.order.placed` | **Publish** | `orderId` (UUID) | `com.example.events.v1.OrderPlaced` |
+| `bookstore.order.confirmed` | **Publish** | `orderId` (UUID) | `com.example.events.v1.OrderConfirmed` |
+| `bookstore.order.cancelled` | **Publish** | `orderId` (UUID) | `com.example.events.v1.OrderCancelled` |
+| `bookstore.order.shipped` | **Publish** | `orderId` (UUID) | `com.example.events.v1.OrderShipped` |
+| `bookstore.stock.reserved` | **Consume** | `bookId` (UUID) | `com.example.events.v1.StockReserved` |
 
-> `bookstore.order.*` 事件通过 **Outbox + Debezium** 发布（非直接 `kafkaTemplate.send`），保证原子性。
+> `bookstore.order.*` events are published via **Outbox + Debezium** (not direct `kafkaTemplate.send`), guaranteeing atomicity.
 
-### Consumer Group
+### Consumer Groups
 
-| Consumer Group | 消费 Topic | 描述 |
-|---|---|---|
-| `order` | `bookstore.stock.reserved` | 库存预留成功后，将订单状态推进为 `Confirmed` |
-| `order-projector` | `bookstore.order.*`（全部） | 将订单事件投影写入 ElasticSearch 读模型 |
+| Consumer Group | Topics Consumed | Implementation | Description |
+|---|---|---|---|
+| `order.read-model` | `bookstore.order.*` (all) | `OrderReadModelProjector` | Projects order events into the ElasticSearch read model |
 
-### Spring Kafka 配置
+> The order service has **only one** consumer group. `StockReserved` is not consumed by a separate consumer group — order confirmation is handled on the write-model side without a dedicated consumer.
 
-```yaml
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
-    consumer:
-      group-id: order           # 业务消费者
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
-      auto-offset-reset: earliest
-    properties:
-      schema.registry.url: http://localhost:8085
-      auto.register.schemas: false   # Schema 由 shared-events/manage-kafka.sh 预注册
-      specific.avro.reader: true
-```
-
-> **Topic 创建由基础设施负责**：Topic 由 `shared-events/scripts/manage-kafka.sh` 在 `setup.sh` 中统一创建，**代码中不需要也不应声明 `@Bean NewTopic`**（Kafka 已设置 `auto.create.topics.enable=false`）。
+> **Topic creation is an infrastructure concern**: topics are created by the `shared-events` Helm Chart at deploy time. **No `@Bean NewTopic` should be declared in application code** (Kafka runs with `auto.create.topics.enable=false`).
 
 ---
 
-## Debezium Connect（Outbox Relay）
+## Debezium Connect (Outbox Relay)
 
-order 是 Outbox 模式的**核心用户**（见 [ADR-005](../docs/architecture/ADR-005-outbox-pattern.md)）。
+`order` is the primary user of the Outbox pattern (see [ADR-005](../docs/architecture/ADR-005-outbox-pattern.md)).
 
-### Outbox 表
+### Outbox Table
 
-由 Flyway `V3__create_outbox_event_table.sql` 创建：
-
-```sql
-CREATE TABLE outbox_event (
-    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    aggregate_type VARCHAR(100) NOT NULL,   -- 'Order'
-    aggregate_id   UUID NOT NULL,           -- orderId（作为 Kafka 消息 Key）
-    event_type     VARCHAR(200) NOT NULL,   -- 'com.example.events.v1.OrderPlaced'
-    payload        JSONB NOT NULL,
-    occurred_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    status         VARCHAR(20) NOT NULL DEFAULT 'PENDING'
-);
-
-CREATE INDEX idx_outbox_status ON outbox_event(status) WHERE status = 'PENDING';
-```
+Created by seedwork's `V0001__seedwork_outbox_events.sql` (loaded via `classpath:db/seedwork`). It is not defined in the service's own migration scripts.
 
 ### Debezium Connector
 
-配置文件：`infrastructure/debezium/connectors/order-outbox-connector.json`
+Configuration file: `infrastructure/debezium/connectors/order-outbox-connector.json`
 
 ```bash
-# 首次启动后注册（仅需执行一次）
+# Register after first startup (only needs to be run once)
 curl -X POST http://localhost:8084/connectors \
   -H "Content-Type: application/json" \
   -d @../infrastructure/debezium/connectors/order-outbox-connector.json
 ```
 
-**运转机制：**
+**How it works:**
 
 ```
-PlaceOrderUseCase
-  → orderRepository.save(order)          # 写 orders 表
-  → eventPublisher.publish(OrderPlaced)  # 写 outbox_event 表（同一事务）
-     ↓（异步，~500 ms 延迟）
-Debezium 读取 PostgreSQL WAL
+PlaceOrderCommandHandler
+  → orderRepository.save(order)           # AbstractAggregateRootEntity carries domain events
+  → OutboxWriteListener (BEFORE_COMMIT)   # atomically writes the outbox row in the same transaction
+     ↓ (async, via Debezium CDC)
+Debezium reads PostgreSQL WAL
   → Outbox Event Router SMT
-  → aggregate_id → Kafka 消息 Key（保证 orderId 有序）
-  → event_type   → 路由到 bookstore.order.placed
-  → payload      → Avro 序列化，写入 Kafka
+  → aggregate_id → Kafka message key (guarantees ordering by orderId)
+  → event_type   → routes to bookstore.order.placed
+  → payload      → Avro-serialized, written to Kafka
 ```
+
+> CommandHandlers **never** call an EventDispatcher directly — event publishing is a side-effect of the seedwork persistence flow, transparently handled by `OutboxWriteListener`.
 
 ---
 
-## ElasticSearch（CQRS 读模型）
+## ElasticSearch (CQRS Read Model)
 
-order 使用 ElasticSearch 作为**订单查询的读模型**，与写模型（PostgreSQL）完全分离。
+`order` uses ElasticSearch as the **read model for order queries**, completely decoupled from the write model (PostgreSQL).
 
-### 索引设计
+### Index Design
 
-| 索引名 | 文档结构 |
+| Index | Document Structure |
 |---|---|
-| `orders` | 订单快照，包含全量字段（orderId、customerId、status、items、totalCents、currency、timestamps） |
+| `orders` | Full order snapshot (orderId, customerId, status, items, totalCents, currency, timestamps) |
 
-### 写入方式：Kafka Projector
+### Projection: Kafka Projector
 
-独立 Consumer（Consumer Group: `order-projector`）消费所有 `bookstore.order.*` 事件，将订单状态投影到 ElasticSearch：
+`OrderReadModelProjector` (Consumer Group: `order.read-model`) consumes all `bookstore.order.*` events and projects order state into ElasticSearch:
 
 ```
-OrderPlaced    → 创建 ES 文档（status: PENDING）
-OrderConfirmed → 更新 ES 文档（status: CONFIRMED）
-OrderCancelled → 更新 ES 文档（status: CANCELLED）
-OrderShipped   → 更新 ES 文档（status: SHIPPED，填入 trackingNumber）
+OrderPlaced    → create ES document  (status: PENDING)
+OrderConfirmed → update ES document  (status: CONFIRMED)
+OrderCancelled → update ES document  (status: CANCELLED)
+OrderShipped   → update ES document  (status: SHIPPED, populate trackingNumber)
 ```
 
-### Spring Data ElasticSearch 配置
+### Spring Data ElasticSearch Configuration
 
 ```yaml
 spring:
   elasticsearch:
-    uris: http://localhost:9200
-    connection-timeout: 3s
-    socket-timeout: 30s
+    uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}
 ```
 
-### 最终一致性特征
+### Eventual Consistency Characteristics
 
-读模型**最终一致**，通常滞后写模型 < 500 ms（Outbox poll 间隔）。查询结果可能短暂不反映最新写操作，这是设计预期行为。
+The read model is **eventually consistent**, typically lagging the write model by less than 500 ms (Outbox poll interval). Query results may briefly not reflect the latest writes — this is the expected and intended behavior.
 
 ---
 
@@ -206,15 +248,15 @@ OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4317
 OTEL_EXPORTER_OTLP_PROTOCOL: grpc
 ```
 
-### 自动埋点覆盖范围
+### Auto-Instrumentation Coverage
 
-| 信号 | 自动覆盖内容 |
+| Signal | Coverage |
 |---|---|
-| **Traces** | Spring MVC HTTP 请求、JDBC SQL、Kafka produce/consume、ElasticSearch 查询 |
-| **Metrics** | JVM 堆/GC、HTTP 请求率/延迟、HikariCP、Kafka consumer lag、ES 索引延迟 |
-| **Logs** | 注入 `trace_id`、`span_id`（与 Trace 关联） |
+| **Traces** | Spring MVC HTTP requests, JDBC SQL, Kafka produce/consume, ElasticSearch queries |
+| **Metrics** | JVM heap/GC, HTTP request rate/latency, HikariCP, Kafka consumer lag, ES indexing latency |
+| **Logs** | `trace_id` and `span_id` injected (correlated with Traces) |
 
-### Span 命名约定
+### Span Naming Convention
 
 ```
 order.order.place
@@ -229,50 +271,50 @@ order.order.search
 
 ## Istio / Kubernetes
 
-### 服务端口
+### Service Ports
 
-| 端口 | 说明 |
+| Port | Description |
 |---|---|
-| `8082` | REST API（Write + Read 同端口，由路径区分） |
-| `8080` | Actuator（内部） |
+| `8082` | REST API (write and read on the same port, distinguished by path) |
+| `8080` | Actuator (internal) |
 
-### Helm Chart 文件（`helm/templates/`）
+### Helm Chart Files (`helm/templates/`)
 
-| 文件 | 内容 |
+| File | Contents |
 |---|---|
-| `deployment.yaml` | 含 OTel Agent 的 JVM 启动参数 |
-| `service.yaml` | ClusterIP，端口 8082 |
-| `hpa.yaml` | CPU > 70% 触发扩容，最大 5 副本（比其他服务略高，因为 CQRS 两侧都在此） |
-| `networkpolicy.yaml` | 放行：Ingress Gateway → 8082；Egress → PostgreSQL:5432、Kafka:29092、Schema Registry:8081、ElasticSearch:9200、catalog:8081 |
-| `virtual.yaml` | 路由到 order，写端超时 10s（Outbox 事务），读端超时 5s |
-| `destination-rule.yaml` | 熔断器：连续 5 次 5xx 后驱逐实例 |
-| `configmap.yaml` | 非敏感配置，含 `CATALOG_SERVICE_URL` |
-| `serviceaccount.yaml` | 独立 ServiceAccount |
+| `deployment.yaml` | JVM startup flags including the OTel Agent |
+| `service.yaml` | ClusterIP, port 8082 |
+| `hpa.yaml` | Scale out at CPU > 70%, max 5 replicas (higher than other services due to CQRS both sides here) |
+| `networkpolicy.yaml` | Allow: Ingress Gateway → 8082; Egress → PostgreSQL:5432, Kafka:29092, Schema Registry:8085, ElasticSearch:9200, catalog:8081 |
+| `virtual.yaml` | Route to order; write-side timeout 10s (Outbox transaction), read-side timeout 5s |
+| `destination-rule.yaml` | Circuit breaker: eject instance after 5 consecutive 5xx errors |
+| `configmap.yaml` | Non-sensitive config, including `CATALOG_SERVICE_URL` |
+| `serviceaccount.yaml` | Dedicated ServiceAccount |
 
-### VirtualService 路由规则
+### VirtualService Routing Rules
 
 ```
-bookstore.local/api/v1/orders   POST   → order:8082（写）
-bookstore.local/api/v1/orders   GET    → order:8082（读，来自 ES）
-bookstore.local/api/v1/orders/{id}     → order:8082（读，来自 ES）
+bookstore.local/api/v1/orders   POST   → order:8082  (write)
+bookstore.local/api/v1/orders   GET    → order:8082  (read, from ES)
+bookstore.local/api/v1/orders/{id}     → order:8082  (read, from ES)
 ```
 
 ---
 
-## 本地启动
+## Running Locally
 
 ```bash
-# 1. 启动基础设施（自动完成 Topic 创建、Schema 注册、Debezium Connector 注册）
+# 1. Start infrastructure (automatically creates topics, registers schemas, registers Debezium connector)
 cd ../infrastructure && ./setup.sh && cd -
 
-# 2. 确认 shared-events SDK 已发布
+# 2. Ensure the shared-events SDK is published to mavenLocal
 cd ../shared-events && ./gradlew publishToMavenLocal && cd -
 
-# 3. 启动服务
+# 3. Start the service
 ./gradlew bootRun
 ```
 
-服务启动后可访问：
-- 下单（写）：`POST http://localhost:8082/api/v1/orders`
-- 查询（读）：`GET  http://localhost:8082/api/v1/orders/{id}`
-- 健康检查：`http://localhost:8082/actuator/health`
+Once the service is up:
+- Place order (write): `POST http://localhost:8082/api/v1/orders`
+- Query order (read):  `GET  http://localhost:8082/api/v1/orders/{id}`
+- Health check:        `http://localhost:8082/actuator/health`

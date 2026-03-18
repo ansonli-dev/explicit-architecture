@@ -1,213 +1,208 @@
-# 项目结构规范指南
+# Project Structure Guidelines
 
-本文档以 **order-service** 为例，详细说明基于
-**DDD + Hexagonal (Ports & Adapters) + CQRS** 的代码组织规范。
+This document uses **order-service** as an example to explain the code organisation conventions for
+**DDD + Hexagonal (Ports & Adapters) + CQRS**.
 
-> 同一套规范适用于 `catalog`、`order`、`notification` 三个服务，
-> 只有 `infrastructure/` 适配器按服务实际使用的技术栈裁剪。
-
----
-
-## 总体原则
-
-1. **依赖方向**：`interfaces/` 和 `infrastructure/` 依赖 `application/`，`application/` 依赖 `domain/`，反向严禁。
-2. **领域纯净**：`domain/` 不得出现任何框架注解或 I/O 操作——纯 Java。
-3. **CQRS 拆分**：`command/`（写操作）和 `query/`（读操作）在应用层严格分离，各自拥有独立的 Handler。
-4. **按特性分包**：在 `application/command/` 和 `application/query/` 中，按聚合（如 `order`）纵向分包，而非把所有 Command/Query 平铺在一起。
-5. **适配器分边**：REST Controller 和 Kafka Consumer（主动侧）放 `interfaces/`；JPA、Redis、Kafka Producer、HTTP Client（被动侧）放 `infrastructure/`。
+> The same conventions apply to all three services — `catalog`, `order`, and `notification`.
+> Only the `infrastructure/` adapters are trimmed to each service's actual technology stack.
 
 ---
 
-## 目录结构全览（order-service）
+## Core Principles
+
+1. **Dependency direction**: `interfaces/` and `infrastructure/` depend on `application/`; `application/` depends on `domain/`. Reverse dependencies are strictly forbidden.
+2. **Domain purity**: `domain/` must not contain any framework annotations or I/O operations — pure Java only.
+3. **CQRS separation**: `command/` (write operations) and `query/` (read operations) are strictly separated at the application layer, each with its own independent Handler.
+4. **Package by feature**: Within `application/command/` and `application/query/`, organise packages vertically by aggregate (e.g., `order`) rather than laying all Commands/Queries flat.
+5. **Adapter sides**: REST Controllers and Kafka Consumers (driving side) go in `interfaces/`; JPA, Redis, Kafka Producers, and HTTP Clients (driven side) go in `infrastructure/`.
+6. **CommandBus / QueryBus as driving-side entry points**: Controllers depend only on the `CommandBus` and `QueryBus` interfaces — they never inject concrete Handler classes, and no per-use-case inbound port interfaces are defined.
+
+---
+
+## Directory Overview (order-service)
 
 ```text
 com.example.order/
-├── domain/              # 零框架依赖 — 纯 Java 领域模型
-├── application/         # 用例编排 — 只依赖 domain
-├── infrastructure/      # 被动侧适配器 — JPA、Kafka Producer、ElasticSearch、HTTP Client
-└── interfaces/          # 主动侧适配器 — REST Controller、Kafka Consumer
+├── domain/              # Zero framework dependencies — pure Java domain model
+├── application/         # Use case orchestration — depends only on domain
+├── infrastructure/      # Driven adapters — JPA, Outbox, ElasticSearch, HTTP Client
+└── interfaces/          # Driving adapters — REST Controller, Kafka Consumer
 ```
 
 ---
 
-## 详细层级说明
+## Layer Details
 
-### 1. `domain/` — 领域层（最内层）
+### 1. `domain/` — Domain Layer (innermost)
 
-**职责**：业务规则的"真相来源"。包含聚合根、实体、值对象、领域事件、领域服务。
+**Responsibility**: The single source of truth for business rules. Contains aggregates, entities, value objects, domain events, and domain services.
 
-**规范**：
-- 不依赖 `application/` 或 `infrastructure/` 中的任何类。
-- Repository 接口不在此定义（见 `application/port/outbound/`）。
+**Rules**:
+- Must not depend on any class from `application/` or `infrastructure/`.
+- Repository interfaces are not defined here (see `application/port/outbound/`).
+- Zero framework annotations — `@Component`, `@Entity`, `@Transactional`, and any other annotation are not allowed.
 
 ```text
 domain/
 ├── model/
-│   ├── Order.java              # 聚合根：封装订单状态机和不变量
-│   ├── OrderItem.java          # 实体：属于 Order 聚合，快照书名和单价
-│   ├── OrderId.java            # 值对象 (record)
-│   ├── CustomerId.java         # 值对象 (record)
-│   ├── Money.java              # 值对象 (record)：金额 + 货币，不可变
-│   ├── OrderStatus.java        # Sealed Interface：Pending / Confirmed / Shipped / Cancelled
-│   ├── PricingResult.java      # 值对象 (record)：定价服务的计算结果
-│   └── OrderStateException.java # 领域异常：非法状态迁移
+│   ├── Order.java              # Aggregate root: encapsulates order state machine and invariants
+│   ├── OrderItem.java          # Entity: belongs to the Order aggregate, snapshots title and unit price
+│   ├── OrderId.java            # Value object (record)
+│   ├── CustomerId.java         # Value object (record)
+│   ├── Money.java              # Value object (record): amount + currency, immutable
+│   ├── OrderStatus.java        # Sealed interface: Pending / Confirmed / Shipped / Cancelled
+│   ├── PricingResult.java      # Value object (record): result from the pricing service
+│   └── OrderStateException.java # Domain exception: illegal state transition
 ├── event/
-│   ├── OrderPlaced.java        # 领域事件 (record)：订单已下单
-│   ├── OrderConfirmed.java     # 领域事件 (record)：订单已确认
-│   ├── OrderShipped.java       # 领域事件 (record)：订单已发货
-│   └── OrderCancelled.java     # 领域事件 (record)：订单已取消
+│   ├── OrderPlaced.java        # Domain event (record): order has been placed
+│   ├── OrderConfirmed.java     # Domain event (record): order has been confirmed
+│   ├── OrderShipped.java       # Domain event (record): order has been shipped
+│   └── OrderCancelled.java     # Domain event (record): order has been cancelled
 └── service/
-    └── OrderPricingService.java # 领域服务：跨 OrderItem 的折扣计算逻辑
+    └── OrderPricingService.java # Domain service: discount calculation logic across OrderItems
 ```
 
-> **何时使用 Domain Service**：操作无状态、不自然归属于单个聚合、
-> 需要跨多个领域对象协作时（如定价折扣需要遍历所有 `OrderItem`）。
+> **When to use a Domain Service**: when the operation is stateless, does not naturally belong to a single aggregate, and requires collaboration across multiple domain objects (e.g., pricing discount needs to iterate all `OrderItem`s).
 
 ---
 
-### 2. `application/` — 应用层
+### 2. `application/` — Application Layer
 
-**职责**：用例编排——调用领域对象，通过端口接口依赖外部能力。
+**Responsibility**: Use case orchestration — calls domain objects and depends on external capabilities through port interfaces.
 
-**规范**：
-- 不得导入 Spring、JPA、Kafka、Redis 等框架类。
-- CommandHandler / QueryHandler 标注 `@Service`，由 Spring 自动注入依赖。
-- `@Transactional` 不放在 Handler 上，放在 `infrastructure/persistence/` 适配器中。
-- Controller 依赖 `port/inbound/` 接口，而非具体 Handler 类——这是六边形的主动侧端口。
+**Rules**:
+- Must not import Spring, JPA, Kafka, or Redis framework classes (`@Service` and Lombok are acceptable).
+- CommandHandlers / QueryHandlers are annotated with `@Service` and wired automatically by Spring.
+- `@Transactional` does not go on Handlers — it belongs in the `infrastructure/repository/jpa/` adapter.
+- Controllers call Handlers via `CommandBus` / `QueryBus` — no direct injection of concrete Handler classes, and no per-use-case inbound port interfaces are defined.
 
 ```text
 application/
 ├── port/
-│   ├── inbound/                        # 一级端口：本服务对外暴露的能力清单
-│   │   ├── PlaceOrderUseCase.java      # → PlaceOrderCommandHandler 实现
-│   │   ├── CancelOrderUseCase.java     # → CancelOrderCommandHandler 实现
-│   │   ├── GetOrderUseCase.java        # → GetOrderQueryHandler 实现
-│   │   └── ListOrdersUseCase.java      # → ListOrdersQueryHandler 实现
-│   └── outbound/                       # 二级端口：本服务对外部的依赖声明
-│       ├── OrderPersistence.java       # → JPA 实现
-│       ├── OrderSearchRepository.java  # → ElasticSearch 实现
-│       ├── EventDispatcher.java        # → Kafka 实现
-│       ├── OutboxRepository.java       # → JPA 实现
-│       ├── OutboxEntry.java            # DTO record：Outbox 条目
-│       └── CatalogClient.java          # → HTTP 实现（infrastructure/client/）
+│   └── outbound/                       # Secondary ports: declarations of this service's external dependencies
+│       ├── OrderPersistence.java       # → JPA implementation (infrastructure/repository/jpa/)
+│       ├── OrderSearchRepository.java  # → ElasticSearch implementation (infrastructure/repository/elasticsearch/)
+│       └── CatalogClient.java          # → HTTP implementation (infrastructure/client/)
 ├── command/
-│   └── order/                         # 按聚合分包
-│       ├── PlaceOrderCommand.java      # 命令 record（写侧入参，无 HTTP 信息）
-│       ├── PlaceOrderCommandHandler.java   # @Service, implements PlaceOrderUseCase
-│       ├── CancelOrderCommand.java     # 命令 record
-│       └── CancelOrderCommandHandler.java  # @Service, implements CancelOrderUseCase
+│   └── order/                         # Packaged by aggregate
+│       ├── PlaceOrderCommand.java      # Command record (write-side input; no HTTP details)
+│       ├── PlaceOrderCommandHandler.java   # @Service, implements CommandHandler<PlaceOrderCommand, OrderId>
+│       ├── CancelOrderCommand.java     # Command record
+│       └── CancelOrderCommandHandler.java  # @Service, implements CommandHandler<CancelOrderCommand, Void>
 └── query/
-    └── order/                         # 按聚合分包
-        ├── GetOrderQueryHandler.java   # @Service, implements GetOrderUseCase，直接查 ES
-        ├── ListOrdersQuery.java        # 查询 record：分页 + 过滤条件
-        ├── ListOrdersQueryHandler.java # @Service, implements ListOrdersUseCase
-        ├── OrderDetailResponse.java    # 响应 DTO record（单条订单详情）
-        ├── OrderItemResponse.java      # 响应 DTO record（订单项）
-        ├── OrderSummaryResponse.java   # 响应 DTO record（列表摘要）
-        └── OrderNotFoundException.java # 应用层异常：订单不存在
+    └── order/                         # Packaged by aggregate
+        ├── GetOrderQuery.java          # Query record: fetch single order by ID
+        ├── GetOrderQueryHandler.java   # @Service, implements QueryHandler<GetOrderQuery, OrderDetailResponse>; queries ES directly
+        ├── ListOrdersQuery.java        # Query record: pagination + filter criteria
+        ├── ListOrdersQueryHandler.java # @Service, implements QueryHandler<ListOrdersQuery, List<OrderSummaryResponse>>
+        ├── OrderDetailResponse.java    # Response DTO record (single order detail)
+        ├── OrderItemResponse.java      # Response DTO record (order item)
+        ├── OrderSummaryResponse.java   # Response DTO record (list summary)
+        └── OrderNotFoundException.java # Application-layer exception: order not found
 ```
 
-> **命令与查询的区别**：
-> - `CommandHandler`：改变系统状态，写 PostgreSQL，发布领域事件
-> - `QueryHandler`：只读，直接查 ElasticSearch 读模型，不触及领域层
+> **Difference between commands and queries**:
+> - `CommandHandler`: mutates system state, writes to PostgreSQL, registers domain events (via Outbox — not called directly)
+> - `QueryHandler`: read-only, queries the ElasticSearch read model directly, bypasses the domain layer entirely
 
 ---
 
-### 3. `infrastructure/` — 基础设施层（被动侧适配器）
+### 3. `infrastructure/` — Infrastructure Layer (driven adapters)
 
-**职责**：实现 `application/port/outbound/` 中定义的所有次级端口接口。
+**Responsibility**: Implement all secondary port interfaces defined in `application/port/outbound/`.
 
-**规范**：
-- 只有这里才能引入 JPA / Kafka / Redis / Elasticsearch SDK。
-- JPA Entity（`*JpaEntity`）不得暴露到此包外——Mapper 负责与领域对象互转。
-- `@Transactional` 注解只在持久化适配器中使用。
+**Rules**:
+- This is the only layer that may import JPA / Kafka / Redis / Elasticsearch SDKs.
+- JPA Entities (`*JpaEntity`) must not be exposed outside this package — the Mapper handles conversion to and from domain objects.
+- `@Transactional` annotations are used only in persistence adapters.
+- The Outbox base table (`outbox_event`) along with its JPA entity, relay scheduler, and publisher are all provided by seedwork — do not redefine them in service code.
 
 ```text
 infrastructure/
-├── persistence/
-│   └── jpa/
-│       ├── OrderPersistenceAdapter.java  # 实现 OrderPersistence（含 @Transactional）
-│       ├── OutboxPersistenceAdapter.java # 实现 OutboxRepository
-│       ├── OrderJpaEntity.java           # JPA 实体（@Entity），不出此包
-│       ├── OrderItemJpaEntity.java       # JPA 实体
-│       ├── OutboxEventJpaEntity.java     # JPA 实体：Outbox 表
-│       ├── OrderJpaRepository.java       # Spring Data JPA 接口
-│       └── OutboxJpaRepository.java      # Spring Data JPA 接口
-├── search/
+├── repository/
+│   ├── jpa/
+│   │   ├── OrderPersistenceAdapter.java  # Implements OrderPersistence (includes @Transactional)
+│   │   ├── OrderJpaEntity.java           # JPA entity (@Entity); must not leave this package
+│   │   ├── OrderItemJpaEntity.java       # JPA entity
+│   │   └── OrderJpaRepository.java       # Spring Data JPA interface
 │   └── elasticsearch/
-│       ├── OrderSearchAdapter.java       # 实现 OrderSearchRepository
-│       ├── OrderElasticDocument.java     # ES 文档模型
-│       └── OrderElasticRepository.java   # Spring Data ES 接口
+│       ├── OrderSearchAdapter.java       # Implements OrderSearchRepository
+│       ├── OrderElasticDocument.java     # ES document model
+│       └── OrderElasticRepository.java   # Spring Data ES interface
 ├── messaging/
-│   └── kafka/
-│       ├── KafkaEventDispatcherAdapter.java  # 实现 EventDispatcher（Avro + Kafka）
-│       └── OutboxRelayScheduler.java         # @Scheduled：轮询 Outbox，发布到 Kafka
+│   └── outbox/
+│       └── OrderOutboxMapper.java        # Implements seedwork OutboxMapper SPI (domain event → Avro payload)
 └── client/
-    └── CatalogRestClient.java            # 实现 CatalogClient（WebClient HTTP 调用）
+    └── CatalogRestClient.java            # Implements CatalogClient (WebClient HTTP call)
 ```
 
 ---
 
-### 4. `interfaces/` — 接口层（主动侧适配器）
+### 4. `interfaces/` — Interfaces Layer (driving adapters)
 
-**职责**：系统入口——接收外部请求（HTTP、Kafka 消息），将其转为 Command / Query，调用对应 Handler。
+**Responsibility**: System entry points — receive external requests (HTTP, Kafka messages), convert them to Commands / Queries, and dispatch via `CommandBus` / `QueryBus`.
 
-**规范**：
-- 禁止在 Controller 中编写业务逻辑。
-- Controller 将 HTTP 入参映射为 Command / Query 对象后直接交给 Handler。
-- Kafka Consumer 将消息反序列化为内部对象后调用 CommandHandler 或 QueryHandler。
+**Rules**:
+- Business logic must not be written in Controllers.
+- Controllers map HTTP input to Command / Query objects, then call `commandBus.dispatch()` / `queryBus.dispatch()` — concrete Handler classes are never injected directly.
+- Kafka Consumers deserialise messages into internal objects and similarly dispatch via CommandBus to the application layer.
 
 ```text
 interfaces/
-└── rest/
-    ├── OrderCommandController.java     # POST /api/v1/orders, PUT /api/v1/orders/{id}/cancel
-    └── OrderQueryController.java       # GET /api/v1/orders/{id}, GET /api/v1/orders
+├── rest/
+│   ├── OrderCommandController.java     # POST /api/v1/orders, PUT /api/v1/orders/{id}/cancel
+│   └── OrderQueryController.java       # GET /api/v1/orders/{id}, GET /api/v1/orders
+└── messaging/
+    └── consumer/
+        ├── OrderEventConsumer.java     # @IdempotentKafkaListener single entry point, routes to per-event handlers
+        └── OrderPlacedHandler.java     # Handles OrderPlaced event; dispatches to CommandBus
 ```
 
 ---
 
-## 核心执行流程（下单）
+## Core Execution Flow (Place Order)
 
 ```
 HTTP POST /api/v1/orders
-  │
-  ▼
+  ↓
 OrderCommandController          [interfaces/rest/]
-  │  将请求体映射为 PlaceOrderCommand
-  ▼
+  → commandBus.dispatch(new PlaceOrderCommand(...))
+  ↓
 PlaceOrderCommandHandler        [application/command/order/]
-  │  1. 调 CatalogClient.checkStock() & reserveStock()
-  │  2. 调 OrderPricingService.calculate()     ← Domain Service [domain/service/]
-  │  3. 调 Order.create(items, finalTotal)     ← Aggregate [domain/model/]
-  │  4. 调 Order.place()  → 返回 OrderPlaced   ← Domain Event [domain/event/]
-  │  5. 调 OrderPersistence.save(order)
-  │  6. 调 EventDispatcher.publishOrderPlaced(event)
-  ▼
-OrderPersistenceAdapter         [infrastructure/persistence/jpa/]
-  │  写 orders + outbox_event 表（同一事务）
-  ▼
-KafkaEventDispatcherAdapter     [infrastructure/messaging/kafka/]
-     通过 Outbox Relay 异步发布到 Kafka topic: order.placed
+  1. CatalogClient.checkStock() & reserveStock()
+  2. OrderPricingService.calculate()            ← Domain Service [domain/service/]
+  3. Order.create(items, finalTotal)             ← Aggregate [domain/model/]
+  4. Order.place() → registers OrderPlaced      ← Domain Event (in memory) [domain/event/]
+  5. OrderPersistence.save(order)               ← AbstractAggregateRootEntity carries events
+  ↓
+OutboxWriteListener (BEFORE_COMMIT)             [seedwork]
+  → atomically writes outbox_event row in the same transaction
+  ↓
+Debezium CDC / OutboxRelayScheduler             [seedwork / infrastructure]
+  → publishes to Kafka topic: bookstore.order.placed
 ```
 
 ---
 
-## 层间命名速查
+## Naming Quick Reference
 
-| 概念 | 命名模式 | 示例 |
+| Concept | Naming Pattern | Example |
 |---|---|---|
 | Command record | `{Action}{Aggregate}Command` | `PlaceOrderCommand` |
 | CommandHandler | `{Action}{Aggregate}CommandHandler` | `PlaceOrderCommandHandler` |
-| Query record | `{Criteria}{Aggregate}Query` | `FindOrdersByCustomerQuery` |
+| Query record | `{Criteria}{Aggregate}Query` | `GetOrderQuery`, `ListOrdersQuery` |
 | QueryHandler | `{Criteria}{Aggregate}QueryHandler` | `ListOrdersQueryHandler` |
 | Response DTO | `{Aggregate}{Purpose}Response` | `OrderDetailResponse` |
 | Repository Port | `{Aggregate}Persistence` | `OrderPersistence` |
-| Event Dispatcher Port | `EventDispatcher` | `EventDispatcher` |
+| Read Model Port | `{Aggregate}SearchRepository` | `OrderSearchRepository` |
+| Service Client Port | `{Target}Client` | `CatalogClient` |
 | Domain Event | `{Aggregate}{PastTense}` | `OrderPlaced` |
 | JPA Entity | `{Aggregate}JpaEntity` | `OrderJpaEntity` |
 | JPA Repository | `{Aggregate}JpaRepository` | `OrderJpaRepository` |
-| REST Controller | `{Aggregate}Controller` | `OrderCommandController` |
-| Kafka Producer Adapter | `Kafka{Aggregate}EventPublisher` | `KafkaOrderEventPublisher` |
-| Kafka Consumer Adapter | `{Event}Consumer` | `OrderPlacedConsumer` |
-| HTTP Client Adapter | `{Target}RestClient` | `CatalogRestClient` |
-| Mapper | `{Aggregate}{From}To{To}Mapper` | `OrderJpaEntityToDomainMapper` |
+| ES Document | `{Aggregate}ElasticDocument` | `OrderElasticDocument` |
+| ES Repository | `{Aggregate}ElasticRepository` | `OrderElasticRepository` |
+| REST Controller (write) | `{Aggregate}CommandController` | `OrderCommandController` |
+| REST Controller (read) | `{Aggregate}QueryController` | `OrderQueryController` |
+| Outbox Mapper adapter | `{Service}OutboxMapper` | `OrderOutboxMapper` |
+| Kafka Consumer adapter | `{Event}Consumer` | `OrderEventConsumer` |
+| HTTP Client adapter | `{Target}RestClient` | `CatalogRestClient` |
