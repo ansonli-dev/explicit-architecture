@@ -1,21 +1,19 @@
 package com.example.order.infrastructure.repository.jpa;
 
 import com.example.seedwork.infrastructure.jpa.AbstractAggregateRootEntity;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * JPA entity for the orders table.
- * Extends {@link AbstractAggregateRootEntity} so that domain events attached
- * via {@code attachDomainEvents()} are published by Spring Data after {@code save()}.
- */
 @Entity
 @Table(name = "orders")
 @Getter
@@ -47,6 +45,21 @@ public class OrderJpaEntity extends AbstractAggregateRootEntity {
     @Column(name = "cancel_reason")
     private String cancelReason;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<OrderItemJpaEntity> items = new ArrayList<>();
+    @Column(name = "items", columnDefinition = "jsonb", nullable = false)
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<ItemJson> items = new ArrayList<>();
+
+    /**
+     * Item representation stored as JSONB in the orders table.
+     * Field names use snake_case to match the column names in the CDC event
+     * consumed by the Elasticsearch Sink Connector.
+     */
+    public record ItemJson(
+            UUID id,
+            @JsonProperty("book_id")         UUID   bookId,
+            @JsonProperty("book_title")       String bookTitle,
+            @JsonProperty("unit_price_cents") long   unitPriceCents,
+            String currency,
+            int    quantity
+    ) {}
 }

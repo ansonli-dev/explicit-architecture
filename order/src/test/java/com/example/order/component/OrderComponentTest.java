@@ -90,7 +90,7 @@ class OrderComponentTest {
                     return new MockResponse()
                             .setResponseCode(200)
                             .addHeader("Content-Type", "application/json")
-                            .setBody("{\"bookId\":\"" + UUID.randomUUID() + "\",\"available\":100}");
+                            .setBody("{\"bookId\":\"" + UUID.randomUUID() + "\",\"availableStock\":100}");
                 }
                 if (path.matches("/api/v1/books/.*/stock/reserve") && "POST".equals(request.getMethod())) {
                     return new MockResponse().setResponseCode(200);
@@ -113,7 +113,7 @@ class OrderComponentTest {
                     return new MockResponse()
                             .setResponseCode(200)
                             .addHeader("Content-Type", "application/json")
-                            .setBody("{\"bookId\":\"" + UUID.randomUUID() + "\",\"available\":0}");
+                            .setBody("{\"bookId\":\"" + UUID.randomUUID() + "\",\"availableStock\":0}");
                 }
                 return new MockResponse().setResponseCode(404);
             }
@@ -163,8 +163,10 @@ class OrderComponentTest {
         // Act
         String orderId = placeOrder(customerId, bookId, 1);
 
-        // Allow ES indexing (TransactionalEventListener AFTER_COMMIT) to complete
-        Thread.sleep(1500);
+        // In production, Debezium CDC → ES Sink Connector writes the document (async).
+        // In component tests, the Sink Connector is not running; GetOrderQueryHandler
+        // falls back to PostgreSQL when ES returns empty, so the 200 is still returned.
+        Thread.sleep(500);
 
         // Assert
         given()

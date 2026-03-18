@@ -1,0 +1,94 @@
+{{- /*
+  post-install / post-upgrade Job:
+  Registers the Elasticsearch Sink Connector that syncs the orders CDC topic
+  into the ES orders index. Depends on orders-cdc-connector being registered first.
+
+  Source messages are already flat (envelope stripped by ExtractNewRecordState on the
+  CDC connector side). The SMT pipeline here only needs to:
+    1. extractKey  — extracts "id" from key struct {"id":"..."} → plain string (ES document ID)
+    2. rename      — renames snake_case DB columns to camelCase ES fields:
+                     customer_id→customerId, customer_email→customerEmail,
+                     total_cents→totalCents, tracking_number→trackingNumber,
+                     cancel_reason→cancelReason
+    3. topicRoute  — renames the Kafka topic in the record from "debezium.public.orders"
+                     to "orders", so the Aiven connector creates/writes the "orders" ES index
+                     items kept as-is (JSON string from JSONB; parsed by OrderSearchAdapter)
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "order.fullname" . }}-es-sink-connector
+  labels:
+    {{- include "order.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "7"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        {{- include "order.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: es-sink-connector
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: register-connector
+          image: curlimages/curl:8.7.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              DEBEZIUM_URL="http://debezium.infra.svc.cluster.local:8083"
+              CONNECTOR_NAME="order-es-sink-connector"
+
+              echo "Waiting for Debezium Connect..."
+              until curl -sf "${DEBEZIUM_URL}/connectors" > /dev/null; do
+                echo "  not ready, retrying in 10s..."
+                sleep 10
+              done
+              echo "Debezium Connect is ready."
+
+              CONFIG="{
+                \"connector.class\": \"io.aiven.kafka.connect.opensearch.OpensearchSinkConnector\",
+                \"tasks.max\": \"1\",
+                \"topics\": \"debezium.public.orders\",
+                \"connection.url\": \"http://elasticsearch.infra.svc.cluster.local:9200\",
+                \"type.name\": \"_doc\",
+                \"key.ignore\": \"false\",
+                \"schema.ignore\": \"true\",
+                \"behavior.on.null.values\": \"ignore\",
+                \"key.converter\": \"org.apache.kafka.connect.json.JsonConverter\",
+                \"key.converter.schemas.enable\": \"false\",
+                \"value.converter\": \"org.apache.kafka.connect.json.JsonConverter\",
+                \"value.converter.schemas.enable\": \"false\",
+                \"transforms\": \"extractKey,rename,topicRoute\",
+                \"transforms.extractKey.type\": \"org.apache.kafka.connect.transforms.ExtractField\$Key\",
+                \"transforms.extractKey.field\": \"id\",
+                \"transforms.rename.type\": \"org.apache.kafka.connect.transforms.ReplaceField\$Value\",
+                \"transforms.rename.renames\": \"customer_id:customerId,customer_email:customerEmail,total_cents:totalCents,tracking_number:trackingNumber,cancel_reason:cancelReason\",
+                \"transforms.topicRoute.type\": \"org.apache.kafka.connect.transforms.RegexRouter\",
+                \"transforms.topicRoute.regex\": \".*\",
+                \"transforms.topicRoute.replacement\": \"orders\"
+              }"
+
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DEBEZIUM_URL}/connectors/${CONNECTOR_NAME}")
+              if [ "${STATUS}" = "200" ]; then
+                echo "Connector exists, updating via PUT..."
+                curl -sf -X PUT \
+                  -H "Content-Type: application/json" \
+                  -d "${CONFIG}" \
+                  "${DEBEZIUM_URL}/connectors/${CONNECTOR_NAME}/config"
+              else
+                echo "Registering connector via POST..."
+                curl -sf -X POST \
+                  -H "Content-Type: application/json" \
+                  -d "{\"name\": \"${CONNECTOR_NAME}\", \"config\": ${CONFIG}}" \
+                  "${DEBEZIUM_URL}/connectors"
+              fi
+
+              echo "Done."

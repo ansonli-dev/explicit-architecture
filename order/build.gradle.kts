@@ -124,6 +124,4 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation(libs.rest.assured)
 
-    // Contract testing — BDCT consumer side (generates pact file for PactFlow)
-    testImplementation(libs.pact.consumer.junit5)
 }

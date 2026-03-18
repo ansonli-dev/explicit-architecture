@@ -1,9 +1,7 @@
 package com.example.order.infrastructure.repository.elasticsearch;
 
 import com.example.order.application.port.outbound.OrderSearchRepository;
-import com.example.order.application.port.outbound.OrderSearchRepository.OrderProjection;
 import com.example.order.application.query.order.OrderDetailResponse;
-import com.example.order.application.query.order.OrderItemResponse;
 import com.example.order.application.query.order.OrderResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +20,16 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Integration test for OrderSearchAdapter.
+ *
+ * Seeds documents directly via OrderElasticRepository using the same JSON string format
+ * that the Elasticsearch Sink Connector produces after consuming Debezium CDC events.
+ * Field names in the items JSON are snake_case (matching Debezium's jsonb serialization).
+ */
 @DataElasticsearchTest
 @Testcontainers
-@Import(OrderSearchAdapter.class)
+@Import({OrderSearchAdapter.class})
 class OrderSearchAdapterTest {
 
     @Container
@@ -37,68 +42,57 @@ class OrderSearchAdapterTest {
         registry.add("spring.elasticsearch.uris", elasticsearch::getHttpHostAddress);
     }
 
+    @Autowired OrderElasticRepository elasticRepository;
     @Autowired OrderSearchRepository orderSearchRepository;
 
-    private final UUID orderId = UUID.randomUUID();
+    private final UUID orderId    = UUID.randomUUID();
     private final UUID customerId = UUID.randomUUID();
 
-    private OrderProjection buildProjection(UUID ordId, UUID custId, String status) {
-        var item = new OrderItemResponse(UUID.randomUUID(), "Clean Code", 4999L, "CNY", 2);
-        return new OrderProjection(ordId, custId, "user@example.com", status, 9998L, "CNY", List.of(item));
+    /** Builds a document the way ES Sink Connector would write it after CDC. */
+    private OrderElasticDocument buildCdcDoc(UUID ordId, UUID custId, String status) {
+        var doc = new OrderElasticDocument();
+        doc.setId(ordId.toString());
+        doc.setCustomerId(custId.toString());
+        doc.setCustomerEmail("user@example.com");
+        doc.setStatus(status);
+        doc.setTotalCents(9998L);
+        doc.setCurrency("CNY");
+        // items as a JSON string — this is exactly what Debezium sends for a jsonb column.
+        // Field names are snake_case matching @JsonProperty annotations in ItemDocument.
+        doc.setItems("[{\"id\":\"" + UUID.randomUUID() + "\",\"book_id\":\"" + UUID.randomUUID()
+                + "\",\"book_title\":\"Clean Code\",\"unit_price_cents\":4999,\"currency\":\"CNY\",\"quantity\":2}]");
+        return doc;
     }
 
     @Test
-    void givenOrderSaved_whenFindById_thenOrderDetailResponseReturned() {
-        // Arrange
-        orderSearchRepository.save(buildProjection(orderId, customerId, "PENDING"));
+    void givenCdcDocument_whenFindById_thenOrderDetailResponseReturned() {
+        elasticRepository.save(buildCdcDoc(orderId, customerId, "PENDING"));
 
-        // Act
         Optional<OrderDetailResponse> found = orderSearchRepository.findById(orderId);
 
-        // Assert
         assertThat(found).isPresent();
         assertThat(found.get().orderId()).isEqualTo(orderId);
         assertThat(found.get().customerId()).isEqualTo(customerId);
         assertThat(found.get().status()).isEqualTo("PENDING");
         assertThat(found.get().items()).hasSize(1);
+        assertThat(found.get().items().get(0).bookTitle()).isEqualTo("Clean Code");
     }
 
     @Test
     void givenNonExistentId_whenFindById_thenReturnsEmpty() {
-        // Act
-        Optional<OrderDetailResponse> found = orderSearchRepository.findById(UUID.randomUUID());
-
-        // Assert
-        assertThat(found).isEmpty();
+        assertThat(orderSearchRepository.findById(UUID.randomUUID())).isEmpty();
     }
 
     @Test
-    void givenOrdersForCustomer_whenFindByCustomerIdAndStatus_thenMatchingOrdersReturned() {
-        // Arrange
-        orderSearchRepository.save(buildProjection(orderId, customerId, "PENDING"));
-        orderSearchRepository.save(buildProjection(UUID.randomUUID(), customerId, "CONFIRMED"));
+    void givenMultipleOrders_whenFindByCustomerIdAndStatus_thenMatchingOrdersReturned() {
+        elasticRepository.save(buildCdcDoc(orderId, customerId, "PENDING"));
+        elasticRepository.save(buildCdcDoc(UUID.randomUUID(), customerId, "CONFIRMED"));
 
-        // Act
-        List<OrderResponse> pendingOrders = orderSearchRepository.findByCustomerIdAndStatus(customerId, "PENDING", 0, 20);
-        List<OrderResponse> allOrders = orderSearchRepository.findByCustomerIdAndStatus(customerId, null, 0, 20);
+        List<OrderResponse> pending = orderSearchRepository.findByCustomerIdAndStatus(customerId, "PENDING", 0, 20);
+        List<OrderResponse> all     = orderSearchRepository.findByCustomerIdAndStatus(customerId, null, 0, 20);
 
-        // Assert
-        assertThat(pendingOrders).hasSize(1);
-        assertThat(pendingOrders.get(0).orderId()).isEqualTo(orderId);
-        assertThat(allOrders).hasSize(2);
-    }
-
-    @Test
-    void givenSavedOrder_whenUpdateStatus_thenStatusUpdated() {
-        // Arrange
-        orderSearchRepository.save(buildProjection(orderId, customerId, "PENDING"));
-
-        // Act
-        orderSearchRepository.updateStatus(orderId, "CONFIRMED");
-
-        // Assert
-        Optional<OrderDetailResponse> found = orderSearchRepository.findById(orderId);
-        assertThat(found).isPresent();
-        assertThat(found.get().status()).isEqualTo("CONFIRMED");
+        assertThat(pending).hasSize(1);
+        assertThat(pending.get(0).orderId()).isEqualTo(orderId);
+        assertThat(all).hasSize(2);
     }
 }

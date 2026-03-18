@@ -22,8 +22,8 @@ import static org.awaitility.Awaitility.await;
  *              → outbox row written atomically
  *          ← 201 Created
  *
- * Debezium reads WAL → publishes OrderPlaced to Kafka
- * order-service OrderPlacedConsumer → writes OrderElasticDocument to ElasticSearch
+ * Debezium CDC reads orders table WAL → publishes to debezium.order-db.public.orders Kafka topic
+ * ES Sink Connector consumes topic → writes OrderElasticDocument to ElasticSearch
  *
  * Assertions:
  *   - availableStock reduced (sync, immediately after 201)

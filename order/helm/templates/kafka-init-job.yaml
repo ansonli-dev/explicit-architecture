@@ -49,7 +49,8 @@ spec:
                 "bookstore.order.placed|3" \
                 "bookstore.order.confirmed|3" \
                 "bookstore.order.cancelled|3" \
-                "bookstore.order.shipped|3"; do
+                "bookstore.order.shipped|3" \
+                "debezium.public.orders|3"; do
                 topic="${entry%%|*}"
                 partitions="${entry##*|}"
                 echo "Creating topic: ${topic}"

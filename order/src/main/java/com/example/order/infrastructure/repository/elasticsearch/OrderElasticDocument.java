@@ -7,8 +7,6 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import java.util.List;
-
 @Document(indexName = "orders")
 @Getter
 @Setter
@@ -32,15 +30,18 @@ public class OrderElasticDocument {
     @Field(type = FieldType.Keyword)
     private String currency;
 
-    @Field(type = FieldType.Nested)
-    private List<OrderItemDoc> items;
+    /**
+     * Order items serialized as a JSON string by the Elasticsearch Sink Connector.
+     * Debezium forwards the PostgreSQL {@code jsonb} column verbatim as an escaped JSON string.
+     * {@link com.example.order.infrastructure.repository.elasticsearch.converter.ItemDocumentListConverter}
+     * is used by the adapter to parse this string into typed {@code List<ItemDocument>}.
+     */
+    @Field(type = FieldType.Text, index = false)
+    private String items;
 
     @Field(type = FieldType.Keyword)
     private String trackingNumber;
 
     @Field(type = FieldType.Keyword)
     private String cancelReason;
-
-    public record OrderItemDoc(String bookId, String bookTitle, long unitPriceCents, String currency, int quantity) {
-    }
 }

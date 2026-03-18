@@ -1,0 +1,105 @@
+{{- /*
+  post-install / post-upgrade Job:
+  Registers order-cdc-connector — watches public.orders table via WAL.
+  Produces to: debezium.public.orders (topic.prefix=debezium, table=public.orders)
+  Uses publication.name=dbz_orders_publication (dedicated, avoids conflict with
+  order-outbox-connector which uses the default dbz_publication for outbox_event).
+  SMT: ExtractNewRecordState strips the Debezium envelope before publishing to Kafka,
+  so consumers receive flat field payloads, not nested {before,after,source} envelopes.
+  Consumed by: Elasticsearch Sink Connector (see es-sink-connector-job.yaml)
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "order.fullname" . }}-orders-cdc-connector
+  labels:
+    {{- include "order.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "6"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        {{- include "order.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: orders-cdc-connector
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: register-connector
+          image: curlimages/curl:8.7.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              DEBEZIUM_URL="http://debezium.infra.svc.cluster.local:8083"
+              CONNECTOR_NAME="order-cdc-connector"
+
+              echo "Waiting for Debezium Connect..."
+              until curl -sf "${DEBEZIUM_URL}/connectors" > /dev/null; do
+                echo "  not ready, retrying in 10s..."
+                sleep 10
+              done
+              echo "Debezium Connect is ready."
+
+              # Uses JsonConverter (schemas.enable=false) — JSONB columns arrive as
+              # JSON strings. snapshot.mode=initial snapshots existing rows first, then
+              # streams WAL changes — guarantees ES is fully populated on first deploy.
+              # ExtractNewRecordState (unwrap) strips the Debezium envelope so Kafka
+              # messages contain only the flat row fields, not {before,after,source}.
+              # delete.handling.mode=drop: orders are cancelled (status update), never
+              # hard-deleted — DROP means no tombstone is published to the ES Sink.
+              CONFIG="{
+                \"connector.class\": \"io.debezium.connector.postgresql.PostgresConnector\",
+                \"tasks.max\": \"1\",
+                \"database.hostname\": \"postgres.infra.svc.cluster.local\",
+                \"database.port\": \"5432\",
+                \"database.user\": \"order\",
+                \"database.password\": \"${DB_PASSWORD}\",
+                \"database.dbname\": \"order\",
+                \"database.server.name\": \"order-db\",
+                \"topic.prefix\": \"debezium\",
+                \"table.include.list\": \"public.orders\",
+                \"slot.name\": \"order_cdc_slot\",
+                \"publication.name\": \"dbz_orders_publication\",
+                \"publication.autocreate.mode\": \"filtered\",
+                \"plugin.name\": \"pgoutput\",
+                \"key.converter\": \"org.apache.kafka.connect.json.JsonConverter\",
+                \"key.converter.schemas.enable\": \"false\",
+                \"value.converter\": \"org.apache.kafka.connect.json.JsonConverter\",
+                \"value.converter.schemas.enable\": \"false\",
+                \"snapshot.mode\": \"initial\",
+                \"heartbeat.interval.ms\": \"0\",
+                \"transforms\": \"unwrap\",
+                \"transforms.unwrap.type\": \"io.debezium.transforms.ExtractNewRecordState\",
+                \"transforms.unwrap.drop.tombstones\": \"true\",
+                \"transforms.unwrap.delete.handling.mode\": \"drop\"
+              }"
+
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DEBEZIUM_URL}/connectors/${CONNECTOR_NAME}")
+              if [ "${STATUS}" = "200" ]; then
+                echo "Connector exists, updating via PUT..."
+                curl -sf -X PUT \
+                  -H "Content-Type: application/json" \
+                  -d "${CONFIG}" \
+                  "${DEBEZIUM_URL}/connectors/${CONNECTOR_NAME}/config"
+              else
+                echo "Registering connector via POST..."
+                curl -sf -X POST \
+                  -H "Content-Type: application/json" \
+                  -d "{\"name\": \"${CONNECTOR_NAME}\", \"config\": ${CONFIG}}" \
+                  "${DEBEZIUM_URL}/connectors"
+              fi
+
+              echo "Done."
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "order.fullname" . }}-secret
+                  key: SPRING_DATASOURCE_PASSWORD

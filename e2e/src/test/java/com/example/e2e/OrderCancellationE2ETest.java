@@ -19,8 +19,8 @@ import static org.awaitility.Awaitility.await;
  *              → CatalogClient.releaseStock() [sync HTTP to catalog-service]
  *          ← 204 No Content
  *
- * Debezium reads WAL → publishes OrderCancelled to Kafka
- * order-service consumer → updates OrderElasticDocument status
+ * Debezium CDC reads orders table WAL → publishes to debezium.order-db.public.orders Kafka topic
+ * ES Sink Connector consumes topic → updates OrderElasticDocument status in ElasticSearch
  *
  * Assertions:
  *   - availableStock restored (sync, immediately after 204)

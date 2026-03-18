@@ -1,12 +1,7 @@
 package com.example.order.infrastructure.repository.jpa;
 
 import com.example.order.application.port.outbound.OrderPersistence;
-import com.example.order.domain.model.CustomerId;
-import com.example.order.domain.model.Money;
-import com.example.order.domain.model.Order;
-import com.example.order.domain.model.OrderId;
-import com.example.order.domain.model.OrderItem;
-import com.example.order.domain.model.OrderStatus;
+import com.example.order.domain.model.*;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,8 +32,8 @@ class OrderPersistenceAdapter implements OrderPersistence {
 
     private Order toDomain(OrderJpaEntity entity) {
         List<OrderItem> items = entity.getItems().stream()
-                .map(i -> new OrderItem(i.getId(), i.getBookId(), i.getBookTitle(),
-                        new Money(i.getUnitPriceCents(), i.getCurrency()), i.getQuantity()))
+                .map(i -> new OrderItem(i.id(), i.bookId(), i.bookTitle(),
+                        new Money(i.unitPriceCents(), i.currency()), i.quantity()))
                 .toList();
         OrderStatus status = switch (entity.getStatus()) {
             case "PENDING"   -> new OrderStatus.Pending();
@@ -64,18 +59,13 @@ class OrderPersistenceAdapter implements OrderPersistence {
             entity.setTrackingNumber(s.trackingNumber());
         if (order.getStatus() instanceof OrderStatus.Cancelled c)
             entity.setCancelReason(c.reason());
-        List<OrderItemJpaEntity> itemEntities = order.getItems().stream().map(i -> {
-            OrderItemJpaEntity ie = new OrderItemJpaEntity();
-            ie.setId(i.getId());
-            ie.setBookId(i.getBookId());
-            ie.setBookTitle(i.getBookTitle());
-            ie.setUnitPriceCents(i.getUnitPrice().cents());
-            ie.setCurrency(i.getUnitPrice().currency());
-            ie.setQuantity(i.getQuantity());
-            ie.setOrder(entity);
-            return ie;
-        }).toList();
-        entity.setItems(itemEntities);
+        List<OrderJpaEntity.ItemJson> items = order.getItems().stream()
+                .map(i -> new OrderJpaEntity.ItemJson(
+                        i.getId(), i.getBookId(), i.getBookTitle(),
+                        i.getUnitPrice().cents(), i.getUnitPrice().currency(),
+                        i.getQuantity()))
+                .toList();
+        entity.setItems(items);
         entity.attachDomainEvents(order.pullDomainEvents());
         return entity;
     }

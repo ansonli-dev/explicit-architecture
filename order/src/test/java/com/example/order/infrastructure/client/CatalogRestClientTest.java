@@ -41,7 +41,7 @@ class CatalogRestClientTest {
         // Arrange
         mockWebServer.enqueue(new MockResponse()
                 .setBody("""
-                        {"bookId":"%s","available":95}
+                        {"bookId":"%s","availableStock":95}
                         """.formatted(bookId))
                 .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE));
 
