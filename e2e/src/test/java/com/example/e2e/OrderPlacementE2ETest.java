@@ -49,7 +49,7 @@ class OrderPlacementE2ETest extends BaseE2ETest {
                 .untilAsserted(() -> {
                     var response = getOrderFromReadModel(orderId);
                     assertThat(response.statusCode()).isEqualTo(200);
-                    assertThat(response.<String>path("status")).isEqualTo("PENDING");
+                    assertThat(response.<String>path("status")).isEqualTo("PLACED");
                     assertThat(response.<String>path("orderId")).isEqualTo(orderId.toString());
                 });
     }

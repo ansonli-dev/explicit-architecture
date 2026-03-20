@@ -28,7 +28,18 @@
       "name": "items",
       "type": {
         "type": "array",
-        "items": "com.example.events.v1.OrderItem"
+        "items": {
+          "type": "record",
+          "name": "OrderItem",
+          "namespace": "com.example.events.v1",
+          "doc": "订单明细快照，嵌入于 OrderPlaced 和 OrderCancelled 事件",
+          "fields": [
+            { "name": "bookId",         "type": { "type": "string", "avro.java.string": "String" }, "doc": "书籍 ID（UUID）" },
+            { "name": "bookTitle",      "type": { "type": "string", "avro.java.string": "String" }, "doc": "下单时快照的书名" },
+            { "name": "quantity",       "type": "int" },
+            { "name": "unitPriceCents", "type": "long", "doc": "下单时快照的单价（分）" }
+          ]
+        }
       },
       "doc": "取消时的订单明细快照，用于释放预留库存",
       "default": []
