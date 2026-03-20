@@ -89,8 +89,8 @@ class OrderPersistenceAdapterTest {
 
         // Assert
         assertThat(found.getItems()).hasSize(1);
-        assertThat(found.getItems().get(0).getBookId()).isEqualTo(bookId);
-        assertThat(found.getItems().get(0).getBookTitle()).isEqualTo("Clean Code");
-        assertThat(found.getItems().get(0).getQuantity()).isEqualTo(2);
+        assertThat(found.getItems().get(0).bookId()).isEqualTo(bookId);
+        assertThat(found.getItems().get(0).bookTitle()).isEqualTo("Clean Code");
+        assertThat(found.getItems().get(0).quantity()).isEqualTo(2);
     }
 }

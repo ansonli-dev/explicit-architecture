@@ -2,8 +2,8 @@ package com.example.notification.interfaces.messaging.consumer;
 
 import com.example.events.v1.OrderPlaced;
 import com.example.notification.application.command.notification.SendNotificationCommand;
-import com.example.notification.application.command.notification.SendNotificationCommandHandler;
 import com.example.notification.domain.model.Channel;
+import com.example.seedwork.application.bus.CommandBus;
 import com.example.seedwork.infrastructure.kafka.RetryableKafkaHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,10 +16,10 @@ public class OrderPlacedHandler implements RetryableKafkaHandler<OrderPlaced> {
 
     private static final Logger log = LoggerFactory.getLogger(OrderPlacedHandler.class);
 
-    private final SendNotificationCommandHandler commandHandler;
+    private final CommandBus commandBus;
 
-    public OrderPlacedHandler(SendNotificationCommandHandler commandHandler) {
-        this.commandHandler = commandHandler;
+    public OrderPlacedHandler(CommandBus commandBus) {
+        this.commandBus = commandBus;
     }
 
     @Override
@@ -35,7 +35,7 @@ public class OrderPlacedHandler implements RetryableKafkaHandler<OrderPlaced> {
     @Override
     public void handle(OrderPlaced event) {
         log.info("Processing OrderPlaced: orderId={}", event.getOrderId());
-        commandHandler.handle(new SendNotificationCommand(
+        commandBus.dispatch(new SendNotificationCommand(
                 UUID.fromString(event.getCustomerId().toString()),
                 Channel.EMAIL,
                 "订单确认 - 您的订单已下单",

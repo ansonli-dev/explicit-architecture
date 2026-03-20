@@ -1,9 +1,13 @@
 package com.example.catalog.infrastructure.repository.jpa;
 
+import com.example.catalog.application.port.outbound.BookCache;
 import com.example.catalog.application.port.outbound.BookPersistence;
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;
 import com.example.catalog.domain.model.Category;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,21 +19,24 @@ import java.util.UUID;
 @Component
 class BookPersistenceAdapter implements BookPersistence {
 
+    private static final Logger log = LoggerFactory.getLogger(BookPersistenceAdapter.class);
+
     private final BookJpaRepository bookJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
+    private final BookCache cache;
 
     BookPersistenceAdapter(BookJpaRepository bookJpaRepository,
-            CategoryJpaRepository categoryJpaRepository) {
+            CategoryJpaRepository categoryJpaRepository,
+            BookCache cache) {
         this.bookJpaRepository = bookJpaRepository;
         this.categoryJpaRepository = categoryJpaRepository;
+        this.cache = cache;
     }
 
     @Override
     @Transactional
     public Book save(Book book) {
-        CategoryJpaEntity catEntity = categoryJpaRepository.findByName(book.getCategory().getName())
-                .orElseGet(() -> categoryJpaRepository.save(
-                        new CategoryJpaEntity(book.getCategory().getId(), book.getCategory().getName())));
+        CategoryJpaEntity catEntity = findOrCreateCategory(book.getCategory());
 
         BookJpaEntity entity = bookJpaRepository.findById(book.getId().value())
                 .map(existing -> {
@@ -48,7 +55,32 @@ class BookPersistenceAdapter implements BookPersistence {
 
         entity.attachDomainEvents(book.pullDomainEvents());
         BookJpaEntity saved = bookJpaRepository.save(entity);
+
+        // P-5: invalidate cache after any save (P-27: log failures, don't throw)
+        try {
+            cache.invalidate(book.getId().value());
+        } catch (Exception e) {
+            log.warn("Cache invalidation failed for bookId={} — stale data may be served", book.getId().value(), e);
+        }
+
         return BookMapper.toDomain(saved);
+    }
+
+    /**
+     * Finds or creates a category row. If a concurrent transaction wins the INSERT first,
+     * catches the unique-constraint violation and re-fetches instead of propagating.
+     */
+    private CategoryJpaEntity findOrCreateCategory(Category category) {
+        return categoryJpaRepository.findByName(category.getName())
+                .orElseGet(() -> {
+                    try {
+                        return categoryJpaRepository.save(
+                                new CategoryJpaEntity(category.getId(), category.getName()));
+                    } catch (DataIntegrityViolationException e) {
+                        return categoryJpaRepository.findByName(category.getName())
+                                .orElseThrow(() -> e);
+                    }
+                });
     }
 
     @Override

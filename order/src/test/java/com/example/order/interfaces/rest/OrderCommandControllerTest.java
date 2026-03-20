@@ -2,7 +2,7 @@ package com.example.order.interfaces.rest;
 
 import com.example.order.application.command.order.CancelOrderCommand;
 import com.example.order.application.command.order.PlaceOrderCommand;
-import com.example.order.application.query.order.OrderDetailResponse;
+import com.example.order.application.command.order.PlaceOrderResult;
 import com.example.seedwork.application.bus.CommandBus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ class OrderCommandControllerTest {
     @Test
     void givenValidPlaceOrderRequest_whenPost_thenReturns201AndOrderDetailResponse() throws Exception {
         // Arrange
-        var response = new OrderDetailResponse(orderId, customerId, "user@example.com", "PENDING", List.of(), 9998L, "CNY");
+        var response = new PlaceOrderResult(orderId, customerId, "user@example.com", "PLACED", List.of(), 9998L, "CNY");
         when(commandBus.dispatch(any(PlaceOrderCommand.class))).thenReturn(response);
 
         var body = """
@@ -60,7 +60,7 @@ class OrderCommandControllerTest {
                         .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.orderId").value(orderId.toString()))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.status").value("PLACED"));
 
         verify(commandBus).dispatch(any(PlaceOrderCommand.class));
     }

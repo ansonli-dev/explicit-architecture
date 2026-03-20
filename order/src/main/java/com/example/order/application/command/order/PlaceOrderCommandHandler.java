@@ -10,65 +10,101 @@ import com.example.order.domain.model.OrderId;
 import com.example.order.domain.model.OrderItem;
 import com.example.order.domain.model.PricingResult;
 import com.example.order.domain.service.OrderPricingService;
-import com.example.order.application.query.order.OrderItemResponse;
-import com.example.order.application.query.order.OrderDetailResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PlaceOrderCommandHandler implements CommandHandler<PlaceOrderCommand, OrderDetailResponse> {
+public class PlaceOrderCommandHandler implements CommandHandler<PlaceOrderCommand, PlaceOrderResult> {
 
     private final OrderPersistence orderRepository;
     private final CatalogClient catalogClient;
     private final OrderPricingService orderPricingService;
 
     @Override
-    public OrderDetailResponse handle(PlaceOrderCommand command) {
+    public PlaceOrderResult handle(PlaceOrderCommand command) {
         log.info("Placing order for customerId={}", command.customerId());
+
+        // P-16: Validate all items share the same currency
+        String currency = command.items().get(0).currency();
+        boolean mixedCurrency = command.items().stream()
+                .anyMatch(i -> !i.currency().equals(currency));
+        if (mixedCurrency) {
+            throw new IllegalArgumentException(
+                    "All order items must share the same currency; mixed currencies are not supported");
+        }
 
         OrderId orderId = OrderId.generate();
 
-        List<OrderItem> items = command.items().stream().map(req -> {
+        // P-8: Fetch all stock data first (external IO belongs in handler)
+        Map<UUID, Integer> availableStock = new HashMap<>();
+        for (var req : command.items()) {
             var stockCheck = catalogClient.checkStock(req.bookId());
-            if (stockCheck.availableStock() < req.quantity()) {
-                throw new IllegalStateException("Insufficient stock for book: " + req.bookId());
-            }
-            catalogClient.reserveStock(req.bookId(), orderId.value(), req.quantity());
-            return OrderItem.create(req.bookId(), req.bookTitle(),
-                    new Money(req.unitPriceCents(), req.currency()), req.quantity());
-        }).toList();
+            availableStock.put(req.bookId(), stockCheck.availableStock());
+        }
 
-        String currency = command.items().get(0).currency();
+        // Build domain items (immutable snapshots)
+        List<OrderItem> items = command.items().stream()
+                .map(req -> OrderItem.create(req.bookId(), req.bookTitle(),
+                        new Money(req.unitPriceCents(), req.currency()), req.quantity()))
+                .toList();
+
+        // Calculate pricing
         PricingResult pricing = orderPricingService.calculate(items, currency);
         if (pricing.hasDiscount()) {
             log.info("Discounts applied for customerId={}: {} (saved {} fen)",
                     command.customerId(), pricing.appliedDiscounts(), pricing.discountAmount().cents());
         }
 
+        // P-8: Domain validates stock sufficiency
         Order order = Order.create(orderId, CustomerId.of(command.customerId()), command.customerEmail(),
-                items, pricing.finalTotal());
-        // place() registers OrderPlaced into the aggregate's event list.
-        // The persistence adapter will pull it and write the outbox entry atomically.
+                items, pricing.finalTotal(), availableStock);
+
+        // P-15: Reserve with rollback on partial failure
+        List<UUID> reservedBookIds = new ArrayList<>();
+        try {
+            for (OrderItem item : items) {
+                catalogClient.reserveStock(item.bookId(), orderId.value(), item.quantity());
+                reservedBookIds.add(item.bookId());
+            }
+        } catch (Exception e) {
+            log.warn("Stock reservation failed — rolling back {} already-reserved items", reservedBookIds.size());
+            for (UUID bookId : reservedBookIds) {
+                OrderItem item = items.stream().filter(i -> i.bookId().equals(bookId)).findFirst().orElseThrow();
+                try {
+                    catalogClient.releaseStock(bookId, orderId.value(), item.quantity());
+                } catch (Exception ex) {
+                    log.warn("Failed to rollback reserved stock for bookId={}", bookId, ex);
+                }
+            }
+            throw new IllegalStateException("Stock reservation failed: " + e.getMessage(), e);
+        }
+
         order.place();
         Order saved = orderRepository.save(order);
 
         log.info("Order placed: orderId={}", saved.getId());
-        return toDetailResponse(saved);
+        return toResult(saved);
     }
 
-    private OrderDetailResponse toDetailResponse(Order order) {
-        List<OrderItemResponse> itemResponses = order.getItems().stream()
-                .map(i -> new OrderItemResponse(i.getBookId(), i.getBookTitle(),
-                        i.getUnitPrice().cents(), i.getUnitPrice().currency(), i.getQuantity()))
+    private PlaceOrderResult toResult(Order order) {
+        List<PlaceOrderResult.Item> items = order.getItems().stream()
+                .map(i -> new PlaceOrderResult.Item(
+                        i.bookId(), i.bookTitle(),
+                        i.unitPrice().cents(), i.unitPrice().currency(),
+                        i.quantity()))
                 .toList();
-        return new OrderDetailResponse(
+        return new PlaceOrderResult(
                 order.getId().value(), order.getCustomerId().value(), order.getCustomerEmail(),
-                order.getStatus().name(), itemResponses,
+                order.getStatus().name(), items,
                 order.getTotalAmount().cents(), order.getTotalAmount().currency());
     }
 }

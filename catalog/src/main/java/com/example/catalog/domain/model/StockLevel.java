@@ -26,10 +26,12 @@ public record StockLevel(int total, int reserved) {
     }
 
     public boolean canReserve(int quantity) {
-        return available() >= quantity;
+        return quantity > 0 && available() >= quantity;
     }
 
     public StockLevel reserve(int quantity) {
+        if (quantity <= 0)
+            throw new IllegalArgumentException("Reserve quantity must be positive");
         if (!canReserve(quantity)) {
             throw new InsufficientStockException(
                     "Insufficient stock: available=" + available() + ", requested=" + quantity);
@@ -38,6 +40,8 @@ public record StockLevel(int total, int reserved) {
     }
 
     public StockLevel release(int quantity) {
+        if (quantity <= 0)
+            throw new IllegalArgumentException("Release quantity must be positive");
         int newReserved = reserved - quantity;
         if (newReserved < 0)
             throw new IllegalArgumentException("Cannot release more than reserved");

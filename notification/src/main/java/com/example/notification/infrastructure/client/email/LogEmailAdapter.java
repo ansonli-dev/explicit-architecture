@@ -19,6 +19,16 @@ public class LogEmailAdapter implements EmailSender {
     @Override
     public void send(String to, Payload payload) {
         log.info("📧 [EMAIL SIMULATION] TO: {} | SUBJECT: {} | BODY: {}",
-                to, payload.subject(), payload.body());
+                maskEmail(to), payload.subject(), payload.body());
+    }
+
+    private static String maskEmail(String email) {
+        if (email == null) return null;
+        int at = email.indexOf('@');
+        if (at <= 0) return "***";
+        String local = email.substring(0, at);
+        String domain = email.substring(at);
+        if (local.length() <= 2) return "***" + domain;
+        return local.charAt(0) + "***" + local.charAt(local.length() - 1) + domain;
     }
 }

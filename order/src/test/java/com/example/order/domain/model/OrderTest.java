@@ -91,9 +91,10 @@ class OrderTest {
     class Confirm {
 
         @Test
-        void givenPendingOrder_whenConfirm_thenStatusIsConfirmed() {
+        void givenPlacedOrder_whenConfirm_thenStatusIsConfirmed() {
             // Arrange
             Order order = createTestOrder();
+            order.place();
 
             // Act
             order.confirm();
@@ -103,9 +104,10 @@ class OrderTest {
         }
 
         @Test
-        void givenPendingOrder_whenConfirm_thenOrderConfirmedEventReturned() {
+        void givenPlacedOrder_whenConfirm_thenOrderConfirmedEventReturned() {
             // Arrange
             Order order = createTestOrder();
+            order.place();
 
             // Act
             OrderConfirmed event = order.confirm();
@@ -118,6 +120,7 @@ class OrderTest {
         void givenConfirmedOrder_whenConfirmAgain_thenThrowsOrderStateException() {
             // Arrange
             Order order = createTestOrder();
+            order.place();
             order.confirm();
 
             // Act & Assert
@@ -135,6 +138,7 @@ class OrderTest {
         void givenConfirmedOrder_whenShip_thenStatusIsShipped() {
             // Arrange
             Order order = createTestOrder();
+            order.place();
             order.confirm();
 
             // Act
@@ -149,6 +153,7 @@ class OrderTest {
         void givenConfirmedOrder_whenShip_thenOrderShippedEventReturned() {
             // Arrange
             Order order = createTestOrder();
+            order.place();
             order.confirm();
 
             // Act
@@ -192,6 +197,7 @@ class OrderTest {
         void givenConfirmedOrder_whenCancel_thenStatusIsCancelled() {
             // Arrange
             Order order = createTestOrder();
+            order.place();
             order.confirm();
 
             // Act
@@ -218,6 +224,7 @@ class OrderTest {
         void givenShippedOrder_whenCancel_thenThrowsOrderStateException() {
             // Arrange
             Order order = createTestOrder();
+            order.place();
             order.confirm();
             order.ship("TRACK-001");
 
@@ -225,6 +232,39 @@ class OrderTest {
             assertThatThrownBy(() -> order.cancel("too late"))
                     .isInstanceOf(OrderStateException.class)
                     .hasMessageContaining("shipped");
+        }
+
+        @Test
+        void givenCancelledOrder_whenCancelAgain_thenThrowsOrderStateException() {
+            // Arrange
+            Order order = createTestOrder();
+            order.cancel("first");
+
+            // Act & Assert
+            assertThatThrownBy(() -> order.cancel("second"))
+                    .isInstanceOf(OrderStateException.class)
+                    .hasMessageContaining("already cancelled");
+        }
+    }
+
+    // ─── Place ────────────────────────────────────────────────────────────────
+
+    @Nested
+    class PlaceIdempotency {
+
+        @Test
+        void givenPendingOrder_whenPlace_thenStatusIsPlaced() {
+            Order order = createTestOrder();
+            order.place();
+            assertThat(order.getStatus()).isInstanceOf(OrderStatus.Placed.class);
+        }
+
+        @Test
+        void givenPlacedOrder_whenPlaceAgain_thenThrowsOrderStateException() {
+            Order order = createTestOrder();
+            order.place();
+            assertThatThrownBy(order::place)
+                    .isInstanceOf(OrderStateException.class);
         }
     }
 }

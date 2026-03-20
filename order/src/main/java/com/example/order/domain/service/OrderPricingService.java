@@ -79,11 +79,11 @@ public class OrderPricingService {
             long itemSubtotalCents = item.subtotal().cents();
             originalTotalCents += itemSubtotalCents;
 
-            if (item.getQuantity() >= BULK_DISCOUNT_MIN_QTY) {
+            if (item.quantity() >= BULK_DISCOUNT_MIN_QTY) {
                 long discounted = applyPercent(itemSubtotalCents, BULK_DISCOUNT_PCT);
                 afterBulkCents += discounted;
                 appliedDiscounts.add(
-                        "Bulk 10%% off \"%s\" (qty %d)".formatted(item.getBookTitle(), item.getQuantity()));
+                        "Bulk 10%% off \"%s\" (qty %d)".formatted(item.bookTitle(), item.quantity()));
             } else {
                 afterBulkCents += itemSubtotalCents;
             }

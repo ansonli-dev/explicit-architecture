@@ -26,6 +26,6 @@ public record Money(long cents, String currency) {
     }
 
     public Money multiply(int factor) {
-        return new Money(this.cents * factor, this.currency);
+        return new Money(Math.multiplyExact(this.cents, factor), this.currency);
     }
 }

@@ -9,6 +9,7 @@ import com.example.seedwork.domain.AggregateRoot;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -59,6 +60,30 @@ public class Order extends AggregateRoot<OrderId> {
         return create(OrderId.generate(), customerId, customerEmail, items, finalTotal);
     }
 
+    /**
+     * Creates an Order, validating that stock is sufficient for each item.
+     * Stock data must be pre-fetched by the caller (handler).
+     */
+    public static Order create(OrderId id, CustomerId customerId, String customerEmail,
+            List<OrderItem> items, Money finalTotal, Map<UUID, Integer> availableStock) {
+        if (items == null || items.isEmpty())
+            throw new IllegalArgumentException("Order must have at least one item");
+        for (OrderItem item : items) {
+            int available = availableStock.getOrDefault(item.bookId(), 0);
+            if (available < item.quantity()) {
+                throw new InsufficientStockException(item.bookId(), item.quantity(), available);
+            }
+        }
+        return new Order(id, customerId, customerEmail,
+                new OrderStatus.Pending(), List.copyOf(items), finalTotal);
+    }
+
+    /** Creates a new Order with an auto-generated ID and stock validation. */
+    public static Order create(CustomerId customerId, String customerEmail,
+            List<OrderItem> items, Money finalTotal, Map<UUID, Integer> availableStock) {
+        return create(OrderId.generate(), customerId, customerEmail, items, finalTotal, availableStock);
+    }
+
     public static Order reconstitute(OrderId id, CustomerId customerId, String customerEmail,
             OrderStatus status, List<OrderItem> items, Money totalAmount) {
         return new Order(id, customerId, customerEmail, status, items, totalAmount);
@@ -68,6 +93,7 @@ public class Order extends AggregateRoot<OrderId> {
 
     public OrderPlaced place() {
         assertStatus(OrderStatus.Pending.class, "place");
+        this.status = new OrderStatus.Placed();
         OrderPlaced event = new OrderPlaced(UUID.randomUUID(), this.getId(), this.customerId,
                 this.customerEmail, this.items, this.totalAmount, Instant.now());
         registerEvent(event);
@@ -75,7 +101,7 @@ public class Order extends AggregateRoot<OrderId> {
     }
 
     public OrderConfirmed confirm() {
-        assertStatus(OrderStatus.Pending.class, "confirm");
+        assertStatus(OrderStatus.Placed.class, "confirm");
         this.status = new OrderStatus.Confirmed();
         OrderConfirmed event = new OrderConfirmed(UUID.randomUUID(), this.getId(), this.customerId, Instant.now());
         registerEvent(event);
@@ -94,7 +120,12 @@ public class Order extends AggregateRoot<OrderId> {
         if (this.status instanceof OrderStatus.Shipped) {
             throw new OrderStateException("Cannot cancel a shipped order");
         }
+        if (this.status instanceof OrderStatus.Cancelled) {
+            throw new OrderStateException("Order is already cancelled");
+        }
         this.status = new OrderStatus.Cancelled(reason);
+        // NOTE: Task 20 (P-9) will update this event construction to include items
+        // for the event-driven stock release flow. Keep items out here for now.
         OrderCancelled event = new OrderCancelled(UUID.randomUUID(), this.getId(), this.customerId, reason, Instant.now());
         registerEvent(event);
         return event;

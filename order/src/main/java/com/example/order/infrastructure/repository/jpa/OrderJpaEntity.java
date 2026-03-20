@@ -21,6 +21,10 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderJpaEntity extends AbstractAggregateRootEntity {
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
     @Id
     private UUID id;
 

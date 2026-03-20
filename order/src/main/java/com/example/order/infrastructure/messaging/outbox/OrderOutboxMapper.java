@@ -44,8 +44,8 @@ public class OrderOutboxMapper implements OutboxMapper {
                         .setCustomerEmail(e.customerEmail())
                         .setItems(e.items().stream()
                                 .map(i -> new OrderItem(
-                                        i.getBookId().toString(), i.getBookTitle(),
-                                        i.getQuantity(), i.getUnitPrice().cents()))
+                                        i.bookId().toString(), i.bookTitle(),
+                                        i.quantity(), i.unitPrice().cents()))
                                 .toList())
                         .setTotalCents(e.totalAmount().cents())
                         .setCurrency(e.totalAmount().currency())

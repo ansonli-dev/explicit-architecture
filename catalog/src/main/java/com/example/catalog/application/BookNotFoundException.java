@@ -1,4 +1,4 @@
-package com.example.catalog.application.query.book;
+package com.example.catalog.application;
 
 import com.example.seedwork.domain.NotFoundException;
 

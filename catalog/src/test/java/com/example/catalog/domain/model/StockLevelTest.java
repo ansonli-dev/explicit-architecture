@@ -69,6 +69,16 @@ class StockLevelTest {
     class CanReserve {
 
         @Test
+        void givenZeroQuantity_whenCanReserve_thenReturnsFalse() {
+            assertThat(StockLevel.of(10).canReserve(0)).isFalse();
+        }
+
+        @Test
+        void givenNegativeQuantity_whenCanReserve_thenReturnsFalse() {
+            assertThat(StockLevel.of(10).canReserve(-1)).isFalse();
+        }
+
+        @Test
         void givenEnoughStock_whenCanReserve_thenReturnsTrue() {
             // Arrange
             StockLevel stock = StockLevel.of(10);
@@ -98,6 +108,12 @@ class StockLevelTest {
 
     @Nested
     class Reserve {
+
+        @Test
+        void givenZeroQuantity_whenReserve_thenThrowsIllegalArgument() {
+            assertThatThrownBy(() -> StockLevel.of(10).reserve(0))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
 
         @Test
         void givenSufficientStock_whenReserve_thenReservedIncreased() {
@@ -140,6 +156,12 @@ class StockLevelTest {
 
     @Nested
     class Release {
+
+        @Test
+        void givenZeroQuantity_whenRelease_thenThrowsIllegalArgument() {
+            assertThatThrownBy(() -> StockLevel.of(10).release(0))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
 
         @Test
         void givenReservedStock_whenRelease_thenReservedDecreased() {

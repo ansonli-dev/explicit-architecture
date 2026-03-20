@@ -1,9 +1,11 @@
 package com.example.order.interfaces.rest;
 
-import com.example.seedwork.application.bus.CommandBus;
 import com.example.order.application.command.order.CancelOrderCommand;
 import com.example.order.application.command.order.PlaceOrderCommand;
-import com.example.order.application.query.order.OrderDetailResponse;
+import com.example.order.application.command.order.PlaceOrderResult;
+import com.example.order.interfaces.dto.CancelOrderRequest;
+import com.example.order.interfaces.dto.PlaceOrderRequest;
+import com.example.seedwork.application.bus.CommandBus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -20,24 +22,18 @@ class OrderCommandController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    OrderDetailResponse place(@RequestBody PlaceOrderRequest request) {
-        List<PlaceOrderCommand.OrderItemRequest> items = request.items().stream()
-                .map(i -> new PlaceOrderCommand.OrderItemRequest(
+    PlaceOrderResult place(@RequestBody PlaceOrderRequest request) {
+        List<PlaceOrderCommand.OrderItem> commandItems = request.items().stream()
+                .map(i -> new PlaceOrderCommand.OrderItem(
                         i.bookId(), i.bookTitle(), i.unitPriceCents(), i.currency(), i.quantity()))
                 .toList();
-        return commandBus.dispatch(
-                new PlaceOrderCommand(request.customerId(), request.customerEmail(), items));
+        return commandBus.dispatch(new PlaceOrderCommand(
+                request.customerId(), request.customerEmail(), commandItems));
     }
 
     @PutMapping("/{id}/cancel")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void cancel(@PathVariable UUID id, @RequestBody CancelRequest request) {
+    void cancel(@PathVariable UUID id, @RequestBody CancelOrderRequest request) {
         commandBus.dispatch(new CancelOrderCommand(id, request.reason()));
     }
-
-    record PlaceOrderRequest(UUID customerId, String customerEmail, List<ItemRequest> items) {
-        record ItemRequest(UUID bookId, String bookTitle, long unitPriceCents, String currency, int quantity) {}
-    }
-
-    record CancelRequest(String reason) {}
 }

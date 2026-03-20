@@ -30,7 +30,7 @@ public class CancelOrderCommandHandler implements CommandHandler<CancelOrderComm
         orderRepository.save(order);
 
         order.getItems()
-                .forEach(item -> catalogClient.releaseStock(item.getBookId(), command.orderId(), item.getQuantity()));
+                .forEach(item -> catalogClient.releaseStock(item.bookId(), command.orderId(), item.quantity()));
 
         log.info("Order cancelled: orderId={}", command.orderId());
         return null;
