@@ -25,8 +25,18 @@ spring:
         producer:
             key-serializer: org.apache.kafka.common.serialization.StringSerializer
             value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+        consumer:
+            group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:catalog.order-events}
+            key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+            auto-offset-reset: earliest
+            enable-auto-commit: false
+        listener:
+            ack-mode: MANUAL_IMMEDIATE
         properties:
             schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8085}
+            specific.avro.reader: true
+            auto.register.schemas: false
 
 outbox:
     relay:

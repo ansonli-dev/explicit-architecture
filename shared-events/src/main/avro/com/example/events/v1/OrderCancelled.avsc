@@ -2,7 +2,7 @@
   "namespace": "com.example.events.v1",
   "type": "record",
   "name": "OrderCancelled",
-  "doc": "订单取消时发布",
+  "doc": "订单取消时发布；携带订单明细供库存服务释放预留库存",
   "fields": [
     {
       "name": "eventId",
@@ -23,6 +23,15 @@
       "name": "reason",
       "type": { "type": "string", "avro.java.string": "String" },
       "doc": "取消原因（如：用户取消、超时未支付、库存不足）"
+    },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": "com.example.events.v1.OrderItem"
+      },
+      "doc": "取消时的订单明细快照，用于释放预留库存",
+      "default": []
     },
     {
       "name": "occurredAt",

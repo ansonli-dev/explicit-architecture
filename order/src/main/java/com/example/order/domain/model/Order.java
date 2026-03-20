@@ -124,9 +124,8 @@ public class Order extends AggregateRoot<OrderId> {
             throw new OrderStateException("Order is already cancelled");
         }
         this.status = new OrderStatus.Cancelled(reason);
-        // NOTE: Task 20 (P-9) will update this event construction to include items
-        // for the event-driven stock release flow. Keep items out here for now.
-        OrderCancelled event = new OrderCancelled(UUID.randomUUID(), this.getId(), this.customerId, reason, Instant.now());
+        OrderCancelled event = new OrderCancelled(UUID.randomUUID(), this.getId(), this.customerId,
+                reason, List.copyOf(this.items), Instant.now());
         registerEvent(event);
         return event;
     }

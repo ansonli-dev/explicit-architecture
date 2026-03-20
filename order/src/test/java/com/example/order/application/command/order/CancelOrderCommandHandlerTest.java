@@ -1,6 +1,5 @@
 package com.example.order.application.command.order;
 
-import com.example.order.application.port.outbound.CatalogClient;
 import com.example.order.application.port.outbound.OrderPersistence;
 import com.example.order.application.query.order.OrderNotFoundException;
 import com.example.order.domain.model.CustomerId;
@@ -21,7 +20,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +27,6 @@ import static org.mockito.Mockito.when;
 class CancelOrderCommandHandlerTest {
 
     @Mock OrderPersistence orderPersistence;
-    @Mock CatalogClient catalogClient;
 
     private CancelOrderCommandHandler handler;
     private final UUID customerId = UUID.randomUUID();
@@ -38,11 +35,11 @@ class CancelOrderCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new CancelOrderCommandHandler(orderPersistence, catalogClient);
+        handler = new CancelOrderCommandHandler(orderPersistence);
     }
 
     @Test
-    void givenExistingPendingOrder_whenHandle_thenOrderSavedAndStockReleased() {
+    void givenExistingPendingOrder_whenHandle_thenOrderSaved() {
         // Arrange
         var item = OrderItem.create(bookId, "Clean Code", new Money(10_000, "CNY"), 2);
         Order pendingOrder = Order.reconstitute(
@@ -55,9 +52,8 @@ class CancelOrderCommandHandlerTest {
         // Act
         handler.handle(new CancelOrderCommand(orderId, "customer request"));
 
-        // Assert
+        // Assert — stock release is now event-driven via OrderCancelled consumed by catalog
         verify(orderPersistence).save(pendingOrder);
-        verify(catalogClient).releaseStock(eq(bookId), eq(orderId), eq(2));
     }
 
     @Test

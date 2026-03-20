@@ -1,7 +1,6 @@
 package com.example.order.application.command.order;
 
 import com.example.seedwork.application.command.CommandHandler;
-import com.example.order.application.port.outbound.CatalogClient;
 import com.example.order.application.port.outbound.OrderPersistence;
 import com.example.order.domain.model.Order;
 import com.example.order.domain.model.OrderId;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 public class CancelOrderCommandHandler implements CommandHandler<CancelOrderCommand, Void> {
 
     private final OrderPersistence orderRepository;
-    private final CatalogClient catalogClient;
 
     @Override
     public Void handle(CancelOrderCommand command) {
@@ -24,13 +22,11 @@ public class CancelOrderCommandHandler implements CommandHandler<CancelOrderComm
         Order order = orderRepository.findById(OrderId.of(command.orderId()))
                 .orElseThrow(() -> new OrderNotFoundException(command.orderId()));
 
-        // cancel() registers OrderCancelled into the aggregate's event list.
-        // orderRepository.save() will pull it and write the outbox entry atomically.
+        // cancel() registers OrderCancelled (with items) into the aggregate's event list.
+        // orderRepository.save() writes the outbox entry atomically.
+        // The catalog service consumes OrderCancelled and releases stock idempotently.
         order.cancel(command.reason());
         orderRepository.save(order);
-
-        order.getItems()
-                .forEach(item -> catalogClient.releaseStock(item.bookId(), command.orderId(), item.quantity()));
 
         log.info("Order cancelled: orderId={}", command.orderId());
         return null;

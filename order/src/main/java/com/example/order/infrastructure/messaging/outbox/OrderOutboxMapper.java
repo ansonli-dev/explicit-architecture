@@ -63,6 +63,11 @@ public class OrderOutboxMapper implements OutboxMapper {
                         .setOrderId(e.orderId().value().toString())
                         .setCustomerId(e.customerId().value().toString())
                         .setReason(e.reason())
+                        .setItems(e.items().stream()
+                                .map(i -> new OrderItem(
+                                        i.bookId().toString(), i.bookTitle(),
+                                        i.quantity(), i.unitPrice().cents()))
+                                .toList())
                         .setOccurredAt(e.occurredAt())
                         .build();
                 yield Optional.of(new OutboxEntry(
