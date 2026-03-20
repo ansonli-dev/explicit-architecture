@@ -28,16 +28,7 @@
       "name": "items",
       "type": {
         "type": "array",
-        "items": {
-          "type": "record",
-          "name": "OrderItem",
-          "fields": [
-            { "name": "bookId",         "type": { "type": "string", "avro.java.string": "String" }, "doc": "书籍 ID（UUID）" },
-            { "name": "bookTitle",      "type": { "type": "string", "avro.java.string": "String" }, "doc": "下单时快照的书名" },
-            { "name": "quantity",       "type": "int" },
-            { "name": "unitPriceCents", "type": "long", "doc": "下单时快照的单价（分）" }
-          ]
-        }
+        "items": "com.example.events.v1.OrderItem"
       }
     },
     {

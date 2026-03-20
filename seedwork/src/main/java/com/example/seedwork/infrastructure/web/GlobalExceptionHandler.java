@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -78,6 +79,20 @@ class GlobalExceptionHandler {
     Map<String, Object> handleDomain(DomainException ex, HttpServletRequest req) {
         log.warn("Domain rule violation [{}]: {}", req.getRequestURI(), ex.getMessage());
         return body(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req);
+    }
+
+    // ── Concurrency ───────────────────────────────────────────────────────────
+
+    /**
+     * Concurrent modification detected via JPA {@code @Version} optimistic locking.
+     * Returns 409 Conflict so callers can distinguish a concurrency clash from a server error.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    Map<String, Object> handleOptimisticLock(OptimisticLockingFailureException ex,
+                                              HttpServletRequest req) {
+        log.warn("Optimistic lock conflict [{}]: {}", req.getRequestURI(), ex.getMessage());
+        return body(HttpStatus.CONFLICT, "Resource was modified concurrently — please retry", req);
     }
 
     // ── Request binding & validation ─────────────────────────────────────────

@@ -1,32 +1,26 @@
 package com.example.seedwork.infrastructure.outbox;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.avro.specific.SpecificRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
-
 /**
- * Reconstructs the Avro record from stored binary bytes via reflection and sends it
- * to the topic and key stored in the outbox row. No service-specific code needed.
+ * Relays outbox entries to Kafka by sending the stored bytes as-is.
  *
- * <p>Uses the generated static {@code fromByteBuffer(ByteBuffer)} method present on
- * every Avro {@link SpecificRecord} class to deserialize without manual switch/case.
+ * <p>The {@link OutboxMapper} is responsible for serializing events into the wire
+ * format (e.g. Confluent Avro: magic byte + schema-id + Avro binary). This publisher
+ * treats those bytes as an opaque payload and forwards them directly to Kafka using
+ * a byte-array-valued {@link KafkaTemplate}. Consumers use their own deserializer
+ * (e.g. {@code KafkaAvroDeserializer}) to decode the wire-format bytes.
+ *
+ * <p>This design avoids a fragile deserialize-then-re-serialize round-trip and keeps
+ * seedwork free of schema-registry dependencies.
  */
 @RequiredArgsConstructor
 public class KafkaOutboxEventPublisher {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, byte[]> kafkaTemplate;
 
     public void publish(OutboxEventJpaEntity entry) throws Exception {
-        SpecificRecord record = deserialize(entry.getAvroClassName(), entry.getAvroPayload());
-        kafkaTemplate.send(entry.getTopic(), entry.getMessageKey(), record).get();
-    }
-
-    private static SpecificRecord deserialize(String avroClassName, byte[] bytes) throws Exception {
-        Class<?> clazz = Class.forName(avroClassName);
-        Method fromByteBuffer = clazz.getMethod("fromByteBuffer", ByteBuffer.class);
-        return (SpecificRecord) fromByteBuffer.invoke(null, ByteBuffer.wrap(bytes));
+        kafkaTemplate.send(entry.getTopic(), entry.getMessageKey(), entry.getAvroPayload()).get();
     }
 }

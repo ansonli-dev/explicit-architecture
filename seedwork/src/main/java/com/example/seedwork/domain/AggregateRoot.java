@@ -44,12 +44,37 @@ public abstract class AggregateRoot<ID extends DomainId<?>> {
     }
 
     /**
-     * Returns all recorded domain events and clears the internal list.
+     * Returns all recorded domain events WITHOUT clearing the internal list.
      * <p>
-     * Must be called exactly once per save, inside the persistence adapter's
-     * {@code @Transactional} boundary so that the outbox write and the aggregate
-     * state write happen atomically.
+     * Prefer this method in persistence adapters over {@link #pullDomainEvents()} so that
+     * domain events survive a failed {@code jpaRepository.save()} call and can be retried:
+     * <pre>{@code
+     * entity.attachDomainEvents(aggregate.peekDomainEvents()); // peek, don't clear
+     * jpaRepository.save(entity);                              // if this throws, events are still on aggregate
+     * aggregate.clearDomainEvents();                           // only clear after successful save
+     * }</pre>
      */
+    public List<DomainEvent> peekDomainEvents() {
+        return Collections.unmodifiableList(new ArrayList<>(domainEvents));
+    }
+
+    /**
+     * Clears the internal domain event list.
+     * Call this explicitly after a successful {@code jpaRepository.save()} when using
+     * {@link #peekDomainEvents()}.
+     */
+    public void clearDomainEvents() {
+        domainEvents.clear();
+    }
+
+    /**
+     * Returns all recorded domain events and clears the internal list.
+     *
+     * @deprecated Prefer {@link #peekDomainEvents()} + {@link #clearDomainEvents()} so that
+     * events survive a failed save and can be retried. This method is kept for backward
+     * compatibility but should not be used in new persistence adapters.
+     */
+    @Deprecated
     public List<DomainEvent> pullDomainEvents() {
         List<DomainEvent> snapshot = Collections.unmodifiableList(new ArrayList<>(domainEvents));
         domainEvents.clear();

@@ -1,14 +1,20 @@
 package com.example.seedwork.infrastructure.outbox;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Outbox infrastructure configuration — auto-discovered via Spring Boot auto-configuration.
@@ -52,9 +58,25 @@ public class OutboxAutoConfiguration {
         return new OutboxWriteListener(repo, mapper);
     }
 
+    /**
+     * Creates a {@link KafkaOutboxEventPublisher} backed by a byte-array-valued
+     * {@link KafkaTemplate}.
+     *
+     * <p>Outbox entries store bytes that are already serialized in the target wire format
+     * (e.g. Confluent Avro: magic byte + schema-id + Avro binary). Rather than
+     * deserializing and re-serializing, this publisher sends the stored bytes as-is.
+     * The key serializer and bootstrap configuration are inherited from the application's
+     * {@link ProducerFactory}; only the value serializer is overridden to
+     * {@link ByteArraySerializer}.
+     */
     @Bean
-    public KafkaOutboxEventPublisher kafkaOutboxEventPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
-        return new KafkaOutboxEventPublisher(kafkaTemplate);
+    public KafkaOutboxEventPublisher kafkaOutboxEventPublisher(ProducerFactory<String, Object> producerFactory) {
+        Map<String, Object> props = new HashMap<>(producerFactory.getConfigurationProperties());
+        props.put(org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                ByteArraySerializer.class);
+        KafkaTemplate<String, byte[]> byteTemplate =
+                new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(props));
+        return new KafkaOutboxEventPublisher(byteTemplate);
     }
 
     /**
