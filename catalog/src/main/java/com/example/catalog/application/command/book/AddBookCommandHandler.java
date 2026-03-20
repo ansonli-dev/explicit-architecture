@@ -1,7 +1,6 @@
 package com.example.catalog.application.command.book;
 
 import com.example.catalog.domain.ports.BookPersistence;
-import com.example.catalog.application.query.book.BookDetailResponse;
 import com.example.catalog.domain.model.Author;
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.Category;
@@ -13,15 +12,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class AddBookCommandHandler implements CommandHandler<AddBookCommand, BookDetailResponse> {
+public class AddBookCommandHandler implements CommandHandler<AddBookCommand, AddBookResult> {
 
     private final BookPersistence repository;
 
     @Override
-    public BookDetailResponse handle(AddBookCommand cmd) {
-        if (cmd.priceCents() <= 0) {
-            throw new IllegalArgumentException("Book price must be positive");
-        }
+    public AddBookResult handle(AddBookCommand cmd) {
         Book book = Book.create(
                 new Title(cmd.title()),
                 new Author(cmd.authorName(), cmd.authorBiography()),
@@ -30,7 +26,7 @@ public class AddBookCommandHandler implements CommandHandler<AddBookCommand, Boo
                 cmd.initialStock());
         repository.save(book);
 
-        return new BookDetailResponse(book.getId().value(), book.getTitle().value(),
+        return new AddBookResult(book.getId().value(), book.getTitle().value(),
                 book.getAuthor().name(), book.getCategory().getName(),
                 book.getPrice().cents(), book.getPrice().currency(),
                 book.getStockLevel().available());

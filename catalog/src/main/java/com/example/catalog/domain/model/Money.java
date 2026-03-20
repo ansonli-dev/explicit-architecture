@@ -7,8 +7,8 @@ package com.example.catalog.domain.model;
 public record Money(long cents, String currency) {
 
     public Money {
-        if (cents < 0)
-            throw new IllegalArgumentException("Money amount must be non-negative");
+        if (cents <= 0)
+            throw new IllegalArgumentException("Money amount must be positive");
         if (currency == null || currency.isBlank())
             throw new IllegalArgumentException("Currency must not be blank");
         currency = currency.toUpperCase().strip();
@@ -27,7 +27,12 @@ public record Money(long cents, String currency) {
     }
 
     public Money multiply(int factor) {
-        return new Money(Math.multiplyExact(this.cents, factor), this.currency);
+        try {
+            return new Money(Math.multiplyExact(this.cents, factor), this.currency);
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException(
+                    "Money amount overflow when multiplying " + cents + " by " + factor);
+        }
     }
 
     @Override

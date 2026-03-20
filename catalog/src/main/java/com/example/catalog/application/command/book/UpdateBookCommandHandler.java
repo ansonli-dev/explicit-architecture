@@ -1,7 +1,6 @@
 package com.example.catalog.application.command.book;
 
 import com.example.catalog.domain.ports.BookPersistence;
-import com.example.catalog.application.query.book.BookDetailResponse;
 import com.example.catalog.application.BookNotFoundException;
 import com.example.catalog.domain.model.Author;
 import com.example.catalog.domain.model.Book;
@@ -14,26 +13,26 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class UpdateBookCommandHandler implements CommandHandler<UpdateBookCommand, BookDetailResponse> {
+public class UpdateBookCommandHandler implements CommandHandler<UpdateBookCommand, UpdateBookResult> {
 
     private final BookPersistence repository;
 
     @Override
-    public BookDetailResponse handle(UpdateBookCommand cmd) {
+    public UpdateBookResult handle(UpdateBookCommand cmd) {
         Book book = repository.findById(BookId.of(cmd.id()))
                 .orElseThrow(() -> new BookNotFoundException(cmd.id()));
 
         // Apply metadata update if any field provided
         Title newTitle = cmd.title() != null ? new Title(cmd.title()) : null;
-        Author newAuthor = (cmd.authorName() != null)
+        Author newAuthor = cmd.authorName() != null
                 ? new Author(cmd.authorName(), cmd.authorBiography())
                 : null;
         if (newTitle != null || newAuthor != null) {
             book.updateMetadata(newTitle, newAuthor);
         }
 
-        // Apply price update if provided
-        if (cmd.priceCents() != null && cmd.priceCents() > 0 && cmd.currency() != null) {
+        // Money constructor enforces positive price; command constructor enforces fields-together.
+        if (cmd.priceCents() != null) {
             book.updatePrice(Money.of(cmd.priceCents(), cmd.currency()));
         }
 
@@ -44,10 +43,9 @@ public class UpdateBookCommandHandler implements CommandHandler<UpdateBookComman
 
         repository.save(book);
 
-        return new BookDetailResponse(book.getId().value(), book.getTitle().value(),
+        return new UpdateBookResult(book.getId().value(), book.getTitle().value(),
                 book.getAuthor().name(), book.getCategory().getName(),
-                book.getPrice() != null ? book.getPrice().cents() : 0,
-                book.getPrice() != null ? book.getPrice().currency() : "USD",
+                book.getPrice().cents(), book.getPrice().currency(),
                 book.getStockLevel().available());
     }
 }
