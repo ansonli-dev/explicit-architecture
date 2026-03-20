@@ -45,7 +45,11 @@ public class OrderCancelledHandler implements RetryableKafkaHandler<OrderCancell
 
     private static String sanitizeReason(String reason) {
         if (reason == null) return "";
-        String truncated = reason.length() > 500 ? reason.substring(0, 500) : reason;
+        // Truncate by Unicode code points to avoid splitting surrogate pairs (e.g. emoji).
+        // 500 code points ≈ 500 characters for BMP, fewer for supplementary-plane chars.
+        String truncated = reason.codePointCount(0, reason.length()) > 500
+                ? reason.substring(0, reason.offsetByCodePoints(0, 500))
+                : reason;
         return truncated
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")

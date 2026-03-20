@@ -1,10 +1,11 @@
 package com.example.catalog.interfaces.rest;
 
 import com.example.catalog.application.command.book.AddBookCommand;
+import com.example.catalog.application.command.book.AddBookResult;
 import com.example.catalog.application.command.book.ReleaseStockCommand;
 import com.example.catalog.application.command.book.ReserveStockCommand;
 import com.example.catalog.application.command.book.UpdateBookCommand;
-import com.example.catalog.application.query.book.BookDetailResponse;
+import com.example.catalog.application.command.book.UpdateBookResult;
 import com.example.catalog.application.query.book.StockResponse;
 import com.example.seedwork.application.bus.CommandBus;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +38,7 @@ class BookCommandControllerTest {
     @Test
     void givenValidAddBookRequest_whenPost_thenReturns201AndBookDetailResponse() throws Exception {
         // Arrange
-        var response = new BookDetailResponse(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
+        var response = new AddBookResult(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
         when(commandBus.dispatch(any(AddBookCommand.class))).thenReturn(response);
 
         var body = """
@@ -66,7 +67,7 @@ class BookCommandControllerTest {
     @Test
     void givenValidUpdateBookRequest_whenPut_thenReturns200AndBookDetailResponse() throws Exception {
         // Arrange
-        var response = new BookDetailResponse(bookId, "Clean Code 2nd Ed", "Robert Martin", "Programming", 5999L, "CNY", 110);
+        var response = new UpdateBookResult(bookId, "Clean Code 2nd Ed", "Robert Martin", "Programming", 5999L, "CNY", 110);
         when(commandBus.dispatch(any(UpdateBookCommand.class))).thenReturn(response);
 
         var body = """

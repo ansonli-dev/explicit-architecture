@@ -55,8 +55,9 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository {
                     return e;
                 });
 
-        entity.attachDomainEvents(order.pullDomainEvents());
+        entity.attachDomainEvents(order.peekDomainEvents());
         orderJpaRepository.save(entity);
+        order.clearDomainEvents();
         return order;
     }
 
@@ -89,6 +90,8 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository {
                 .map(i -> new OrderItem(i.id(), i.bookId(), i.bookTitle(),
                         new Money(i.unitPriceCents(), i.currency()), i.quantity()))
                 .toList();
+        if (entity.getStatus() == null)
+            throw new IllegalStateException("Order entity has null status: id=" + entity.getId());
         OrderStatus status = switch (entity.getStatus()) {
             case "PENDING"   -> new OrderStatus.Pending();
             case "PLACED"    -> new OrderStatus.Placed();

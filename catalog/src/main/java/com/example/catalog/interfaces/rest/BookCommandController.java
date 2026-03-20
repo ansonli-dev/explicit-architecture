@@ -1,7 +1,6 @@
 package com.example.catalog.interfaces.rest;
 
 import com.example.catalog.application.command.book.*;
-import com.example.catalog.application.query.book.BookDetailResponse;
 import com.example.catalog.application.query.book.StockResponse;
 import com.example.seedwork.application.bus.CommandBus;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +18,14 @@ class BookCommandController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    BookDetailResponse add(@RequestBody AddBookRequest request) {
+    AddBookResult add(@RequestBody AddBookRequest request) {
         return commandBus.dispatch(new AddBookCommand(
                 request.title(), request.authorName(), request.authorBiography(),
                 request.priceCents(), request.currency(), request.categoryName(), request.initialStock()));
     }
 
     @PutMapping("/{id}")
-    BookDetailResponse update(@PathVariable UUID id, @RequestBody UpdateBookRequest request) {
+    UpdateBookResult update(@PathVariable UUID id, @RequestBody UpdateBookRequest request) {
         return commandBus.dispatch(new UpdateBookCommand(
                 id, request.title(), request.authorName(), request.authorBiography(),
                 request.priceCents(), request.currency(), request.restockQuantity()));

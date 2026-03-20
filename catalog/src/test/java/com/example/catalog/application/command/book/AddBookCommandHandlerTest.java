@@ -1,16 +1,12 @@
 package com.example.catalog.application.command.book;
 
-import com.example.catalog.application.port.outbound.BookCache;
 import com.example.catalog.domain.ports.BookPersistence;
-import com.example.catalog.application.query.book.BookDetailResponse;
 import com.example.catalog.domain.model.Book;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,30 +16,25 @@ import static org.mockito.Mockito.verify;
 class AddBookCommandHandlerTest {
 
     @Mock BookPersistence bookRepository;
-    @Mock BookCache bookCache;
 
     private AddBookCommandHandler handler;
 
     @BeforeEach
     void setUp() {
-        handler = new AddBookCommandHandler(bookRepository, bookCache);
+        handler = new AddBookCommandHandler(bookRepository);
     }
 
     @Test
-    void givenValidCommand_whenHandle_thenBookSavedAndResponseReturned() {
-        // Arrange
+    void givenValidCommand_whenHandle_thenBookSavedAndResultReturned() {
         var command = new AddBookCommand(
                 "Clean Code", "Robert Martin", "Uncle Bob",
                 4500L, "CNY", "Tech", 10);
 
-        // Act
-        BookDetailResponse response = handler.handle(command);
+        AddBookResult result = handler.handle(command);
 
-        // Assert
-        assertThat(response).isNotNull();
-        assertThat(response.title()).isEqualTo("Clean Code");
-        assertThat(response.stock()).isEqualTo(10);
+        assertThat(result).isNotNull();
+        assertThat(result.title()).isEqualTo("Clean Code");
+        assertThat(result.availableStock()).isEqualTo(10);
         verify(bookRepository).save(any(Book.class));
-        verify(bookCache).put(any(UUID.class), any(BookDetailResponse.class));
     }
 }

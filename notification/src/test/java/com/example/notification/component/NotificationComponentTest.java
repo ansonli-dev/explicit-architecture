@@ -3,6 +3,7 @@ package com.example.notification.component;
 import com.example.events.KafkaResourceConstants;
 import com.example.events.v1.OrderCancelled;
 import com.example.events.v1.OrderPlaced;
+import com.example.notification.application.port.outbound.CustomerClient;
 import com.example.seedwork.infrastructure.outbox.OutboxMapper;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
@@ -48,6 +49,9 @@ import static org.awaitility.Awaitility.await;
 class NotificationComponentTest {
 
     @MockBean OutboxMapper outboxMapper;
+    // CustomerClient is an HTTP stub in prod; mock it here so the context starts without HTTP config
+    // The mock returns Optional.empty() by default → notifications are saved as FAILED (acceptable in tests)
+    @MockBean CustomerClient customerClient;
 
     @Autowired JdbcTemplate jdbc;
     @Autowired EmbeddedKafkaBroker embeddedKafka;

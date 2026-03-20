@@ -22,6 +22,9 @@ public class NotificationJpaEntity extends AbstractAggregateRootEntity {
     @Id
     private UUID id;
 
+    @Version
+    private Long version;
+
     @Column(name = "customer_id", nullable = false)
     private UUID customerId;
 

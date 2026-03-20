@@ -26,3 +26,4 @@ outbox:
 logging:
     level:
         com.example.catalog: DEBUG
+        com.example.seedwork: DEBUG

@@ -33,16 +33,15 @@ public class PlaceOrderCommandHandler implements CommandHandler<PlaceOrderComman
     public PlaceOrderResult handle(PlaceOrderCommand command) {
         log.info("Placing order for customerId={}", command.customerId());
 
-        // P-16: Validate all items share the same currency
-        String currency = command.items().get(0).currency();
-        boolean mixedCurrency = command.items().stream()
-                .anyMatch(i -> !i.currency().equals(currency));
-        if (mixedCurrency) {
-            throw new IllegalArgumentException(
-                    "All order items must share the same currency; mixed currencies are not supported");
-        }
-
         OrderId orderId = OrderId.generate();
+
+        // A-2: reject duplicate bookIds — same book in multiple line items cannot share a
+        // stock snapshot and would cause double-reservation.
+        long distinctBooks = command.items().stream().map(PlaceOrderCommand.OrderItem::bookId).distinct().count();
+        if (distinctBooks != command.items().size()) {
+            throw new IllegalArgumentException(
+                    "Duplicate bookId in order items is not allowed; merge quantities before submitting");
+        }
 
         // P-8: Fetch all stock data first (external IO belongs in handler)
         Map<UUID, Integer> availableStock = new HashMap<>();
@@ -57,6 +56,9 @@ public class PlaceOrderCommandHandler implements CommandHandler<PlaceOrderComman
                         new Money(req.unitPriceCents(), req.currency()), req.quantity()))
                 .toList();
 
+        // A-5: currency is now validated inside Order.create(); extract it here for pricing only.
+        String currency = items.get(0).unitPrice().currency();
+
         // Calculate pricing
         PricingResult pricing = orderPricingService.calculate(items, currency);
         if (pricing.hasDiscount()) {
@@ -69,14 +71,17 @@ public class PlaceOrderCommandHandler implements CommandHandler<PlaceOrderComman
                 items, pricing.finalTotal(), availableStock);
 
         // P-15: Reserve with rollback on partial failure
+        // A-3: also covers order.place() and save() — if either throws, rollback reserved stock
         List<UUID> reservedBookIds = new ArrayList<>();
         try {
             for (OrderItem item : items) {
                 catalogClient.reserveStock(item.bookId(), orderId.value(), item.quantity());
                 reservedBookIds.add(item.bookId());
             }
+            order.place();
+            orderRepository.save(order);
         } catch (Exception e) {
-            log.warn("Stock reservation failed — rolling back {} already-reserved items", reservedBookIds.size());
+            log.warn("Order placement failed — rolling back {} already-reserved items", reservedBookIds.size());
             for (UUID bookId : reservedBookIds) {
                 OrderItem item = items.stream().filter(i -> i.bookId().equals(bookId)).findFirst().orElseThrow();
                 try {
@@ -85,14 +90,11 @@ public class PlaceOrderCommandHandler implements CommandHandler<PlaceOrderComman
                     log.warn("Failed to rollback reserved stock for bookId={}", bookId, ex);
                 }
             }
-            throw new IllegalStateException("Stock reservation failed: " + e.getMessage(), e);
+            throw new IllegalStateException("Order placement failed: " + e.getMessage(), e);
         }
 
-        order.place();
-        Order saved = orderRepository.save(order);
-
-        log.info("Order placed: orderId={}", saved.getId());
-        return toResult(saved);
+        log.info("Order placed: orderId={}", orderId);
+        return toResult(order);
     }
 
     private PlaceOrderResult toResult(Order order) {

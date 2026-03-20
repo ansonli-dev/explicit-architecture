@@ -40,10 +40,23 @@ public class OrderCancelledHandler implements RetryableKafkaHandler<OrderCancell
     public void handle(OrderCancelled event) {
         log.info("Processing OrderCancelled: orderId={}, items={}", event.getOrderId(), event.getItems().size());
         UUID orderId = UUID.fromString(event.getOrderId().toString());
-        event.getItems().forEach(item ->
+        for (var item : event.getItems()) {
+            if (item.getQuantity() <= 0) {
+                log.warn("Skipping item with invalid quantity: orderId={}, bookId={}, quantity={}",
+                        orderId, item.getBookId(), item.getQuantity());
+                continue;
+            }
+            try {
                 commandBus.dispatch(new ReleaseStockCommand(
                         UUID.fromString(item.getBookId().toString()),
                         orderId,
-                        item.getQuantity())));
+                        item.getQuantity()));
+            } catch (Exception e) {
+                // Log and continue — partial failure must not block remaining items.
+                // Idempotent release (no-op if reservation no longer exists) makes retry safe.
+                log.error("Failed to release stock for orderId={}, bookId={} — will not retry this item",
+                        orderId, item.getBookId(), e);
+            }
+        }
     }
 }

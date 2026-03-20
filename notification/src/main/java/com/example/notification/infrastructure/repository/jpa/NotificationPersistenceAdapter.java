@@ -26,8 +26,9 @@ class NotificationPersistenceAdapter implements NotificationRepository {
     @Transactional
     public Notification save(Notification notification) {
         NotificationJpaEntity entity = toEntity(notification);
-        entity.attachDomainEvents(notification.pullDomainEvents());
+        entity.attachDomainEvents(notification.peekDomainEvents());
         jpaRepository.save(entity);
+        notification.clearDomainEvents();
         return notification;
     }
 

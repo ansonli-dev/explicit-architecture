@@ -1,6 +1,5 @@
 package com.example.catalog.application.command.book;
 
-import com.example.catalog.application.port.outbound.BookCache;
 import com.example.catalog.domain.ports.BookPersistence;
 import com.example.catalog.application.BookNotFoundException;
 import com.example.catalog.application.query.book.StockResponse;
@@ -29,7 +28,6 @@ import static org.mockito.Mockito.when;
 class ReserveStockCommandHandlerTest {
 
     @Mock BookPersistence bookRepository;
-    @Mock BookCache bookCache;
 
     private ReserveStockCommandHandler handler;
     private final UUID bookId = UUID.randomUUID();
@@ -37,7 +35,7 @@ class ReserveStockCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new ReserveStockCommandHandler(bookRepository, bookCache);
+        handler = new ReserveStockCommandHandler(bookRepository);
         existingBook = Book.reconstitute(
                 BookId.of(bookId),
                 new Title("Clean Code"),
@@ -59,8 +57,7 @@ class ReserveStockCommandHandlerTest {
         // Assert
         assertThat(response.availableStock()).isEqualTo(7);
         verify(bookRepository).save(existingBook);
-        assertThat(existingBook.pullDomainEvents()).hasSize(1);
-        verify(bookCache).invalidate(bookId);
+        assertThat(existingBook.peekDomainEvents()).hasSize(1);
     }
 
     @Test

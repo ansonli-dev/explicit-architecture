@@ -48,8 +48,11 @@ public class Order extends AggregateRoot<OrderId> {
     /** Creates a new Order with a pre-generated ID (use when the ID must be known before persistence). */
     public static Order create(OrderId id, CustomerId customerId, String customerEmail,
             List<OrderItem> items, Money finalTotal) {
+        if (customerEmail == null || customerEmail.isBlank())
+            throw new IllegalArgumentException("Customer email must not be blank");
         if (items == null || items.isEmpty())
             throw new IllegalArgumentException("Order must have at least one item");
+        validateCurrencyConsistency(items);
         return new Order(id, customerId, customerEmail,
                 new OrderStatus.Pending(), List.copyOf(items), finalTotal);
     }
@@ -66,8 +69,11 @@ public class Order extends AggregateRoot<OrderId> {
      */
     public static Order create(OrderId id, CustomerId customerId, String customerEmail,
             List<OrderItem> items, Money finalTotal, Map<UUID, Integer> availableStock) {
+        if (customerEmail == null || customerEmail.isBlank())
+            throw new IllegalArgumentException("Customer email must not be blank");
         if (items == null || items.isEmpty())
             throw new IllegalArgumentException("Order must have at least one item");
+        validateCurrencyConsistency(items);
         for (OrderItem item : items) {
             int available = availableStock.getOrDefault(item.bookId(), 0);
             if (available < item.quantity()) {
@@ -131,6 +137,16 @@ public class Order extends AggregateRoot<OrderId> {
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
+
+    private static void validateCurrencyConsistency(List<OrderItem> items) {
+        String currency = items.get(0).unitPrice().currency();
+        for (OrderItem item : items) {
+            if (!item.unitPrice().currency().equals(currency)) {
+                throw new IllegalArgumentException(
+                        "All order items must share the same currency; mixed currencies are not supported");
+            }
+        }
+    }
 
     private void assertStatus(Class<? extends OrderStatus> expected, String operation) {
         if (!expected.isInstance(this.status)) {

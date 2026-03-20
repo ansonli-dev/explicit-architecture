@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,10 +50,10 @@ class SendNotificationCommandHandlerTest {
         // Act
         handler.handle(command);
 
-        // Assert
+        // Assert — handler saves twice: first PENDING, then SENT
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
-        assertThat(captor.getValue().getDeliveryStatus()).isEqualTo(DeliveryStatus.SENT);
+        verify(notificationRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues().get(1).getDeliveryStatus()).isEqualTo(DeliveryStatus.SENT);
         verify(emailSender).send(any(), any(Payload.class));
     }
 
@@ -67,11 +68,11 @@ class SendNotificationCommandHandlerTest {
         // Act
         handler.handle(command);
 
-        // Assert
+        // Assert — handler saves twice: first PENDING, then FAILED
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
-        assertThat(captor.getValue().getDeliveryStatus()).isEqualTo(DeliveryStatus.FAILED);
-        assertThat(captor.getValue().getFailureReason()).contains("SMTP timeout");
+        verify(notificationRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues().get(1).getDeliveryStatus()).isEqualTo(DeliveryStatus.FAILED);
+        assertThat(captor.getAllValues().get(1).getFailureReason()).contains("SMTP timeout");
     }
 
     @Test

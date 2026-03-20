@@ -2,8 +2,8 @@ package com.example.notification.interfaces.messaging.consumer;
 
 import com.example.events.v1.OrderPlaced;
 import com.example.notification.application.command.notification.SendNotificationCommand;
-import com.example.notification.application.command.notification.SendNotificationCommandHandler;
 import com.example.notification.domain.model.Channel;
+import com.example.seedwork.application.bus.CommandBus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class OrderPlacedHandlerTest {
 
-    @Mock SendNotificationCommandHandler commandHandler;
+    @Mock CommandBus commandBus;
     @Mock OrderPlaced event;
 
     private OrderPlacedHandler handler;
@@ -30,7 +30,7 @@ class OrderPlacedHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new OrderPlacedHandler(commandHandler);
+        handler = new OrderPlacedHandler(commandBus);
     }
 
     @Test
@@ -46,7 +46,7 @@ class OrderPlacedHandlerTest {
 
         // Assert
         ArgumentCaptor<SendNotificationCommand> captor = ArgumentCaptor.forClass(SendNotificationCommand.class);
-        verify(commandHandler).handle(captor.capture());
+        verify(commandBus).dispatch(captor.capture());
 
         SendNotificationCommand command = captor.getValue();
         assertThat(command.customerId()).isEqualTo(customerId);

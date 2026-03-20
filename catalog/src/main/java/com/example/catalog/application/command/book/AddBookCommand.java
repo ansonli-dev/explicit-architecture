@@ -1,6 +1,5 @@
 package com.example.catalog.application.command.book;
 
-import com.example.catalog.application.query.book.BookDetailResponse;
 import com.example.seedwork.application.command.Command;
 
 public record AddBookCommand(
@@ -10,5 +9,5 @@ public record AddBookCommand(
         long priceCents,
         String currency,
         String categoryName,
-        int initialStock) implements Command<BookDetailResponse> {
+        int initialStock) implements Command<AddBookResult> {
 }

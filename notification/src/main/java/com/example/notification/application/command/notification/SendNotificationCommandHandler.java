@@ -49,8 +49,9 @@ public class SendNotificationCommandHandler implements CommandHandler<SendNotifi
             notification.markSent();
             log.info("Notification sent: customerId={}, subject={}", command.customerId(), command.subject());
         } catch (Exception e) {
-            notification.markFailed(e.getMessage());
-            log.error("Notification failed: customerId={}, reason={}", command.customerId(), e.getMessage());
+            String reason = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            notification.markFailed(reason);
+            log.error("Notification failed: customerId={}, reason={}", command.customerId(), reason);
         }
 
         // Step 5: Save final status (SENT or FAILED) — DB commits here (transaction 2)

@@ -1,7 +1,6 @@
 package com.example.catalog.application.command.book;
 
 import com.example.catalog.domain.ports.BookPersistence;
-import com.example.catalog.application.query.book.BookDetailResponse;
 import com.example.catalog.application.BookNotFoundException;
 import com.example.catalog.domain.model.Author;
 import com.example.catalog.domain.model.Book;
@@ -53,10 +52,10 @@ class UpdateBookCommandHandlerTest {
         var command = new UpdateBookCommand(bookId, null, null, null, null, null, 5);
 
         // Act
-        BookDetailResponse response = handler.handle(command);
+        UpdateBookResult result = handler.handle(command);
 
         // Assert
-        assertThat(response.stock()).isEqualTo(15);
+        assertThat(result.availableStock()).isEqualTo(15);
         verify(bookRepository).save(existingBook);
     }
 
@@ -67,10 +66,10 @@ class UpdateBookCommandHandlerTest {
         var command = new UpdateBookCommand(bookId, "New Title", null, null, null, null, null);
 
         // Act
-        BookDetailResponse response = handler.handle(command);
+        UpdateBookResult result = handler.handle(command);
 
         // Assert
-        assertThat(response.title()).isEqualTo("New Title");
+        assertThat(result.title()).isEqualTo("New Title");
     }
 
     @Test
@@ -80,10 +79,10 @@ class UpdateBookCommandHandlerTest {
         var command = new UpdateBookCommand(bookId, null, null, null, 9999L, "CNY", null);
 
         // Act
-        BookDetailResponse response = handler.handle(command);
+        UpdateBookResult result = handler.handle(command);
 
         // Assert
-        assertThat(response.priceCents()).isEqualTo(9999L);
+        assertThat(result.priceCents()).isEqualTo(9999L);
     }
 
     @Test

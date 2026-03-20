@@ -1,7 +1,7 @@
 package com.example.catalog.component;
 
-import com.example.catalog.application.port.outbound.BookCache;
 import com.example.events.KafkaResourceConstants;
+import com.example.catalog.application.port.outbound.BookCache;
 import com.example.events.v1.StockReleased;
 import com.example.events.v1.StockReserved;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
