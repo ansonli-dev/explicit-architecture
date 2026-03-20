@@ -1,12 +1,13 @@
-package com.example.catalog.application.port.outbound;
+package com.example.catalog.domain.ports;
 
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;
 import com.example.catalog.domain.model.Category;
 
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 
+/** Write-side repository port — domain concept: "the collection of all Books". */
 public interface BookPersistence {
     Book save(Book book);
 

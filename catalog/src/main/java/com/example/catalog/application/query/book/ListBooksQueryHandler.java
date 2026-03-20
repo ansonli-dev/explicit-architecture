@@ -1,6 +1,6 @@
 package com.example.catalog.application.query.book;
 
-import com.example.catalog.application.port.outbound.BookPersistence;
+import com.example.catalog.domain.ports.BookPersistence;
 import com.example.seedwork.application.query.QueryHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

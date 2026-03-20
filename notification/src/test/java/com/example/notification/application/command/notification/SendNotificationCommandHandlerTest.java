@@ -2,7 +2,7 @@ package com.example.notification.application.command.notification;
 
 import com.example.notification.application.port.outbound.CustomerClient;
 import com.example.notification.application.port.outbound.EmailSender;
-import com.example.notification.application.port.outbound.NotificationRepository;
+import com.example.notification.domain.ports.NotificationRepository;
 import com.example.notification.domain.model.Channel;
 import com.example.notification.domain.model.DeliveryStatus;
 import com.example.notification.domain.model.Notification;

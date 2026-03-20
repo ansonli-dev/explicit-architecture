@@ -1,12 +1,5 @@
 package com.example.order.interfaces.dto;
 
-import com.example.order.application.command.order.CancelOrderCommand;
+public record CancelOrderRequest(String reason) {
 
-import java.util.UUID;
-
-public record CancelRequest(String reason) {
-
-    public CancelOrderCommand toCommand(UUID orderId) {
-        return new CancelOrderCommand(orderId, reason());
-    }
 }

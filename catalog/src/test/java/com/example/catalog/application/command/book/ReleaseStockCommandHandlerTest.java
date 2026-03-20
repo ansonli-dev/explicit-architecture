@@ -1,7 +1,7 @@
 package com.example.catalog.application.command.book;
 
 import com.example.catalog.application.port.outbound.BookCache;
-import com.example.catalog.application.port.outbound.BookPersistence;
+import com.example.catalog.domain.ports.BookPersistence;
 import com.example.catalog.application.BookNotFoundException;
 import com.example.catalog.domain.model.Author;
 import com.example.catalog.domain.model.Book;

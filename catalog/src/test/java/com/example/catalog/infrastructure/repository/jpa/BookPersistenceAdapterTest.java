@@ -1,6 +1,6 @@
 package com.example.catalog.infrastructure.repository.jpa;
 
-import com.example.catalog.application.port.outbound.BookPersistence;
+import com.example.catalog.domain.ports.BookPersistence;
 import com.example.catalog.domain.model.Author;
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;

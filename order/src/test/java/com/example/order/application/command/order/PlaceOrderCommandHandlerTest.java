@@ -1,7 +1,7 @@
 package com.example.order.application.command.order;
 
 import com.example.order.application.port.outbound.CatalogClient;
-import com.example.order.application.port.outbound.OrderPersistence;
+import com.example.order.domain.ports.OrderPersistence;
 import com.example.order.application.query.order.StockCheckResponse;
 import com.example.order.domain.model.InsufficientStockException;
 import com.example.order.domain.model.CustomerId;

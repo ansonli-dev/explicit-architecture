@@ -1,6 +1,6 @@
 package com.example.notification.application.query.notification;
 
-import com.example.notification.application.port.outbound.NotificationRepository;
+import com.example.notification.domain.ports.NotificationRepository;
 import com.example.seedwork.application.query.QueryHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

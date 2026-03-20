@@ -1,6 +1,6 @@
 package com.example.order.application.query.order;
 
-import com.example.order.application.port.outbound.OrderPersistence;
+import com.example.order.domain.ports.OrderPersistence;
 import com.example.order.application.port.outbound.OrderSearchRepository;
 import com.example.order.domain.model.CustomerId;
 import com.example.order.domain.model.Money;

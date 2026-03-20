@@ -1,6 +1,6 @@
 package com.example.notification.infrastructure.repository.jpa;
 
-import com.example.notification.application.port.outbound.NotificationRepository;
+import com.example.notification.domain.ports.NotificationRepository;
 import com.example.notification.domain.model.Channel;
 import com.example.notification.domain.model.DeliveryStatus;
 import com.example.notification.domain.model.Notification;

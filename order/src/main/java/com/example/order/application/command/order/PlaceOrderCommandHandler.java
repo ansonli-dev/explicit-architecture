@@ -2,7 +2,7 @@ package com.example.order.application.command.order;
 
 import com.example.seedwork.application.command.CommandHandler;
 import com.example.order.application.port.outbound.CatalogClient;
-import com.example.order.application.port.outbound.OrderPersistence;
+import com.example.order.domain.ports.OrderPersistence;
 import com.example.order.domain.model.CustomerId;
 import com.example.order.domain.model.Money;
 import com.example.order.domain.model.Order;

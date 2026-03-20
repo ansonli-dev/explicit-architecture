@@ -1,6 +1,6 @@
 package com.example.order.infrastructure.repository.jpa;
 
-import com.example.order.application.port.outbound.OrderPersistence;
+import com.example.order.domain.ports.OrderPersistence;
 import com.example.order.domain.model.CustomerId;
 import com.example.order.domain.model.Money;
 import com.example.order.domain.model.Order;
