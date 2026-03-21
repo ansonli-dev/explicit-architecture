@@ -1,7 +1,7 @@
 package com.example.catalog.application.query.book;
 
 import com.example.catalog.domain.ports.BookPersistence;
-import com.example.seedwork.application.query.QueryHandler;
+import com.example.catalog.application.port.inbound.ListBooksUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ListBooksQueryHandler implements QueryHandler<ListBooksQuery, List<BookSummaryView>> {
+public class ListBooksQueryHandler implements ListBooksUseCase {
 
     private final BookPersistence repository;
 

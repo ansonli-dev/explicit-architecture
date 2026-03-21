@@ -1,12 +1,14 @@
 package com.example.catalog.interfaces.rest;
 
+import com.example.catalog.application.port.inbound.GetBookUseCase;
+import com.example.catalog.application.port.inbound.GetStockUseCase;
+import com.example.catalog.application.port.inbound.ListBooksUseCase;
 import com.example.catalog.application.query.book.BookDetailView;
 import com.example.catalog.application.query.book.BookSummaryView;
 import com.example.catalog.application.query.book.GetBookQuery;
 import com.example.catalog.application.query.book.GetStockQuery;
 import com.example.catalog.application.query.book.ListBooksQuery;
 import com.example.catalog.application.query.book.StockView;
-import com.example.seedwork.application.bus.QueryBus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -27,64 +29,58 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class BookQueryControllerTest {
 
     @Autowired MockMvc mockMvc;
-    @MockBean QueryBus queryBus;
+    @MockBean ListBooksUseCase listBooks;
+    @MockBean GetBookUseCase getBook;
+    @MockBean GetStockUseCase getStock;
 
     private final UUID bookId = UUID.randomUUID();
 
     @Test
     void givenBooksExist_whenListBooks_thenReturns200AndBookList() throws Exception {
-        // Arrange
         var book = new BookSummaryView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
-        when(queryBus.dispatch(any(ListBooksQuery.class))).thenReturn(List.of(book));
+        when(listBooks.handle(any(ListBooksQuery.class))).thenReturn(List.of(book));
 
-        // Act + Assert
         mockMvc.perform(get("/api/v1/books"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(bookId.toString()))
                 .andExpect(jsonPath("$[0].title").value("Clean Code"));
 
-        verify(queryBus).dispatch(any(ListBooksQuery.class));
+        verify(listBooks).handle(any(ListBooksQuery.class));
     }
 
     @Test
     void givenCategoryFilter_whenListBooks_thenQueryDispatchedWithCategory() throws Exception {
-        // Arrange
-        when(queryBus.dispatch(any(ListBooksQuery.class))).thenReturn(List.of());
+        when(listBooks.handle(any(ListBooksQuery.class))).thenReturn(List.of());
 
-        // Act + Assert
         mockMvc.perform(get("/api/v1/books").param("category", "Programming"))
                 .andExpect(status().isOk());
 
-        verify(queryBus).dispatch(any(ListBooksQuery.class));
+        verify(listBooks).handle(any(ListBooksQuery.class));
     }
 
     @Test
     void givenBookExists_whenGetBook_thenReturns200AndBookDetailResponse() throws Exception {
-        // Arrange
-        var response = new BookDetailView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
-        when(queryBus.dispatch(any(GetBookQuery.class))).thenReturn(response);
+        var view = new BookDetailView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
+        when(getBook.handle(any(GetBookQuery.class))).thenReturn(view);
 
-        // Act + Assert
         mockMvc.perform(get("/api/v1/books/{id}", bookId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(bookId.toString()))
                 .andExpect(jsonPath("$.title").value("Clean Code"));
 
-        verify(queryBus).dispatch(any(GetBookQuery.class));
+        verify(getBook).handle(any(GetBookQuery.class));
     }
 
     @Test
     void givenBookExists_whenGetStock_thenReturns200AndStockResponse() throws Exception {
-        // Arrange
-        var response = new StockView(bookId, 95);
-        when(queryBus.dispatch(any(GetStockQuery.class))).thenReturn(response);
+        var view = new StockView(bookId, 95);
+        when(getStock.handle(any(GetStockQuery.class))).thenReturn(view);
 
-        // Act + Assert
         mockMvc.perform(get("/api/v1/books/{id}/stock", bookId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bookId").value(bookId.toString()))
                 .andExpect(jsonPath("$.availableStock").value(95));
 
-        verify(queryBus).dispatch(any(GetStockQuery.class));
+        verify(getStock).handle(any(GetStockQuery.class));
     }
 }

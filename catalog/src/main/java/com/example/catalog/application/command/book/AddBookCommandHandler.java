@@ -6,13 +6,13 @@ import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.Category;
 import com.example.catalog.domain.model.Money;
 import com.example.catalog.domain.model.Title;
-import com.example.seedwork.application.command.CommandHandler;
+import com.example.catalog.application.port.inbound.AddBookUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class AddBookCommandHandler implements CommandHandler<AddBookCommand, AddBookResult> {
+public class AddBookCommandHandler implements AddBookUseCase {
 
     private final BookPersistence repository;
 

@@ -5,13 +5,13 @@ import com.example.catalog.application.port.outbound.BookCache;
 import com.example.catalog.domain.ports.BookPersistence;
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;
-import com.example.seedwork.application.query.QueryHandler;
+import com.example.catalog.application.port.inbound.GetBookUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class GetBookQueryHandler implements QueryHandler<GetBookQuery, BookDetailView> {
+public class GetBookQueryHandler implements GetBookUseCase {
 
     private final BookPersistence repository;
     private final BookCache cache;

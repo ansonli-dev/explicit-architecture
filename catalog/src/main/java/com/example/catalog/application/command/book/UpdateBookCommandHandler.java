@@ -7,13 +7,13 @@ import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;
 import com.example.catalog.domain.model.Money;
 import com.example.catalog.domain.model.Title;
-import com.example.seedwork.application.command.CommandHandler;
+import com.example.catalog.application.port.inbound.UpdateBookUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class UpdateBookCommandHandler implements CommandHandler<UpdateBookCommand, UpdateBookResult> {
+public class UpdateBookCommandHandler implements UpdateBookUseCase {
 
     private final BookPersistence repository;
 

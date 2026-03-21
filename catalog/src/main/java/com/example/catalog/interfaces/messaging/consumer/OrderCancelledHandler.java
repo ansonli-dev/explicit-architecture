@@ -1,8 +1,8 @@
 package com.example.catalog.interfaces.messaging.consumer;
 
 import com.example.catalog.application.command.book.ReleaseStockCommand;
+import com.example.catalog.application.port.inbound.ReleaseStockUseCase;
 import com.example.events.v1.OrderCancelled;
-import com.example.seedwork.application.bus.CommandBus;
 import com.example.seedwork.infrastructure.kafka.RetryableKafkaHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,7 @@ import java.util.UUID;
 
 /**
  * Releases reserved stock for each item in a cancelled order.
- * Dispatches one {@link ReleaseStockCommand} per item — each is handled idempotently
+ * Invokes {@link ReleaseStockUseCase} per item — each is handled idempotently
  * by the catalog domain (release is a no-op if the reservation no longer exists).
  */
 @Component
@@ -20,10 +20,10 @@ public class OrderCancelledHandler implements RetryableKafkaHandler<OrderCancell
 
     private static final Logger log = LoggerFactory.getLogger(OrderCancelledHandler.class);
 
-    private final CommandBus commandBus;
+    private final ReleaseStockUseCase releaseStock;
 
-    public OrderCancelledHandler(CommandBus commandBus) {
-        this.commandBus = commandBus;
+    public OrderCancelledHandler(ReleaseStockUseCase releaseStock) {
+        this.releaseStock = releaseStock;
     }
 
     @Override
@@ -47,7 +47,7 @@ public class OrderCancelledHandler implements RetryableKafkaHandler<OrderCancell
                 continue;
             }
             try {
-                commandBus.dispatch(new ReleaseStockCommand(
+                releaseStock.handle(new ReleaseStockCommand(
                         UUID.fromString(item.getBookId().toString()),
                         orderId,
                         item.getQuantity()));
