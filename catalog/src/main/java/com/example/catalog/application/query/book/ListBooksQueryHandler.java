@@ -10,14 +10,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ListBooksQueryHandler implements QueryHandler<ListBooksQuery, List<BookResponse>> {
+public class ListBooksQueryHandler implements QueryHandler<ListBooksQuery, List<BookSummaryView>> {
 
     private final BookPersistence repository;
 
     @Override
-    public List<BookResponse> handle(ListBooksQuery query) {
+    public List<BookSummaryView> handle(ListBooksQuery query) {
         return repository.findAll(query.page(), query.size(), query.category()).stream()
-                .map(b -> new BookResponse(b.getId().value(), b.getTitle().value(), b.getAuthor().name(),
+                .map(b -> new BookSummaryView(b.getId().value(), b.getTitle().value(), b.getAuthor().name(),
                         b.getCategory().getName(), b.getPrice() != null ? b.getPrice().cents() : 0,
                         b.getPrice() != null ? b.getPrice().currency() : "USD", b.getStockLevel().available()))
                 .collect(Collectors.toList());

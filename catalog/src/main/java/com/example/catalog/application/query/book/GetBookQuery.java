@@ -4,5 +4,5 @@ import com.example.seedwork.application.query.Query;
 
 import java.util.UUID;
 
-public record GetBookQuery(UUID id) implements Query<BookDetailResponse> {
+public record GetBookQuery(UUID id) implements Query<BookDetailView> {
 }

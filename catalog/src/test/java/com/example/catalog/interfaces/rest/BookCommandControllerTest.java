@@ -6,7 +6,7 @@ import com.example.catalog.application.command.book.ReleaseStockCommand;
 import com.example.catalog.application.command.book.ReserveStockCommand;
 import com.example.catalog.application.command.book.UpdateBookCommand;
 import com.example.catalog.application.command.book.UpdateBookResult;
-import com.example.catalog.application.query.book.StockResponse;
+import com.example.catalog.application.command.book.ReserveStockResult;
 import com.example.seedwork.application.bus.CommandBus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -94,7 +94,7 @@ class BookCommandControllerTest {
     @Test
     void givenValidReserveStockRequest_whenPost_thenReturns200AndStockResponse() throws Exception {
         // Arrange
-        var response = new StockResponse(bookId, 95);
+        var response = new ReserveStockResult(bookId, 95);
         when(commandBus.dispatch(any(ReserveStockCommand.class))).thenReturn(response);
 
         var body = """

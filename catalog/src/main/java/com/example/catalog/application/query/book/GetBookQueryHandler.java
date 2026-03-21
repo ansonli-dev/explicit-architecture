@@ -11,22 +11,22 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class GetBookQueryHandler implements QueryHandler<GetBookQuery, BookDetailResponse> {
+public class GetBookQueryHandler implements QueryHandler<GetBookQuery, BookDetailView> {
 
     private final BookPersistence repository;
     private final BookCache cache;
 
     @Override
-    public BookDetailResponse handle(GetBookQuery query) {
+    public BookDetailView handle(GetBookQuery query) {
         return cache.get(query.id()).orElseGet(() -> {
             Book book = repository.findById(BookId.of(query.id()))
                     .orElseThrow(() -> new BookNotFoundException(query.id()));
-            BookDetailResponse res = new BookDetailResponse(book.getId().value(), book.getTitle().value(),
+            BookDetailView view = new BookDetailView(book.getId().value(), book.getTitle().value(),
                     book.getAuthor().name(), book.getCategory().getName(),
                     book.getPrice() != null ? book.getPrice().cents() : 0,
                     book.getPrice() != null ? book.getPrice().currency() : "USD", book.getStockLevel().available());
-            cache.put(query.id(), res);
-            return res;
+            cache.put(query.id(), view);
+            return view;
         });
     }
 }

@@ -1,7 +1,7 @@
 package com.example.catalog.infrastructure.cache;
 
 import com.example.catalog.application.port.outbound.BookCache;
-import com.example.catalog.application.query.book.BookDetailResponse;
+import com.example.catalog.application.query.book.BookDetailView;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,11 +23,11 @@ public class RedisBookCache implements BookCache {
     private static final String KEY_PREFIX = "book:";
     private static final Duration TTL = Duration.ofMinutes(5);
 
-    private final RedisTemplate<String, BookDetailResponse> redisTemplate;
+    private final RedisTemplate<String, BookDetailView> redisTemplate;
 
     @Override
-    public Optional<BookDetailResponse> get(UUID bookId) {
-        BookDetailResponse cached = redisTemplate.opsForValue().get(key(bookId));
+    public Optional<BookDetailView> get(UUID bookId) {
+        BookDetailView cached = redisTemplate.opsForValue().get(key(bookId));
         if (cached != null) {
             log.debug("Cache hit: bookId={}", bookId);
         }
@@ -35,7 +35,7 @@ public class RedisBookCache implements BookCache {
     }
 
     @Override
-    public void put(UUID id, BookDetailResponse book) {
+    public void put(UUID id, BookDetailView book) {
         redisTemplate.opsForValue().set(key(id), book, TTL);
         log.debug("Cached book: id={}", id);
     }

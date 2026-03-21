@@ -35,7 +35,7 @@ class GetBookQueryHandlerTest {
     private GetBookQueryHandler handler;
     private final UUID bookId = UUID.randomUUID();
     private Book existingBook;
-    private BookDetailResponse cachedResponse;
+    private BookDetailView cachedResponse;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +47,7 @@ class GetBookQueryHandlerTest {
                 new Money(4500, "CNY"),
                 new Category(UUID.randomUUID(), "Tech"),
                 new StockLevel(10, 0));
-        cachedResponse = new BookDetailResponse(bookId, "Clean Code", "Robert Martin", "Tech", 4500, "CNY", 10);
+        cachedResponse = new BookDetailView(bookId, "Clean Code", "Robert Martin", "Tech", 4500, "CNY", 10);
     }
 
     @Test
@@ -56,7 +56,7 @@ class GetBookQueryHandlerTest {
         when(bookCache.get(bookId)).thenReturn(Optional.of(cachedResponse));
 
         // Act
-        BookDetailResponse response = handler.handle(new GetBookQuery(bookId));
+        BookDetailView response = handler.handle(new GetBookQuery(bookId));
 
         // Assert
         assertThat(response.title()).isEqualTo("Clean Code");
@@ -74,7 +74,7 @@ class GetBookQueryHandlerTest {
 
         // Assert
         verify(bookRepository).findById(BookId.of(bookId));
-        verify(bookCache).put(any(UUID.class), any(BookDetailResponse.class));
+        verify(bookCache).put(any(UUID.class), any(BookDetailView.class));
     }
 
     @Test

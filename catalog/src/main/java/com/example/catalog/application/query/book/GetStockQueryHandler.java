@@ -10,14 +10,14 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class GetStockQueryHandler implements QueryHandler<GetStockQuery, StockResponse> {
+public class GetStockQueryHandler implements QueryHandler<GetStockQuery, StockView> {
 
     private final BookPersistence repository;
 
     @Override
-    public StockResponse handle(GetStockQuery query) {
+    public StockView handle(GetStockQuery query) {
         Book book = repository.findById(BookId.of(query.id()))
                 .orElseThrow(() -> new BookNotFoundException(query.id()));
-        return new StockResponse(book.getId().value(), book.getStockLevel().available());
+        return new StockView(book.getId().value(), book.getStockLevel().available());
     }
 }

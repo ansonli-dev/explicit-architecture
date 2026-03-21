@@ -50,7 +50,7 @@ class GetStockQueryHandlerTest {
         when(bookRepository.findById(BookId.of(bookId))).thenReturn(Optional.of(existingBook));
 
         // Act
-        StockResponse response = handler.handle(new GetStockQuery(bookId));
+        StockView response = handler.handle(new GetStockQuery(bookId));
 
         // Assert
         assertThat(response.bookId()).isEqualTo(bookId);

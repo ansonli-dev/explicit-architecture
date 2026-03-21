@@ -2,7 +2,6 @@ package com.example.catalog.application.command.book;
 
 import com.example.catalog.domain.ports.BookPersistence;
 import com.example.catalog.application.BookNotFoundException;
-import com.example.catalog.application.query.book.StockResponse;
 import com.example.catalog.domain.model.Author;
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;
@@ -52,7 +51,7 @@ class ReserveStockCommandHandlerTest {
         var command = new ReserveStockCommand(bookId, UUID.randomUUID(), 3);
 
         // Act
-        StockResponse response = handler.handle(command);
+        ReserveStockResult response = handler.handle(command);
 
         // Assert
         assertThat(response.availableStock()).isEqualTo(7);

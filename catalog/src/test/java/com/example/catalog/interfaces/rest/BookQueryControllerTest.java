@@ -1,11 +1,11 @@
 package com.example.catalog.interfaces.rest;
 
-import com.example.catalog.application.query.book.BookDetailResponse;
-import com.example.catalog.application.query.book.BookResponse;
+import com.example.catalog.application.query.book.BookDetailView;
+import com.example.catalog.application.query.book.BookSummaryView;
 import com.example.catalog.application.query.book.GetBookQuery;
 import com.example.catalog.application.query.book.GetStockQuery;
 import com.example.catalog.application.query.book.ListBooksQuery;
-import com.example.catalog.application.query.book.StockResponse;
+import com.example.catalog.application.query.book.StockView;
 import com.example.seedwork.application.bus.QueryBus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ class BookQueryControllerTest {
     @Test
     void givenBooksExist_whenListBooks_thenReturns200AndBookList() throws Exception {
         // Arrange
-        var book = new BookResponse(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
+        var book = new BookSummaryView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
         when(queryBus.dispatch(any(ListBooksQuery.class))).thenReturn(List.of(book));
 
         // Act + Assert
@@ -61,7 +61,7 @@ class BookQueryControllerTest {
     @Test
     void givenBookExists_whenGetBook_thenReturns200AndBookDetailResponse() throws Exception {
         // Arrange
-        var response = new BookDetailResponse(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
+        var response = new BookDetailView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
         when(queryBus.dispatch(any(GetBookQuery.class))).thenReturn(response);
 
         // Act + Assert
@@ -76,7 +76,7 @@ class BookQueryControllerTest {
     @Test
     void givenBookExists_whenGetStock_thenReturns200AndStockResponse() throws Exception {
         // Arrange
-        var response = new StockResponse(bookId, 95);
+        var response = new StockView(bookId, 95);
         when(queryBus.dispatch(any(GetStockQuery.class))).thenReturn(response);
 
         // Act + Assert

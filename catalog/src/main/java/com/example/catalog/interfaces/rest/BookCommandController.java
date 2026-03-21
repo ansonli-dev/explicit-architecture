@@ -1,8 +1,8 @@
 package com.example.catalog.interfaces.rest;
 
 import com.example.catalog.application.command.book.*;
-import com.example.catalog.application.query.book.StockResponse;
-import com.example.catalog.interfaces.dto.*;
+import com.example.catalog.interfaces.rest.request.*;
+import com.example.catalog.interfaces.rest.response.*;
 import com.example.seedwork.application.bus.CommandBus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,22 +19,22 @@ class BookCommandController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    AddBookResult add(@RequestBody AddBookRequest request) {
-        return commandBus.dispatch(new AddBookCommand(
+    AddBookResponse add(@RequestBody AddBookRequest request) {
+        return AddBookResponse.from(commandBus.dispatch(new AddBookCommand(
                 request.title(), request.authorName(), request.authorBiography(),
-                request.priceCents(), request.currency(), request.categoryName(), request.initialStock()));
+                request.priceCents(), request.currency(), request.categoryName(), request.initialStock())));
     }
 
     @PutMapping("/{id}")
-    UpdateBookResult update(@PathVariable UUID id, @RequestBody UpdateBookRequest request) {
-        return commandBus.dispatch(new UpdateBookCommand(
+    UpdateBookResponse update(@PathVariable UUID id, @RequestBody UpdateBookRequest request) {
+        return UpdateBookResponse.from(commandBus.dispatch(new UpdateBookCommand(
                 id, request.title(), request.authorName(), request.authorBiography(),
-                request.priceCents(), request.currency(), request.restockQuantity()));
+                request.priceCents(), request.currency(), request.restockQuantity())));
     }
 
     @PostMapping("/{id}/stock/reserve")
-    StockResponse reserve(@PathVariable UUID id, @RequestBody ReserveStockRequest request) {
-        return commandBus.dispatch(new ReserveStockCommand(id, request.orderId(), request.quantity()));
+    ReserveStockResponse reserve(@PathVariable UUID id, @RequestBody ReserveStockRequest request) {
+        return ReserveStockResponse.from(commandBus.dispatch(new ReserveStockCommand(id, request.orderId(), request.quantity())));
     }
 
     @PostMapping("/{id}/stock/release")
