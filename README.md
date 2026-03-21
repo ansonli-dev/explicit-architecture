@@ -1,610 +1,440 @@
 # Explicit Architecture Demo — Online Bookstore
 
-A production-grade demo implementing **Explicit Architecture** (DDD + Hexagonal + Onion + Clean + CQRS) as described by Herberto Graça. The business scenario is an **Online Bookstore** composed of three independent microservices.
+A production-grade demo that shows how **DDD, Hexagonal, Onion, Clean Architecture, and CQRS** compose into a single structural pattern — and how to resolve the ambiguities that remain once you put them together.
 
-> Reference: [Explicit Architecture #01 – DDD, Hexagonal, Onion, Clean, CQRS, How I Put It All Together](https://herbertograca.com/2017/11/16/explicit-architecture-01-ddd-hexagonal-onion-clean-cqrs-how-i-put-it-all-together/)
+> Reference: [Herberto Graça — Explicit Architecture #01](https://herbertograca.com/2017/11/16/explicit-architecture-01-ddd-hexagonal-onion-clean-cqrs-how-i-put-it-all-together/)
 
 ---
 
-## Business Scenario
+## The Architecture Journey
 
-A customer browses the book catalog, places an order, and receives a confirmation notification. Three bounded contexts emerge naturally:
+Each pattern in the stack emerged from a different problem. Understanding *why* each one exists makes the final synthesis feel inevitable rather than arbitrary.
 
-| Microservice | Bounded Context | Responsibility |
-|---|---|---|
-| `catalog` | Book Catalog | Book/author/category management; inventory stock |
-| `order` | Order Management | Order lifecycle (CQRS); payment status |
-| `notification` | Notifications | Event-driven email/push notifications |
+### Domain-Driven Design (DDD)
 
-**Order Placement Flow (sequence):**
+DDD starts with a question: **who should own business rules?**
+
+In a traditional layered architecture, business logic drifts. It ends up split across controllers, service classes, and utility helpers, with no single place that is authoritative. DDD answers by creating a **Domain Model** — a rich object model of Entities, Value Objects, Aggregates, and Domain Services — and making it the undisputed center of the application. The persistence layer, the UI, and the messaging infrastructure exist only to serve this model, never to contain logic that belongs in it.
+
+DDD also introduces **Bounded Contexts**: explicit boundaries around a domain model where a consistent language (Ubiquitous Language) applies. What "Order" means inside the Order context is not the same as what "Order" means inside the Billing context. Each context owns its model completely.
 
 ```mermaid
-sequenceDiagram
-    actor Customer
-    participant CS as catalog
-    participant OS as order
-    participant Kafka
-    participant NS as notification
+graph TB
+    subgraph BC_ORDER["Bounded Context: Order"]
+        O_AGG["Order\n(Aggregate Root)"]
+        O_LI["OrderLineItem\n(Entity)"]
+        O_MONEY["Money\n(Value Object)"]
+        O_STATUS["OrderStatus\n(Enum)"]
+        O_EVT["OrderPlaced\n(Domain Event)"]
+        O_SVC["OrderPricingService\n(Domain Service)"]
+        O_REPO["OrderRepository\n(Port — domain interface)"]
 
-    Customer->>CS: GET /api/v1/books
-    CS-->>Customer: book list
+        O_AGG --> O_LI
+        O_AGG --> O_MONEY
+        O_AGG --> O_STATUS
+        O_AGG -.->|registers| O_EVT
+        O_SVC -->|operates on| O_AGG
+        O_REPO -->|persists| O_AGG
+    end
 
-    Customer->>OS: POST /api/v1/orders
-    activate OS
-    OS->>CS: GET /books/{id}/stock (verify availability)
-    CS-->>OS: stock available
+    subgraph BC_CATALOG["Bounded Context: Catalog"]
+        C_AGG["Book\n(Aggregate Root)"]
+        C_MONEY["Money\n(Value Object — duplicated by design)"]
+    end
 
-    OS->>OS: Save Order (PostgreSQL)
-    Note right of OS: Write Outbox row<br/>in same transaction
+    BC_ORDER -.->|"integration event\n(no shared domain objects)"| BC_CATALOG
 
-    OS-->>Customer: 201 Created
-    deactivate OS
-
-    Note over OS,Kafka: Outbox Relay — async, ~500 ms
-
-    OS-)Kafka: publish OrderPlaced
-
-    Kafka-)NS: consume OrderPlaced
-    activate NS
-    NS->>NS: Save Notification (PostgreSQL)
-    NS->>NS: Send email (log simulation, no real SMTP)
-    deactivate NS
+    style BC_ORDER fill:#fef3c7,stroke:#d97706
+    style BC_CATALOG fill:#f0fdf4,stroke:#16a34a
 ```
 
-**Cross-service consistency** is handled via a Choreography-based Saga (see [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md)) and guaranteed event delivery via the Outbox Pattern (see [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md)).
+### Hexagonal Architecture — Ports & Adapters
 
----
+DDD defines *what* the center contains. Hexagonal Architecture defines *how to protect it*.
 
-## Architecture Overview
+Alistair Cockburn's insight: an application has a natural boundary between its core logic and the things that drive or serve it. **Ports** are interfaces on this boundary, defined in the application's own language. **Adapters** are the external implementations that plug into those ports — a REST controller, a PostgreSQL repository, a Kafka producer.
 
-Each microservice follows the **Explicit Architecture** with strict layer boundaries:
+The critical insight: the application core never imports an adapter. The adapter imports the port. This inversion means you can swap PostgreSQL for MongoDB, or swap HTTP for CLI, without touching a single line of business logic.
 
 ```mermaid
 graph LR
-    subgraph INT["interfaces/ — Primary Adapters (Driving)"]
-        REST["REST Controllers"]
-        CONS["Kafka Consumers"]
+    subgraph DRIVING["Driving Side"]
+        HTTP["REST / HTTP"]
+        CLI["CLI"]
+        TESTS["Test Suite"]
     end
 
-    subgraph CORE["Application Core  (no framework dependencies)"]
-        subgraph APP["application/"]
-            CMD["CommandHandlers\n(write side)"]
-            QRY["QueryHandlers\n(read side)"]
-            POUT["«port outbound»\nClient / Cache / Search\ninterfaces"]
+    subgraph CORE["Application Core (Hexagon)"]
+        PIN["Port In\n(interface)"]
+        BL["Business Logic"]
+        POUT["Port Out\n(interface)"]
+        PIN --> BL --> POUT
+    end
+
+    subgraph DRIVEN["Driven Side"]
+        PG["PostgreSQL\n(Repository Adapter)"]
+        MAIL["Email\n(Notification Adapter)"]
+        KAFKA["Kafka\n(Messaging Adapter)"]
+    end
+
+    HTTP  --> PIN
+    CLI   --> PIN
+    TESTS --> PIN
+    POUT -.->|implements| PG
+    POUT -.->|implements| MAIL
+    POUT -.->|implements| KAFKA
+
+    style CORE fill:#fef3c7,stroke:#d97706
+```
+
+### Onion Architecture
+
+Hexagonal gives you two sides (driving / driven). Onion Architecture adds **concentric rings** to describe the internal structure of the core itself.
+
+**Dependency Rule:** source-code dependencies point only inward. The Domain Model depends on nothing. Application depends only on the Domain. Infrastructure depends on Application and Domain. This makes the inner layers fully testable with plain unit tests — no framework, no database, no Docker.
+
+```mermaid
+graph LR
+    INF["Infrastructure & UI\n(Controllers, Adapters, ORM)"]
+    APP["Application\n(Use Cases / Handlers)"]
+    DS["Domain Services\n(Pure business logic)"]
+    DM["Domain Model\n(Entities, Value Objects,\nDomain Events)"]
+
+    INF -->|depends on| APP
+    APP -->|depends on| DS
+    DS  -->|depends on| DM
+    DM  -->|depends on nothing| VOID[" "]
+
+    style DM   fill:#fef3c7,stroke:#d97706
+    style DS   fill:#fef9c3,stroke:#ca8a04
+    style APP  fill:#f0fdf4,stroke:#16a34a
+    style INF  fill:#eff6ff,stroke:#3b82f6
+    style VOID fill:none,stroke:none
+```
+
+### Clean Architecture
+
+Robert Martin's Clean Architecture restates the same dependency rule with a stronger emphasis on **use cases as first-class citizens**. Use cases (called Interactors in Clean Architecture) live in the Application layer and represent a single business action. They are the stable heart of the system. Frameworks, databases, and UIs are details — details that can be replaced.
+
+The key contribution: **the Application layer defines its own interfaces** for everything it needs from the outside (repositories, email senders, payment gateways). Infrastructure implements those interfaces. This is the Dependency Inversion Principle applied at the architectural level.
+
+```mermaid
+graph TB
+    subgraph DETAILS["Details — replaceable"]
+        WEB["Web Framework\n(Spring MVC)"]
+        ORM["ORM / Database\n(JPA + PostgreSQL)"]
+        EXT["External APIs\n(Email, Kafka)"]
+    end
+
+    subgraph APP["Application Layer — stable use cases"]
+        UC["Use Cases\n(Interactors / Handlers)"]
+        PORT["Port interfaces\ndefined by the app,\nnot by the tool"]
+    end
+
+    subgraph DOMAIN["Domain — most stable"]
+        ENT["Entities\nBusiness Rules"]
+    end
+
+    WEB -->|calls| UC
+    UC  -->|uses| ENT
+    UC  -->|defines| PORT
+    ORM -.->|implements| PORT
+    EXT -.->|implements| PORT
+
+    style DOMAIN  fill:#fef3c7,stroke:#d97706
+    style APP     fill:#f0fdf4,stroke:#16a34a
+    style DETAILS fill:#eff6ff,stroke:#3b82f6
+```
+
+### CQRS — Command Query Responsibility Segregation
+
+Even with a clean architecture, reads and writes have fundamentally different characteristics. Writes enforce business invariants, update aggregates, and publish events. Reads fetch data — often joining many tables — and return flat projections optimized for display. Forcing both through the same domain model creates unnecessary coupling.
+
+CQRS separates the two:
+
+- **Commands** (write side): go through the Domain Model, enforce business rules, persist via Repositories, publish Domain Events.
+- **Queries** (read side): bypass the Domain Model entirely. A Query Handler goes straight to the database and returns a DTO. No entities are loaded. No invariants are checked. The read path is just a database query.
+
+This unlocks independent scaling and optimization: the write store can be PostgreSQL, the read store can be ElasticSearch — each tuned for its workload.
+
+```mermaid
+graph LR
+    subgraph WRITE["Write Side (Commands)"]
+        CMD["Command\ne.g. PlaceOrder"]
+        CH["Command Handler"]
+        DOM["Domain Model\n(enforces invariants)"]
+        WDB[("Write Store\nPostgreSQL")]
+        EVT["Domain Event\nOrderPlaced"]
+
+        CMD --> CH --> DOM
+        CH  --> WDB
+        DOM -.->|registers| EVT
+    end
+
+    subgraph READ["Read Side (Queries)"]
+        QRY["Query\ne.g. GetOrder"]
+        QH["Query Handler\n(no domain model)"]
+        RDB[("Read Store\nElasticSearch")]
+        DTO["DTO\n(flat projection)"]
+
+        QRY --> QH --> RDB --> DTO
+    end
+
+    EVT -.->|"updates read model\n(via event / outbox)"| RDB
+
+    style WRITE fill:#fef3c7,stroke:#d97706
+    style READ  fill:#f0fdf4,stroke:#16a34a
+```
+
+---
+
+## Explicit Architecture: The Synthesis
+
+Herberto Graça's **Explicit Architecture** fuses all five patterns into one coherent model. The name captures the intent: the architecture should be *visible* from the package structure alone. Reading `interfaces/rest/OrderCommandController.java` tells you it is a driving adapter. Reading `domain/ports/OrderPersistence.java` tells you it is a domain port. Nothing is hidden in generic `service/` or `util/` packages.
+
+```mermaid
+graph TB
+    subgraph DRIVING["Driving Side (interfaces/)"]
+        RC["REST Controllers"]
+        KC["Kafka Consumers"]
+    end
+
+    subgraph CORE["Application Core"]
+        subgraph APP["Application Layer (application/)"]
+            CMD["Command Handlers"]
+            QRY["Query Handlers"]
+            PORTS["Secondary Ports\n(outbound interfaces)"]
         end
-        subgraph DOM["domain/"]
+        subgraph DOM["Domain Layer (domain/)"]
             AGG["Entities · Aggregates"]
             VO["Value Objects · Domain Events"]
             DS["Domain Services"]
-            REPO["«port»\ndomain/ports/\nWrite-side Repository interfaces"]
+            REPO["Repository Ports\n(domain/ports/)"]
         end
     end
 
-    subgraph INF["infrastructure/ — Secondary Adapters (Driven)"]
+    subgraph DRIVEN["Driven Side (infrastructure/)"]
         JPA["JPA / PostgreSQL"]
-        KAF["Kafka Producers"]
-        RDS["Redis Cache"]
-        ESA["ElasticSearch"]
-        CLI["HTTP Clients"]
+        KP["Kafka Producers"]
+        REDIS["Redis"]
+        ES["ElasticSearch"]
+        HTTP["HTTP Clients"]
     end
 
-    REST  -->|"Command"      | CMD
-    REST  -->|"Query"        | QRY
-    CONS  -->|"Command"      | CMD
-    CMD   -->                 POUT
-    CMD   -->|"save via"     | REPO
-    CMD   -->|"orchestrates" | AGG
-    QRY   -->                 POUT
-    AGG   ---                 VO
-    AGG   ---                 DS
-    REPO  -.->|"implemented by"| JPA
-    POUT  -.->|"implemented by"| JPA
-    POUT  -.->|"implemented by"| KAF
-    POUT  -.->|"implemented by"| RDS
-    POUT  -.->|"implemented by"| ESA
-    POUT  -.->|"implemented by"| CLI
+    RC -->|Command / Query| CMD
+    RC -->|Query| QRY
+    KC -->|Command| CMD
+    CMD --> AGG
+    CMD --> DS
+    CMD --> REPO
+    QRY --> PORTS
+    REPO -.->|implemented by| JPA
+    PORTS -.->|implemented by| JPA
+    PORTS -.->|implemented by| KP
+    PORTS -.->|implemented by| REDIS
+    PORTS -.->|implemented by| ES
+    PORTS -.->|implemented by| HTTP
 ```
 
-### Key Principles
+**The four zones:**
 
-- **Ports & Adapters (Hexagonal)**: `interfaces/` holds primary (driving) adapters; `infrastructure/` holds secondary (driven) adapters. The application core defines secondary port interfaces; infrastructure provides the implementations.
-- **Dependency Rule (Onion/Clean)**: Dependencies always point inward. Domain has zero dependencies on frameworks.
-- **CQRS**: CommandHandlers (write) and QueryHandlers (read) are strictly separated. `order` uses PostgreSQL for writes and ElasticSearch for reads.
-- **Domain Events**: Services communicate via domain events over Kafka. No direct cross-service domain coupling.
-- **Bounded Contexts**: Each microservice owns its domain model completely. No shared domain objects across services.
+| Zone | Package | Dependency Rule |
+|---|---|---|
+| Driving adapters | `interfaces/` | depends on Application (via bus) |
+| Application | `application/` | depends on Domain only |
+| Domain | `domain/` | depends on nothing |
+| Driven adapters | `infrastructure/` | depends on Application + Domain |
 
----
-
-## Domain Model Overview
-
-Each microservice owns its domain model completely (no shared domain objects across services).
-
-| Microservice | Aggregate Root | Domain Events | Details |
-|---|---|---|---|
-| `catalog` | `Book` | `BookAdded`, `StockReserved`, `StockReleased` | [catalog/README.md](catalog/README.md#domain-model) |
-| `order` | `Order` | `OrderPlaced`, `OrderConfirmed`, `OrderShipped`, `OrderCancelled` | [order/README.md](order/README.md#domain-model) |
-| `notification` | `Notification` | `NotificationSent`, `NotificationFailed` | [notification/README.md](notification/README.md#domain-model) |
+**The Iron Rule:** the Domain Model imports nothing outside itself. Not a JPA annotation. Not an application-layer type. Not a framework interface. This is the single invariant that must hold unconditionally.
 
 ---
 
-## CQRS Flow (order)
+## Clarified Architecture: Resolving the Ambiguities
+
+Explicit Architecture is an outstanding conceptual map. But when teams implement it, five recurring tensions emerge — places where the original model leaves the decision to the reader. **Clarified Architecture** resolves each one with an opinionated default.
+
+### Tension 1: One Home for Use Cases
+
+**Problem:** Explicit Architecture allows use-case logic to live in either an Application Service or a Command Handler, creating two competing containers for the same responsibility.
+
+**Resolution:** Pick one and enforce it project-wide. If you use a Command/Query Bus, Handlers are the sole use-case container — Application Services are eliminated as a concept. If you have no bus, Application Services are the container. The two should never coexist in new code.
+
+This demo uses **Handlers + Bus**. Controllers never import handlers directly; they dispatch to a `CommandBus` or `QueryBus`. Cross-cutting concerns (logging, timing) live in the bus implementation, not in individual handlers.
+
+### Tension 2: Domain Service Purity
+
+**Problem:** Domain Services sometimes need data they cannot fetch (because they must not depend on Repositories), leading to "ping-pong" calls between layers.
+
+**Resolution:** Domain Services are **pure functions**. They receive all inputs as parameters; they return results. They never hold Repository references, never trigger I/O, never dispatch events. The Handler is responsible for all I/O — it prefetches everything, passes it in, and handles the result.
+
+```
+Handler:  load OrderA, load PricingPolicy  ← all I/O here
+              ↓
+DomainService.applyDiscount(orderA, pricingPolicy)  ← pure computation
+              ↓
+Handler:  save updated order               ← all I/O here
+```
+
+This makes Domain Services testable with zero mocks: `new PricingService().apply(fakeOrder, fakePolicy)`.
+
+### Tension 3: Repository Placement and the CQRS Read Path
+
+**Problem:** Where does the Repository interface live? Application layer or Domain layer? And on the read path, where do query projections go?
+
+**Resolution:** Split cleanly by path.
+
+- **Write path:** Repository interfaces belong in `domain/ports/`. `OrderPersistence` is a domain concept ("the collection of all Orders"). It speaks the domain's language: parameters are domain types (`OrderId`, `Order`), not raw UUIDs.
+- **Read path:** Query Handlers bypass the Domain Model entirely. They go straight to the database and return DTOs. No entities are loaded. Read-model ports (`OrderReadRepository`, `OrderSearchRepository`) live in `application/port/outbound/` because they are infrastructure abstractions with no domain meaning.
+
+| Path | Port location | Passes through Domain? |
+|---|---|---|
+| Write (Command) | `domain/ports/` | Yes — entities enforce invariants |
+| Read (Query) | `application/port/outbound/` | No — direct query to DTO |
+
+### Tension 4: Shared Kernel Growth
+
+**Problem:** The Shared Kernel becomes a gravity center. Every cross-service communication need adds event classes, shared Value Objects, and utility types. Over time it becomes the most volatile module in the system, coupling all services indirectly.
+
+**Resolution:** Replace the Shared Kernel code library with an **Event Registry** — a schema-only artifact (Avro `.avsc` files) containing no executable business logic. Services generate typed classes from the schema at build time; each service's domain layer sees only its own types. The schema file is the contract; the generated classes are an engineering convenience.
+
+In this demo, `shared-events/` contains only Avro schema files. The generated Java classes are published to `mavenLocal()` and consumed as a library. No domain logic, no Spring beans — only serialization machinery.
+
+### Tension 5: Cross-Component Data Consistency
+
+**Problem:** Explicit Architecture does not discuss the consistency, failure, and compensation implications of cross-service data sharing.
+
+**Resolution:** Match the pattern to the deployment topology.
+
+- **Microservices:** each service maintains local read-only projections, updated via integration events. Pair this with idempotent event handlers, compensating transactions, and periodic reconciliation.
+- **Modular monolith:** use database Views as a read contract between components. Strong consistency is available for free; adding eventual consistency here is over-engineering.
+
+In this demo, cross-service state changes are event-driven. When an order is cancelled, `order` publishes `OrderCancelled`; `catalog` consumes it and releases reserved stock. No synchronous HTTP call crosses service boundaries for state changes.
+
+---
+
+## The Full Picture
 
 ```mermaid
-flowchart LR
-    subgraph WS["Write Side (Commands)"]
+graph TB
+    subgraph SVC_ORDER["order service"]
         direction TB
-        CMD["REST Controller\nPOST /orders\nPUT /orders/{id}/cancel"]
-        APPSVC["PlaceOrderCommandHandler\nCancelOrderCommandHandler"]
-        PG[("PostgreSQL\norder")]
-        OB[("outbox_event\nsame transaction")]
-
-        CMD --> APPSVC
-        APPSVC --> PG
-        APPSVC --> OB
+        subgraph ORDER_INT["interfaces/"]
+            O_REST["OrderCommandController\nOrderQueryController"]
+            O_CONS["OrderEventConsumer\n(Kafka consumer)"]
+        end
+        subgraph ORDER_APP["application/"]
+            O_CMD["PlaceOrderCommandHandler\nCancelOrderCommandHandler"]
+            O_QRY["GetOrderQueryHandler\nListOrdersQueryHandler"]
+            O_PORTS["OrderSearchRepository\nCatalogClient (port)"]
+        end
+        subgraph ORDER_DOM["domain/"]
+            O_AGG["Order (Aggregate Root)"]
+            O_REPO["OrderPersistence (port)"]
+            O_EVT["OrderPlaced · OrderCancelled\n(Domain Events)"]
+        end
+        subgraph ORDER_INF["infrastructure/"]
+            O_JPA["OrderJpaRepository\n+ PostgreSQL"]
+            O_ES["OrderElasticRepository\n+ ElasticSearch"]
+            O_OUTBOX["OrderOutboxMapper\n→ Avro → Kafka"]
+            O_CLI["CatalogRestClient"]
+        end
     end
 
-    subgraph RELAY["Outbox Relay"]
+    subgraph SVC_CATALOG["catalog service"]
         direction TB
-        SCH["Relay Scheduler\n~500 ms poll"]
-        KF[["Kafka\norder.placed"]]
-
-        OB --> SCH --> KF
+        subgraph CAT_INT["interfaces/"]
+            C_REST["BookCommandController\nBookQueryController"]
+            C_CONS["OrderCancelledConsumer"]
+        end
+        subgraph CAT_DOM["domain/"]
+            C_AGG["Book (Aggregate Root)"]
+            C_REPO["BookPersistence (port)"]
+        end
+        subgraph CAT_INF["infrastructure/"]
+            C_JPA["BookJpaRepository\n+ PostgreSQL"]
+            C_REDIS["BookCacheAdapter\n+ Redis"]
+        end
     end
 
-    subgraph PROJ["Projector"]
+    subgraph SVC_NOTIF["notification service"]
         direction TB
-        PRJ["OrderReadModelProjector\nKafka Consumer (order.read-model)"]
-        ESW[("ElasticSearch\nindex write")]
-
-        KF --> PRJ --> ESW
+        subgraph N_INT["interfaces/"]
+            N_CONS["OrderPlacedConsumer\nOrderConfirmedConsumer"]
+        end
+        subgraph N_DOM["domain/"]
+            N_AGG["Notification (Aggregate Root)"]
+        end
     end
 
-    subgraph RS["Read Side (Queries)"]
-        direction TB
-        QRY["REST Controller\nGET /orders\nGET /orders/{id}"]
-        QSVC["GetOrderQueryHandler\nListOrdersQueryHandler\n(bypasses domain layer)"]
-        ESR[("ElasticSearch\nread model")]
-
-        QRY --> QSVC --> ESR
+    subgraph KAFKA["Kafka (shared-events/ Avro schemas)"]
+        T1["bookstore.order.placed"]
+        T2["bookstore.order.cancelled"]
     end
 
-    ESW -. "same index" .-> ESR
+    O_REST -->|dispatch| O_CMD
+    O_REST -->|dispatch| O_QRY
+    O_CONS -->|dispatch| O_CMD
+    O_CMD --> O_AGG
+    O_AGG -->|registers| O_EVT
+    O_EVT -->|outbox relay| O_OUTBOX
+    O_OUTBOX --> T1
+    O_OUTBOX --> T2
+    O_JPA -->|write| ORDER_DOM
+    O_ES  -->|read model| O_QRY
+    O_CLI -->|HTTP| C_REST
+
+    T1 --> N_CONS
+    T2 --> C_CONS
+    C_CONS -->|dispatch| CAT_DOM
+    N_CONS -->|dispatch| N_DOM
+
+    style ORDER_DOM fill:#fef3c7,stroke:#d97706
+    style CAT_DOM fill:#fef3c7,stroke:#d97706
+    style N_DOM fill:#fef3c7,stroke:#d97706
+    style KAFKA fill:#ede9fe,stroke:#7c3aed
 ```
 
-Read model is **eventually consistent** — typically lags write by <500 ms (Outbox poll interval).
-
-Controllers dispatch all operations through `CommandBus` / `QueryBus`. Handlers are never injected directly into controllers.
+**Reading the diagram:**
+- Yellow zones (`domain/`) have zero outbound dependencies — they are the protected core.
+- Solid arrows are source-code dependencies; dashed arrows are runtime implementations.
+- Kafka (purple) is the only shared surface between services — and only via Avro schema contracts, never via shared domain objects.
 
 ---
 
-## Module Structure (per microservice)
+## About This Demo
 
-All three services share the same directory layout. Only the adapters differ per service (see the table below).
+The business scenario is an **Online Bookstore** with three bounded contexts:
 
-```
-{service}/
-├── src/
-│   ├── main/
-│   │   ├── java/com/example/{service}/
-│   │   │   ├── domain/                      # zero framework deps — pure Java
-│   │   │   │   ├── model/                   # Entities, Aggregates, Value Objects
-│   │   │   │   ├── event/                   # Domain Events (in-process, immutable records)
-│   │   │   │   └── service/                 # Domain Services (cross-aggregate, stateless)
-│   │   │   ├── application/                 # depends on domain only; no Spring/JPA/Kafka imports
-│   │   │   │   ├── port/
-│   │   │   │   │   └── outbound/            # Secondary Ports that are NOT domain concepts: Client, Cache, SearchRepository, ReadRepository
-│   │   │   │   ├── command/{aggregate}/     # Command record + @Service CommandHandler (package-by-feature)
-│   │   │   │   └── query/{aggregate}/       # Query record + @Service QueryHandler + Response DTO
-│   │   │   ├── infrastructure/              # driven adapters — all framework code lives here
-│   │   │   │   ├── repository/
-│   │   │   │   │   ├── jpa/                 # JPA entities + Spring Data repos + persistence adapter
-│   │   │   │   │   └── elasticsearch/       # ES documents + ES repo + projector (order only)
-│   │   │   │   ├── messaging/
-│   │   │   │   │   └── outbox/              # OutboxMapper implementation (catalog + order)
-│   │   │   │   ├── cache/                   # Redis adapter (catalog only)
-│   │   │   │   └── client/                  # HTTP clients (order: CatalogRestClient)
-│   │   │   │       └── email/               # Email adapter (notification only — log simulation)
-│   │   │   └── interfaces/                  # primary adapters — driving (inbound) side
-│   │   │       ├── rest/                    # REST Controllers; dispatch via CommandBus / QueryBus
-│   │   │       └── messaging/
-│   │   │           └── consumer/            # Kafka consumers (notification + order read-model projector)
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       └── db/
-│   │           └── migration/               # Flyway migration scripts (V1__xxx.sql, V2__xxx.sql …)
-│   └── test/
-│       ├── java/com/example/{service}/
-│       │   ├── domain/                      # pure unit tests — no Spring context, no Docker
-│       │   ├── application/                 # handler unit tests — mock outbound ports
-│       │   └── infrastructure/              # adapter integration tests (@Tag("integration"), Testcontainers)
-│       └── resources/
-│           └── application-test.yml
-├── helm/                                    # per-service Helm Chart
-│   ├── Chart.yaml
-│   ├── values.yaml
-│   └── templates/
-│       ├── _helpers.tpl
-│       ├── deployment.yaml
-│       ├── service.yaml
-│       ├── serviceaccount.yaml
-│       ├── configmap.yaml
-│       ├── hpa.yaml
-│       ├── networkpolicy.yaml               # service-specific traffic rules
-│       ├── virtual.yaml                     # Istio VirtualService (timeout / retry)
-│       ├── destination-rule.yaml            # Istio DestinationRule (circuit breaker)
-│       └── NOTES.txt
-└── build.gradle.kts
-```
-
-> Images are built with **Jib** (no `Dockerfile` required). Run `./gradlew jibDockerBuild` to push to the local Docker daemon.
-
-### Adapter Matrix
-
-| Adapter Package | catalog | order | notification |
-|---|---|---|---|
-| `interfaces/rest/` | ✅ | ✅ | ✅ |
-| `infrastructure/repository/jpa/` | ✅ | ✅ | ✅ |
-| `infrastructure/messaging/outbox/` | ✅ (publishes stock events) | ✅ (Outbox relay) | — |
-| `infrastructure/cache/` | ✅ Redis | — | — |
-| `infrastructure/repository/elasticsearch/` | — | ✅ ElasticSearch | — |
-| `infrastructure/client/email/` | — | — | ✅ LogEmailAdapter |
-| `infrastructure/client/` (HTTP) | — | ✅ CatalogRestClient | — |
-| `interfaces/messaging/consumer/` | — | ✅ OrderReadModelProjector | ✅ OrderEventConsumer |
-
-### Domain Event vs Integration Event
-
-| Type | Package | Scope | Example |
-|---|---|---|---|
-| **Domain Event** | `domain/event/` | In-process; aggregate-owned; triggers outbox write | `OrderPlaced` |
-| **Integration Event** | `shared-events/` (Avro) | Cross-service via Kafka; schema contract | `com.example.events.v1.OrderPlaced` |
-
-Kafka publishing is a pure infrastructure concern. The Outbox Pattern (via `seedwork`) writes the event row atomically in the same transaction as the aggregate. Domain objects never import `shared-events` Avro classes — only `OutboxMapper` does.
-
-> **Test layering**: unit tests (`domain/`, `application/`) require no Docker and finish in milliseconds. Integration tests (`infrastructure/`) are tagged `@Tag("integration")` and spin up PostgreSQL / Redis / Kafka / ES on demand via Testcontainers.
-
----
-
-## Technology Stack
-
-| Category | Technology |
-|---|---|
-| Language | Java 21 (Virtual Threads, Records, Pattern Matching) |
-| Framework | Spring Boot 3.x |
-| Build | Gradle 8.x (independent projects per service) |
-| Database | PostgreSQL 16 (write store) |
-| Cache | Redis 7 (catalog caching, idempotency keys) |
-| Search | ElasticSearch 8 (order read/query side) |
-| Messaging | Apache Kafka (domain event bus) |
-| Observability | OpenTelemetry (traces + metrics) + SigNoz |
-| Container | Docker + Kubernetes |
-| Service Mesh | Istio (mTLS, traffic management, canary) |
-| Packaging | Helm 3 |
-| Image Build | Jib (no Dockerfile) |
-| Testing | JUnit 5, Testcontainers, RestAssured |
-| Contract Testing | PactFlow (Bi-Directional Contract Testing) |
-
----
-
-## Project Structure
-
-```
-explicit-architecture/
-├── catalog/                    # Book catalog bounded context
-│   ├── src/
-│   ├── helm/                   # per-service Helm Chart
-│   └── build.gradle.kts
-├── order/                      # Order management bounded context (CQRS)
-│   ├── src/
-│   ├── helm/
-│   └── build.gradle.kts
-├── notification/               # Notification bounded context
-│   ├── src/
-│   ├── helm/
-│   └── build.gradle.kts
-├── shared-events/              # Event schema SDK (consumed via mavenLocal())
-│   ├── src/main/avro/com/example/events/
-│   │   ├── v1/                 # OrderPlaced, OrderCancelled, StockReserved …
-│   │   └── v2/                 # reserved for breaking changes (currently empty)
-│   ├── scripts/
-│   │   └── register-schemas.sh # one-shot Schema Registry registration script
-│   ├── CHANGELOG.md            # version change log (required on every schema change)
-│   └── build.gradle.kts
-├── seedwork/                   # Reusable DDD + CQRS framework abstractions
-│   └── build.gradle.kts
-├── e2e/                        # End-to-end tests (REST calls against a live environment)
-│   └── build.gradle.kts
-├── docs/
-│   ├── architecture/           # Architecture Decision Records (ADRs)
-│   └── api/                    # OpenAPI specs
-├── build.gradle.kts            # root version catalog (shared dependency versions)
-├── settings.gradle.kts
-└── README.md
-```
-
-> Each service (`catalog`, `order`, `notification`, `seedwork`, `shared-events`, `e2e`) is an **independent Gradle project** with its own `settings.gradle.kts`. There is no root multi-project build — the root `build.gradle.kts` only provides a shared version catalog.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-| Tool | Version | Purpose |
+| Service | Port | Role |
 |---|---|---|
-| JDK | 21+ | Build and run services |
-| Docker | 24+ | Build images (via Jib) |
-| kubectl | 1.28+ | Kubernetes deployment |
-| Helm | 3.13+ | Chart packaging and deployment |
-| minikube / kind | latest | Local Kubernetes cluster (optional) |
+| [`catalog`](catalog/README.md) | 8081 | Book/inventory management; Redis cache |
+| [`order`](order/README.md) | 8082 | Order lifecycle (CQRS); PostgreSQL write + ElasticSearch read |
+| [`notification`](notification/README.md) | 8083 | Event-driven notifications (log simulation) |
+| [`shared-events`](shared-events/README.md) | — | Avro schema SDK for cross-service events |
+| `seedwork` | — | Reusable DDD + CQRS base abstractions |
 
-### Local Development
+Each service's README contains its domain model, API reference, environment variables, and deployment details.
+
+---
+
+## Quick Start
 
 ```bash
-# 1. Deploy infrastructure middleware to local Kubernetes (minikube / kind)
-helm upgrade --install bookstore-infra ./infrastructure/helm -f infrastructure/helm/values.yaml
-
-# 2. Publish shared libraries to mavenLocal (required once; repeat after any seedwork/shared-events change)
-cd seedwork && ./gradlew publishToMavenLocal
+# 1. Publish shared libraries (required once; repeat after any change)
+cd seedwork      && ./gradlew publishToMavenLocal
 cd ../shared-events && ./gradlew publishToMavenLocal
 
-# 3. Run a service locally (connects to middleware running in K8s)
+# 2. Run a service (requires PostgreSQL, Redis, Kafka reachable)
 cd catalog && ./gradlew bootRun
 ```
 
-### Run Tests
-
-```bash
-# Unit tests only — no Docker, runs in seconds
-cd catalog && ./gradlew test -PtestProfile=unit
-
-# Integration tests — requires Docker (Testcontainers)
-cd catalog && ./gradlew test -PtestProfile=integration
-
-# All tests for a single service
-cd order && ./gradlew test
-
-# Contract tests (no Testcontainers required)
-cd order && ./gradlew test --tests "com.example.order.contract.*"
-```
-
-### Verify the Setup
-
-```bash
-# Health checks
-curl http://localhost:8081/actuator/health   # catalog
-curl http://localhost:8082/actuator/health   # order
-curl http://localhost:8083/actuator/health   # notification
-
-# Place a sample order (end-to-end smoke test)
-# 1. Get a book
-curl http://localhost:8081/api/v1/books | jq '.[0].id'
-
-# 2. Place an order
-curl -X POST http://localhost:8082/api/v1/orders \
-  -H "Content-Type: application/json" \
-  -d '{"customerId":"00000000-0000-0000-0000-000000000001","items":[{"bookId":"<id>","quantity":1}]}'
-
-# 3. Check notification
-curl http://localhost:8083/api/v1/notifications/00000000-0000-0000-0000-000000000001
-```
-
-### Build and Push Images (Jib)
-
-```bash
-# Build to local Docker daemon (no registry push)
-cd catalog      && ./gradlew jibDockerBuild
-cd order        && ./gradlew jibDockerBuild
-cd notification && ./gradlew jibDockerBuild
-
-# Push to a registry
-cd catalog      && ./gradlew jib
-cd order        && ./gradlew jib
-cd notification && ./gradlew jib
-```
-
-### Kubernetes Deployment
-
-```bash
-# 1. Install Istio (if not already installed)
-istioctl install --set profile=demo -y
-kubectl label namespace bookstore istio-injection=enabled
-
-# 2. Deploy with Helm umbrella chart
-helm install bookstore ./infrastructure/helm/bookstore \
-  --namespace bookstore \
-  --create-namespace \
-  -f infrastructure/helm/bookstore/values-local.yaml
-
-# 3. Check rollout
-kubectl -n bookstore rollout status deployment/catalog
-kubectl -n bookstore get pods
-
-# 4. Port-forward for local access
-kubectl -n bookstore port-forward svc/catalog 8081:8081
-```
-
-### Upgrade / Rollback
-
-```bash
-# Upgrade
-helm upgrade bookstore ./infrastructure/helm/bookstore \
-  --namespace bookstore \
-  -f infrastructure/helm/bookstore/values-local.yaml
-
-# Rollback
-helm rollback bookstore 1 --namespace bookstore
-```
-
 ---
 
-## API Quick Reference
+## Further Reading
 
-Full OpenAPI specs: [`docs/api/`](docs/api/)
-
-### catalog `localhost:8081`
-
-| Method | Path | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/v1/books` | List books (paginated, filterable by category) | Public |
-| `GET` | `/api/v1/books/{id}` | Get book detail with author info | Public |
-| `POST` | `/api/v1/books` | Add a book | Admin |
-| `PUT` | `/api/v1/books/{id}` | Update book metadata or price | Admin |
-| `GET` | `/api/v1/books/{id}/stock` | Check current stock level | Internal |
-| `POST` | `/api/v1/books/{id}/stock/reserve` | Reserve stock for an order | Internal |
-| `GET` | `/actuator/health` | Health check | Internal |
-| `GET` | `/actuator/prometheus` | Prometheus metrics scrape endpoint | Internal |
-
-### order `localhost:8082`
-
-| Method | Path | Description | Side |
-|---|---|---|---|
-| `POST` | `/api/v1/orders` | Place an order (command) | Write |
-| `PUT` | `/api/v1/orders/{id}/cancel` | Cancel an order (command) | Write |
-| `GET` | `/api/v1/orders/{id}` | Get order by ID (query, ES read model) | Read |
-| `GET` | `/api/v1/orders?customerId=&status=&page=&size=` | Search orders (ElasticSearch) | Read |
-| `GET` | `/actuator/health` | Health check | Internal |
-
-**Place Order request body:**
-```json
-{
-  "customerId": "uuid",
-  "items": [
-    { "bookId": "uuid", "quantity": 2 }
-  ]
-}
-```
-
-### notification `localhost:8083`
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/v1/notifications?customerId=&page=&size=` | List notifications for a customer |
-| `GET` | `/api/v1/notifications/{id}` | Get single notification detail |
-| `GET` | `/actuator/health` | Health check |
-
----
-
-## Architecture Decision Records
-
-See [`docs/architecture/`](docs/architecture/) for the full ADR index.
-
-| ADR | Decision |
+| Document | Purpose |
 |---|---|
-| [ADR-001](docs/architecture/adr/ADR-001-explicit-architecture-over-layered.md) | Adopt Explicit Architecture over traditional layered architecture |
-| [ADR-002](docs/architecture/adr/ADR-002-cqrs-scope-order-service.md) | Apply CQRS only to order service (PostgreSQL write + ES read) |
-| [ADR-003](docs/architecture/adr/ADR-003-event-schema-ownership.md) | Centralize Kafka event schemas in `shared-events` module |
-| [ADR-004](docs/architecture/adr/ADR-004-istio-service-mesh.md) | Use Istio for resilience instead of application-level libraries |
-| [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md) | Outbox Pattern for guaranteed at-least-once domain event delivery |
-| [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md) | Database-per-service, no shared tables, Choreography Saga |
-| [ADR-007](docs/architecture/adr/ADR-007-java21-virtual-threads.md) | Java 21: Virtual Threads, Records, Sealed Classes usage guidelines |
-| [ADR-008](docs/architecture/adr/ADR-008-shared-events-versioning.md) | shared-events SDK versioning: SemVer + mandatory CHANGELOG + namespace isolation for breaking changes |
-| [ADR-009](docs/architecture/adr/ADR-009-kafka-consumer-idempotency-retry.md) | Kafka consumer idempotency and DB-backed retry strategy |
-| [ADR-010](docs/architecture/adr/ADR-010-opentelemetry-observability.md) | OpenTelemetry via Kubernetes Operator for unified observability |
-| [ADR-011](docs/architecture/adr/ADR-011-swaggerhub-pactflow-bdct.md) | API governance with SwaggerHub + PactFlow Bi-Directional Contract Testing |
-
----
-
-## Observability
-
-All services export traces, metrics, and logs via **OpenTelemetry**, aggregated into **SigNoz** — an all-in-one observability platform that replaces the Jaeger + Prometheus + Grafana + OTel Collector stack.
-
-### Local Observability Endpoints
-
-| Tool | URL | Purpose |
-|---|---|---|
-| SigNoz UI | http://localhost:3301 | Traces, Metrics, Logs, Service Map, Alerts |
-| SigNoz OTLP (gRPC) | localhost:4317 | Application telemetry ingest endpoint |
-| SigNoz OTLP (HTTP) | localhost:4318 | Application telemetry ingest endpoint (fallback) |
-
-### Signal Collection
-
-| Signal | Collection Method | Destination |
-|---|---|---|
-| Traces | OTel Java Agent (auto) + manual spans | SigNoz via OTLP gRPC |
-| Metrics | Micrometer OTLP Registry (JVM, HTTP, HikariCP) | SigNoz via OTLP gRPC |
-| Logs | Logback JSON (with `trace_id` / `span_id` fields) | SigNoz (auto-correlated with traces) |
-| Service mesh metrics | Istio Envoy sidecar | Kiali (Kubernetes environment) |
-
-### Trace Propagation
-
-`traceparent` (W3C) header is propagated automatically:
-- **HTTP calls**: injected and extracted by Spring Boot OTel Auto-Instrumentation
-- **Kafka messages**: propagated via message headers; extracted automatically by the OTel agent on the consumer side
-
-Span naming convention: `{service}.{aggregate}.{operation}` — e.g., `order.order.place`, `catalog.book.reserve-stock`
-
-### SigNoz Built-in Alerts
-
-Configure alerts in the SigNoz UI (no AlertManager required):
-
-| Alert | Condition | Severity |
-|---|---|---|
-| High service error rate | Any service 5xx rate > 1% | Critical |
-| Kafka consumer lag | Any consumer group lag > 1000 | Warning |
-| DB connection pool exhausted | `hikaricp_connections_pending > 5` | Warning |
-
----
-
-## Environment Variables
-
-Each service reads configuration from `application.yml`; all values are overridable by environment variables.
-
-### catalog
-
-| Variable | Default | Description |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/catalog` | PostgreSQL connection URL |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB username |
-| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | DB password |
-| `SPRING_DATA_REDIS_HOST` | `localhost` | Redis host |
-| `SPRING_DATA_REDIS_PORT` | `6379` | Redis port |
-| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector endpoint |
-| `OTEL_SERVICE_NAME` | `catalog` | Service name in traces |
-
-### order
-
-| Variable | Default | Description |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/order` | PostgreSQL (write side) |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB username |
-| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | DB password |
-| `SPRING_ELASTICSEARCH_URIS` | `http://localhost:9200` | ElasticSearch (read side) |
-| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `SPRING_KAFKA_CONSUMER_GROUP_ID` | `order.read-model` | Kafka consumer group for the read-model projector |
-| `CATALOG_SERVICE_URL` | `http://localhost:8081` | catalog service base URL |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector endpoint |
-| `OTEL_SERVICE_NAME` | `order` | Service name in traces |
-
-### notification
-
-| Variable | Default | Description |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/notification` | PostgreSQL connection URL |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | DB username |
-| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | DB password |
-| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka brokers |
-| `SPRING_KAFKA_CONSUMER_GROUP_ID` | `notification.order-events` | Kafka consumer group |
-| `NOTIFICATION_EMAIL_LOG_ONLY` | `true` | `true` = log simulation; `false` = real SMTP (production only) |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel collector endpoint |
-| `OTEL_SERVICE_NAME` | `notification` | Service name in traces |
-
----
-
-## Local Infrastructure Ports
-
-| Service | Port | Notes |
-|---|---|---|
-| catalog | 8081 | REST API |
-| order | 8082 | REST API |
-| notification | 8083 | REST API (email simulated via logs) |
-| PostgreSQL | 5432 | Three logical databases; `wal_level=logical` |
-| Redis | 6379 | Used by catalog |
-| Kafka | 9092 | Domain event bus |
-| Kafka UI | 8080 | Topic / message browser (with Schema Registry integration) |
-| Schema Registry | 8085 | Avro schema storage (container port 8081 → host port 8085) |
-| Debezium Connect | 8084 | REST API for registering connectors (container port 8083 → host port 8084) |
-| ElasticSearch | 9200 | order read model |
-| SigNoz UI | 3301 | Unified Traces, Metrics, Logs |
-| SigNoz OTLP gRPC | 4317 | Application telemetry ingest |
-| SigNoz OTLP HTTP | 4318 | Application telemetry ingest (fallback) |
+| [`docs/architecture/clarified-architecture/clarified-architecture-en.md`](docs/architecture/clarified-architecture/clarified-architecture-en.md) | Full Clarified Architecture specification (canonical) |
+| [`docs/architecture/architecture-spec.md`](docs/architecture/architecture-spec.md) | Project-specific naming, package layout, and implementation rules |
+| [`docs/architecture/adr/`](docs/architecture/adr/) | Architecture Decision Records (ADR-001 – ADR-011) |
+| [`docs/testing-strategy/`](docs/testing-strategy/) | Testing strategy and pyramid reference |

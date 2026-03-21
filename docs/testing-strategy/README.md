@@ -1,155 +1,139 @@
-# 微服务测试策略：全景指南 (Testing Strategies in a Microservice Architecture)
+# Testing Strategies in a Microservice Architecture — Overview
 
-> 本文档由 Toby Clemson 在 Martin Fowler 网站上的经典 Infodeck 整理而成。包含了全部 25 页 Slide 的原始截图与核心内容整理。
+> This document is compiled from Toby Clemson's classic Infodeck published on the Martin Fowler website. It covers all 25 slides, including the original screenshots and key takeaways from each section.
 
 ---
 
-## 一、 绪论与议程 (Slide 1-2)
+## I. Introduction and Agenda (Slides 1–2)
 
-微服务架构带来了独立部署和扩展的便利，但也让测试变得复杂。网络分区要求我们重新审视单体应用的测试策略。
+Microservice architecture brings the convenience of independent deployment and scaling, but it also makes testing more complex. Network partitions require us to re-examine the testing strategies used for monolithic applications.
 
-````carousel
 ![Slide 1: Title](./images/slide_01_1773300966630.png)
-<!-- slide -->
+
 ![Slide 2: Agenda](./images/slide_02_1773300972889.png)
-````
 
-**核心要点：**
-- 微服务允许跨团队并行开发。
-- 测试必须适应“网络隔离”和“分布式协同”的新环境。
+**Key points:**
+- Microservices enable parallel development across teams.
+- Tests must adapt to a new environment defined by network isolation and distributed collaboration.
 
 ---
 
-## 二、 什么是微服务与其内部解剖 (Slide 3-5)
+## II. What Microservices Are and Their Internal Anatomy (Slides 3–5)
 
-微服务是协作服务的集合，通常通过 REST over HTTP 集成。了解其内部组件对制定测试方案至关重要。
+A microservice is a collection of collaborating services, typically integrated via REST over HTTP. Understanding their internal components is essential for designing an effective testing approach.
 
-````carousel
 ![Slide 3: Anatomy](./images/slide_03_1773301034248.png)
-<!-- slide -->
+
 ![Slide 4: Module Breakdown](./images/slide_04_v2_1773301040439.png)
-<!-- slide -->
+
 ![Slide 5: Connections](./images/slide_05_final_1773301090097.png)
-````
 
-**模块构成：**
-- **Resources**: 处理协议映射（如 HTTP 到 Domain）。
-- **Service/Domain**: 承载核心业务逻辑。
-- **Gateways**: 封装与外部系统的消息传递。
-- **Repositories**: 与持久化层交互。
+**Module breakdown:**
+- **Resources**: Handle protocol mapping (e.g., HTTP to Domain).
+- **Service/Domain**: Carry the core business logic.
+- **Gateways**: Encapsulate messaging with external systems.
+- **Repositories**: Interact with the persistence layer.
 
 ---
 
-## 三、 单元测试 (Unit Testing) (Slide 6-9)
+## III. Unit Testing (Slides 6–9)
 
-单元测试在类级别验证逻辑。在微服务中，我们需要在“社交型”和“孤立型”之间做出选择。
+Unit tests verify logic at the class level. In microservices, we need to choose between "sociable" and "solitary" styles.
 
-````carousel
 ![Slide 6: Context](./images/slide_06_1773301189076.png)
-<!-- slide -->
+
 ![Slide 7: Intro](./images/slide_07_1773301206003.png)
-<!-- slide -->
+
 ![Slide 8: Styles](./images/slide_08_1773301212270.png)
-<!-- slide -->
+
 ![Slide 9: Limits](./images/slide_09_1773301269517.png)
-````
 
-**策略建议：**
-- **社交型 (Sociable)**: 适用于复杂的领域逻辑，允许与真实类交互。
-- **孤立型 (Solitary)**: 适用于协调逻辑，使用 Test Doubles 隔离依赖。
-- **限制**: 单元测试无法保证跨模块交互的正确性，需要更高层级的测试。
+**Recommendations:**
+- **Sociable**: Suited for complex domain logic; allows interaction with real collaborators.
+- **Solitary**: Suited for coordination logic; uses Test Doubles to isolate dependencies.
+- **Limitation**: Unit tests cannot guarantee correctness of cross-module interactions — higher-level tests are required.
 
 ---
 
-## 四、 集成测试 (Integration Testing) (Slide 10-11)
+## IV. Integration Testing (Slides 10–11)
 
-验证通信路径和接口契约，特别是在与数据库和其他服务交互时。
+Verify communication paths and interface contracts, especially when interacting with databases and other services.
 
-````carousel
 ![Slide 10: Definition](./images/slide_10_1773301283553.png)
-<!-- slide -->
+
 ![Slide 11: Feedback](./images/slide_11_1773301385103.png)
-````
 
-**核心提示：**
-- 关注集成模块的行为。
-- 由于依赖外部组件，这类测试可能较慢且不稳定（Flaky）。
-- 建议仅编写少量精选的集成测试。
+**Key notes:**
+- Focus on the behavior of integrated modules.
+- These tests can be slow and flaky due to reliance on external components.
+- Write only a small, curated set of integration tests.
 
 ---
 
-## 五、 组件测试 (Component Testing) (Slide 12-16)
+## V. Component Testing (Slides 12–16)
 
-将整个微服务作为一个独立的组件进行测试，通常在进程内或通过外部 Stub 实现。
+Test the entire microservice as a standalone component, typically either in-process or via external stubs.
 
-````carousel
 ![Slide 12: Need](./images/slide_12_1773301401016.png)
-<!-- slide -->
+
 ![Slide 13: Definition](./images/slide_13_1773301449981.png)
-<!-- slide -->
+
 ![Slide 14: In-process](./images/slide_14_1773301471020.png)
-<!-- slide -->
+
 ![Slide 15: Resources](./images/slide_15_1773301546751.png)
-<!-- slide -->
+
 ![Slide 16: Out-of-process](./images/slide_16_1773301741483.png)
-````
 
-**测试方式：**
-- **进程内 (In-process)**: 使用内存数据库和内存 Stub，测试速度快。
-- **进程外 (Out-of-process)**: 部署真实的工件，使用外部 Stub 服务（如 moco, mountebank），更接近真实环境。
+**Testing approaches:**
+- **In-process**: Uses an in-memory database and in-memory stubs; fast to execute.
+- **Out-of-process**: Deploys the real artifact and uses external stub servers (e.g., moco, mountebank); closer to a production environment.
 
 ---
 
-## 六、 契约测试 (Contract Testing) (Slide 17-19)
+## VI. Contract Testing (Slides 17–19)
 
-确保服务提供者满足消费者的期望，而无需部署整个系统。
+Ensure that service providers fulfil consumer expectations without deploying the entire system.
 
-````carousel
 ![Slide 17: Combination](./images/slide_17_1773301763279.png)
-<!-- slide -->
-![Slide 18: Intro](./images/slide_18_1773301772632.png)
-<!-- slide -->
+
+![Slide 18: Intro](./images/slide_18_1773301772636.png)
+
 ![Slide 19: Sum](./images/slide_19_1773301806553.png)
-````
 
-**核心理念：**
-- 消费者定义对 Provider 的需求（Request/Response 结构）。
-- Provider 在构建过程中持续验证这些契约，确保不会发布破坏性更改。
+**Core idea:**
+- Consumers define their expectations of the Provider (request/response structure).
+- The Provider continuously verifies these contracts during its build to ensure no breaking changes are published.
 
 ---
 
-## 七、 端到端测试 (End-to-End Testing) (Slide 20-22)
+## VII. End-to-End Testing (Slides 20–22)
 
-通过公共接口（如 GUI）验证整个系统的业务流程。
+Verify entire business workflows through public interfaces (e.g., GUI or REST API).
 
-````carousel
 ![Slide 20: Definition](./images/slide_20_1773301882960.png)
-<!-- slide -->
-![Slide 21: Boundary](./images/slide_21_1773302095963.png)
-<!-- slide -->
-![Slide 22: Tips](./images/slide_22_final_1773302152612.png)
-````
 
-**黄金法则：**
-- 尽量少写 E2E 测试。
-- 关注关键用户路径（Persona）。
-- 确保测试数据独立，避免相互干扰。
+![Slide 21: Boundary](./images/slide_21_1773302095963.png)
+
+![Slide 22: Tips](./images/slide_22_final_1773302152612.png)
+
+**Golden rules:**
+- Write as few E2E tests as possible.
+- Focus on critical user journeys (personas).
+- Keep test data independent to avoid interference between test runs.
 
 ---
 
-## 八、 总结与测试金字塔 (Slide 23-25)
+## VIII. Summary and the Test Pyramid (Slides 23–25)
 
-微服务架构提供了更多测试选项，关键在于保持平衡。
+Microservice architecture offers more testing options; the key is maintaining the right balance.
 
-````carousel
 ![Slide 23: Options](./images/slide_23_1773302188592.png)
-<!-- slide -->
-![Slide 24: Pyramid](./images/slide_24_final_1773302284085.png)
-<!-- slide -->
-![Slide 25: Summary](./images/slide_25_1773302301081.png)
-````
 
-**最终建议：**
-- 建立稳固的单元测试基础。
-- 结合集成、组件和契约测试来管理服务间的复杂性。
-- 用少量的 E2E 测试作为最后防线。
+![Slide 24: Pyramid](./images/slide_24_final_1773302284085.png)
+
+![Slide 25: Summary](./images/slide_25_1773302301081.png)
+
+**Final recommendations:**
+- Build a solid foundation of unit tests.
+- Use integration, component, and contract tests to manage inter-service complexity.
+- Use a small number of E2E tests as the last line of defence.

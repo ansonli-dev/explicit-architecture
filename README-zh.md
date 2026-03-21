@@ -1,607 +1,440 @@
 # Explicit Architecture 演示项目 — 在线书店
 
-这是一个生产级演示项目，实现了 Herberto Graça 所描述的 **Explicit Architecture**（DDD + 六边形 + 洋葱 + 整洁 + CQRS）。业务场景为**在线书店**，由三个独立微服务组成。
+这是一个生产级演示项目，展示 **DDD、六边形架构、洋葱架构、整洁架构与 CQRS** 如何组合成一个统一的结构模式，以及将它们付诸实践后如何消解其中残留的歧义。
 
-> 参考文章：[Explicit Architecture #01 – DDD, Hexagonal, Onion, Clean, CQRS, How I Put It All Together](https://herbertograca.com/2017/11/16/explicit-architecture-01-ddd-hexagonal-onion-clean-cqrs-how-i-put-it-all-together/)
+> 参考文章：[Herberto Graça — Explicit Architecture #01](https://herbertograca.com/2017/11/16/explicit-architecture-01-ddd-hexagonal-onion-clean-cqrs-how-i-put-it-all-together/)
 
 ---
 
-## 业务场景
+## 架构演进之路
 
-客户浏览图书目录、下单，并收到确认通知。由此自然划分出三个限界上下文：
+这套组合中的每个模式，都源于对不同问题的解答。理解每个模式存在的*原因*，才能让最终的融合显得水到渠成，而非人为拼凑。
 
-| 微服务 | 限界上下文 | 职责 |
-|---|---|---|
-| `catalog` | 图书目录 | 图书/作者/分类管理；库存管理 |
-| `order` | 订单管理 | 订单全生命周期（CQRS）；支付状态 |
-| `notification` | 通知服务 | 事件驱动的邮件/推送通知 |
+### 领域驱动设计（DDD）
 
-**下单流程（时序图）：**
+DDD 从一个问题出发：**业务规则应该由谁负责？**
+
+在传统的分层架构中，业务逻辑往往四散漂移——分布在控制器、服务类和各种工具方法里，没有任何一个地方是权威的。DDD 的答案是：构建一个**领域模型**——由实体（Entity）、值对象（Value Object）、聚合（Aggregate）和领域服务（Domain Service）组成的丰富对象模型——并以此作为应用程序无可争议的核心。持久层、UI 和消息基础设施的存在，都是为了服务这个模型，而不是承载本该属于它的逻辑。
+
+DDD 还引入了**限界上下文（Bounded Context）**：为领域模型划定明确边界，使统一语言（Ubiquitous Language）在边界内保持一致。Order 上下文中的"订单"与 Billing 上下文中的"订单"，含义并不相同。每个上下文完整地拥有自己的模型。
 
 ```mermaid
-sequenceDiagram
-    actor Customer
-    participant CS as catalog
-    participant OS as order
-    participant Kafka
-    participant NS as notification
+graph TB
+    subgraph BC_ORDER["限界上下文：Order（订单）"]
+        O_AGG["Order\n（聚合根）"]
+        O_LI["OrderLineItem\n（实体）"]
+        O_MONEY["Money\n（值对象）"]
+        O_STATUS["OrderStatus\n（枚举）"]
+        O_EVT["OrderPlaced\n（领域事件）"]
+        O_SVC["OrderPricingService\n（领域服务）"]
+        O_REPO["OrderRepository\n（端口 — 领域接口）"]
 
-    Customer->>CS: GET /api/v1/books
-    CS-->>Customer: 图书列表
+        O_AGG --> O_LI
+        O_AGG --> O_MONEY
+        O_AGG --> O_STATUS
+        O_AGG -.->|注册| O_EVT
+        O_SVC -->|操作| O_AGG
+        O_REPO -->|持久化| O_AGG
+    end
 
-    Customer->>OS: POST /api/v1/orders
-    activate OS
-    OS->>CS: GET /books/{id}/stock（验证库存）
-    CS-->>OS: 库存充足
+    subgraph BC_CATALOG["限界上下文：Catalog（目录）"]
+        C_AGG["Book\n（聚合根）"]
+        C_MONEY["Money\n（值对象 — 刻意重复定义）"]
+    end
 
-    OS->>OS: 保存订单（PostgreSQL）
-    Note right of OS: 同一事务写入 Outbox 行
+    BC_ORDER -.->|"集成事件\n（不共享领域对象）"| BC_CATALOG
 
-    OS-->>Customer: 201 Created
-    deactivate OS
-
-    Note over OS,Kafka: Outbox 中继 — 异步，约 500 ms
-
-    OS-)Kafka: 发布 OrderPlaced
-
-    Kafka-)NS: 消费 OrderPlaced
-    activate NS
-    NS->>NS: 保存通知（PostgreSQL）
-    NS->>NS: 发送邮件（日志模拟，无真实 SMTP）
-    deactivate NS
+    style BC_ORDER fill:#fef3c7,stroke:#d97706
+    style BC_CATALOG fill:#f0fdf4,stroke:#16a34a
 ```
 
-**跨服务一致性**通过基于编排的 Saga 保障（参见 [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md)），事件可靠投递通过 Outbox 模式实现（参见 [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md)）。
+### 六边形架构——端口与适配器
 
----
+DDD 定义了*中心*包含什么。六边形架构定义了*如何保护它*。
 
-## 架构概览
+Alistair Cockburn 的洞见：应用程序在其核心逻辑与驱动它或被它驱动的外部组件之间，存在一条自然边界。**端口（Port）** 是这条边界上的接口，使用应用程序自己的语言来定义。**适配器（Adapter）** 是插入端口的外部实现——一个 REST 控制器、一个 PostgreSQL 仓储、一个 Kafka 生产者。
 
-每个微服务均遵循 **Explicit Architecture**，严格划分层次边界：
+关键洞见：应用核心永远不会导入适配器。适配器导入端口。这种反转意味着可以将 PostgreSQL 换成 MongoDB，或将 HTTP 换成 CLI，而无需触碰任何一行业务逻辑。
 
 ```mermaid
 graph LR
-    subgraph INT["interfaces/ — 主适配器（驱动侧）"]
-        REST["REST Controllers"]
-        CONS["Kafka Consumers"]
+    subgraph DRIVING["主动侧"]
+        HTTP["REST / HTTP"]
+        CLI["CLI"]
+        TESTS["测试套件"]
     end
 
-    subgraph CORE["应用核心（无框架依赖）"]
-        subgraph APP["application/"]
-            CMD["CommandHandlers\n（写侧）"]
-            QRY["QueryHandlers\n（读侧）"]
-            POUT["«port outbound»\n仓储 / 客户端接口"]
+    subgraph CORE["应用核心（六边形）"]
+        PIN["入站端口\n（interface）"]
+        BL["业务逻辑"]
+        POUT["出站端口\n（interface）"]
+        PIN --> BL --> POUT
+    end
+
+    subgraph DRIVEN["被动侧"]
+        PG["PostgreSQL\n（仓储适配器）"]
+        MAIL["Email\n（通知适配器）"]
+        KAFKA["Kafka\n（消息适配器）"]
+    end
+
+    HTTP  --> PIN
+    CLI   --> PIN
+    TESTS --> PIN
+    POUT -.->|实现| PG
+    POUT -.->|实现| MAIL
+    POUT -.->|实现| KAFKA
+
+    style CORE fill:#fef3c7,stroke:#d97706
+```
+
+### 洋葱架构
+
+六边形架构给了你两侧（主动侧 / 被动侧）。洋葱架构进一步为核心内部的结构添加了**同心圆**。
+
+**依赖规则：** 源码依赖只能指向内层。领域模型不依赖任何东西。应用层只依赖领域层。基础设施层依赖应用层和领域层。这让内层完全可以用普通单元测试来验证——无需框架、无需数据库、无需 Docker。
+
+```mermaid
+graph LR
+    INF["基础设施 & UI\n（控制器、适配器、ORM）"]
+    APP["应用层\n（用例 / 处理器）"]
+    DS["领域服务层\n（纯业务逻辑）"]
+    DM["领域模型层\n（实体、值对象、领域事件）"]
+
+    INF -->|依赖| APP
+    APP -->|依赖| DS
+    DS  -->|依赖| DM
+    DM  -->|不依赖任何东西| VOID[" "]
+
+    style DM   fill:#fef3c7,stroke:#d97706
+    style DS   fill:#fef9c3,stroke:#ca8a04
+    style APP  fill:#f0fdf4,stroke:#16a34a
+    style INF  fill:#eff6ff,stroke:#3b82f6
+    style VOID fill:none,stroke:none
+```
+
+### 整洁架构
+
+Robert Martin 的整洁架构用同样的依赖规则，更强调**用例（Use Case）作为一等公民**。用例（在整洁架构中称为 Interactor）位于应用层，代表一个单一的业务动作。它们是系统中最稳定的核心。框架、数据库和 UI 都是细节——可以被替换的细节。
+
+关键贡献：**应用层为自己所需的一切定义接口**（仓储、邮件发送器、支付网关）。基础设施层实现这些接口。这是依赖倒置原则在架构层面的应用。
+
+```mermaid
+graph TB
+    subgraph DETAILS["细节 — 可替换"]
+        WEB["Web 框架\n（Spring MVC）"]
+        ORM["ORM / 数据库\n（JPA + PostgreSQL）"]
+        EXT["外部 API\n（Email、Kafka）"]
+    end
+
+    subgraph APP["应用层 — 稳定的用例"]
+        UC["用例\n（Interactor / Handler）"]
+        PORT["端口接口\n由应用层定义，\n不由工具决定"]
+    end
+
+    subgraph DOMAIN["领域层 — 最稳定"]
+        ENT["实体\n业务规则"]
+    end
+
+    WEB -->|调用| UC
+    UC  -->|使用| ENT
+    UC  -->|定义| PORT
+    ORM -.->|实现| PORT
+    EXT -.->|实现| PORT
+
+    style DOMAIN  fill:#fef3c7,stroke:#d97706
+    style APP     fill:#f0fdf4,stroke:#16a34a
+    style DETAILS fill:#eff6ff,stroke:#3b82f6
+```
+
+### CQRS——命令查询职责分离
+
+即便有了整洁的架构，读和写在本质上也有截然不同的特性。写操作要执行业务不变量、更新聚合、发布事件。读操作要获取数据——通常需要关联多张表——并返回为展示优化的扁平投影。把两者都强制通过同一个领域模型，会造成不必要的耦合。
+
+CQRS 将两者分开：
+
+- **命令（写侧）**：经过领域模型，执行业务规则，通过仓储持久化，发布领域事件。
+- **查询（读侧）**：完全绕过领域模型。查询处理器直接访问数据库并返回 DTO。不加载任何实体，不检查任何不变量。读路径就是一条数据库查询。
+
+这为独立扩展和优化打开了大门：写存储可以是 PostgreSQL，读存储可以是 ElasticSearch——各自针对其工作负载单独调优。
+
+```mermaid
+graph LR
+    subgraph WRITE["写侧（命令）"]
+        CMD["命令\n例：PlaceOrder"]
+        CH["命令处理器"]
+        DOM["领域模型\n（执行不变量）"]
+        WDB[("写存储\nPostgreSQL")]
+        EVT["领域事件\nOrderPlaced"]
+
+        CMD --> CH --> DOM
+        CH  --> WDB
+        DOM -.->|注册| EVT
+    end
+
+    subgraph READ["读侧（查询）"]
+        QRY["查询\n例：GetOrder"]
+        QH["查询处理器\n（不经过领域模型）"]
+        RDB[("读存储\nElasticSearch")]
+        DTO["DTO\n（扁平投影）"]
+
+        QRY --> QH --> RDB --> DTO
+    end
+
+    EVT -.->|"更新读模型\n（通过事件 / Outbox）"| RDB
+
+    style WRITE fill:#fef3c7,stroke:#d97706
+    style READ  fill:#f0fdf4,stroke:#16a34a
+```
+
+---
+
+## Explicit Architecture：融合的结果
+
+Herberto Graça 的 **Explicit Architecture** 将上述五个模式融合为一个统一的模型。这个名字恰如其分：架构应当从包结构本身就*清晰可见*。读到 `interfaces/rest/OrderCommandController.java`，你就知道它是一个主动适配器；读到 `domain/ports/OrderPersistence.java`，你就知道它是一个领域端口。没有任何东西藏在泛泛的 `service/` 或 `util/` 包里。
+
+```mermaid
+graph TB
+    subgraph DRIVING["主动侧（interfaces/）"]
+        RC["REST 控制器"]
+        KC["Kafka 消费者"]
+    end
+
+    subgraph CORE["应用核心"]
+        subgraph APP["应用层（application/）"]
+            CMD["命令处理器"]
+            QRY["查询处理器"]
+            PORTS["出站端口\n（outbound 接口）"]
         end
-        subgraph DOM["domain/"]
+        subgraph DOM["领域层（domain/）"]
             AGG["实体 · 聚合根"]
             VO["值对象 · 领域事件"]
             DS["领域服务"]
+            REPO["仓储端口\n（domain/ports/）"]
         end
     end
 
-    subgraph INF["infrastructure/ — 次适配器（被驱动侧）"]
+    subgraph DRIVEN["被动侧（infrastructure/）"]
         JPA["JPA / PostgreSQL"]
-        KAF["Kafka 生产者"]
-        RDS["Redis 缓存"]
-        ESA["ElasticSearch"]
-        CLI["HTTP 客户端"]
+        KP["Kafka 生产者"]
+        REDIS["Redis"]
+        ES["ElasticSearch"]
+        HTTP["HTTP 客户端"]
     end
 
-    REST  -->|"Command"      | CMD
-    REST  -->|"Query"        | QRY
-    CONS  -->|"Command"      | CMD
-    CMD   -->                 POUT
-    CMD   -->|"orchestrates" | AGG
-    QRY   -->                 POUT
-    AGG   ---                 VO
-    AGG   ---                 DS
-    POUT  -.->|"implemented by"| JPA
-    POUT  -.->|"implemented by"| KAF
-    POUT  -.->|"implemented by"| RDS
-    POUT  -.->|"implemented by"| ESA
-    POUT  -.->|"implemented by"| CLI
+    RC -->|Command / Query| CMD
+    RC -->|Query| QRY
+    KC -->|Command| CMD
+    CMD --> AGG
+    CMD --> DS
+    CMD --> REPO
+    QRY --> PORTS
+    REPO -.->|实现于| JPA
+    PORTS -.->|实现于| JPA
+    PORTS -.->|实现于| KP
+    PORTS -.->|实现于| REDIS
+    PORTS -.->|实现于| ES
+    PORTS -.->|实现于| HTTP
 ```
 
-### 核心原则
+**四个区域：**
 
-- **端口与适配器（六边形）**：`interfaces/` 存放主适配器（驱动侧）；`infrastructure/` 存放次适配器（被驱动侧）。应用核心定义次端口接口，基础设施层提供实现。
-- **依赖规则（洋葱/整洁架构）**：依赖方向始终指向内层。领域层对框架零依赖。
-- **CQRS**：CommandHandler（写）与 QueryHandler（读）严格分离。`order` 服务写侧使用 PostgreSQL，读侧使用 ElasticSearch。
-- **领域事件**：服务之间通过 Kafka 上的领域事件通信，不直接跨服务耦合领域层。
-- **限界上下文**：每个微服务完全拥有自己的领域模型，不在服务间共享领域对象。
+| 区域 | 包 | 依赖规则 |
+|---|---|---|
+| 主动适配器 | `interfaces/` | 依赖应用层（通过总线） |
+| 应用层 | `application/` | 仅依赖领域层 |
+| 领域层 | `domain/` | 不依赖任何东西 |
+| 被动适配器 | `infrastructure/` | 依赖应用层 + 领域层 |
 
----
-
-## 领域模型概览
-
-每个微服务完全拥有自己的领域模型（不跨服务共享领域对象）。
-
-| 微服务 | 聚合根 | 领域事件 | 详细说明 |
-|---|---|---|---|
-| `catalog` | `Book` | `BookAdded`, `StockReserved`, `StockReleased` | [catalog/README.md](catalog/README.md#domain-model) |
-| `order` | `Order` | `OrderPlaced`, `OrderConfirmed`, `OrderShipped`, `OrderCancelled` | [order/README.md](order/README.md#domain-model) |
-| `notification` | `Notification` | `NotificationSent`, `NotificationFailed` | [notification/README.md](notification/README.md#domain-model) |
+**铁律：** 领域模型不导入自身以外的任何东西。不导入 JPA 注解，不导入应用层类型，不导入任何框架接口。这是唯一必须无条件成立的不变量。
 
 ---
 
-## CQRS 流程（order 服务）
+## Clarified Architecture：消解歧义
+
+Explicit Architecture 是一份出色的概念地图。但当团队实际落地时，会反复遇到五个张力地带——原始模型将决策留给了读者。**Clarified Architecture** 为每个张力提供了一个有明确立场的默认解答。
+
+### 张力一：用例的唯一归属
+
+**问题：** Explicit Architecture 允许用例逻辑放在应用服务（Application Service）或命令处理器（Command Handler）中，造成同一职责有两个竞争性容器。
+
+**解答：** 选一个，全项目统一执行。如果使用命令/查询总线，处理器（Handler）是用例的唯一容器——应用服务作为概念被消除。如果没有总线，则应用服务是容器。两者在新代码中永远不应共存。
+
+本项目使用 **Handler + Bus**。控制器不直接导入处理器，只向 `CommandBus` 或 `QueryBus` 分发。横切关注点（日志、计时）放在总线实现中，不出现在单个处理器里。
+
+### 张力二：领域服务的纯粹性
+
+**问题：** 领域服务有时需要它无法获取的数据（因为它不能依赖仓储），导致层与层之间的"乒乓调用"。
+
+**解答：** 领域服务是**纯函数**。所有输入作为参数传入，返回结果。不持有仓储引用，不触发 I/O，不分发事件。处理器负责所有 I/O——预取所有需要的数据，传入领域服务，处理返回结果。
+
+```
+Handler:  加载 OrderA，加载 PricingPolicy  ← 所有 I/O 在此
+              ↓
+DomainService.applyDiscount(orderA, pricingPolicy)  ← 纯计算
+              ↓
+Handler:  保存更新后的订单               ← 所有 I/O 在此
+```
+
+这让领域服务测试时完全不需要 Mock：`new PricingService().apply(fakeOrder, fakePolicy)`。
+
+### 张力三：仓储的归属与 CQRS 读路径
+
+**问题：** 仓储接口应该放在应用层还是领域层？读路径上的查询投影又放在哪里？
+
+**解答：** 按路径干净地拆分。
+
+- **写路径：** 仓储接口属于 `domain/ports/`。`OrderPersistence` 是领域概念（"所有订单的集合"），参数使用领域类型（`OrderId`、`Order`），不使用原始 UUID。
+- **读路径：** 查询处理器完全绕过领域模型，直接访问数据库返回 DTO。读模型端口（`OrderReadRepository`、`OrderSearchRepository`）放在 `application/port/outbound/`，因为它们是没有领域语义的基础设施抽象。
+
+| 路径 | 端口位置 | 经过领域层？ |
+|---|---|---|
+| 写（命令） | `domain/ports/` | 是——实体执行不变量检查 |
+| 读（查询） | `application/port/outbound/` | 否——直接查询数据库返回 DTO |
+
+### 张力四：共享内核的膨胀
+
+**问题：** 共享内核（Shared Kernel）会变成重力中心。每个跨服务通信需求都会往里加事件类、共享值对象和工具类型。久而久之，它变成系统中最大、最不稳定的模块，间接耦合了所有服务。
+
+**解答：** 用**事件注册表（Event Registry）**替代共享内核代码库——一个只包含 Schema（Avro `.avsc` 文件）、不含任何可执行业务逻辑的制品。各服务在构建时从 Schema 生成类型化的代码类；每个服务的领域层只看到自己的类型。Schema 文件是契约；生成的代码类是工程便利。
+
+本项目中，`shared-events/` 只包含 Avro Schema 文件。生成的 Java 类发布到 `mavenLocal()` 并作为库被消费。没有领域逻辑，没有 Spring Bean——只有序列化机制。
+
+### 张力五：跨组件数据一致性
+
+**问题：** Explicit Architecture 没有讨论跨服务数据共享的一致性、故障处理和补偿机制。
+
+**解答：** 根据部署拓扑选择对应模式。
+
+- **微服务：** 每个服务维护本地只读投影，通过集成事件更新。配套实现幂等事件处理器、补偿事务和定期对账。
+- **模块化单体：** 用数据库视图（View）作为组件间的读契约。强一致性可免费获得；在这里引入最终一致性是过度设计。
+
+本项目中，跨服务状态变更是事件驱动的。订单取消时，`order` 服务发布 `OrderCancelled`；`catalog` 服务消费后释放预留库存。跨服务状态变更不使用同步 HTTP 调用。
+
+---
+
+## 全景图
 
 ```mermaid
-flowchart LR
-    subgraph WS["写侧（命令）"]
+graph TB
+    subgraph SVC_ORDER["order 服务"]
         direction TB
-        CMD["REST Controller\nPOST /orders\nPUT /orders/{id}/cancel"]
-        APPSVC["PlaceOrderCommandHandler\nCancelOrderCommandHandler"]
-        PG[("PostgreSQL\norder 库")]
-        OB[("outbox_event\n同一事务")]
-
-        CMD --> APPSVC
-        APPSVC --> PG
-        APPSVC --> OB
+        subgraph ORDER_INT["interfaces/"]
+            O_REST["OrderCommandController\nOrderQueryController"]
+            O_CONS["OrderEventConsumer\n(Kafka 消费者)"]
+        end
+        subgraph ORDER_APP["application/"]
+            O_CMD["PlaceOrderCommandHandler\nCancelOrderCommandHandler"]
+            O_QRY["GetOrderQueryHandler\nListOrdersQueryHandler"]
+            O_PORTS["OrderSearchRepository\nCatalogClient（端口）"]
+        end
+        subgraph ORDER_DOM["domain/"]
+            O_AGG["Order（聚合根）"]
+            O_REPO["OrderPersistence（端口）"]
+            O_EVT["OrderPlaced · OrderCancelled\n（领域事件）"]
+        end
+        subgraph ORDER_INF["infrastructure/"]
+            O_JPA["OrderJpaRepository\n+ PostgreSQL"]
+            O_ES["OrderElasticRepository\n+ ElasticSearch"]
+            O_OUTBOX["OrderOutboxMapper\n→ Avro → Kafka"]
+            O_CLI["CatalogRestClient"]
+        end
     end
 
-    subgraph RELAY["Outbox 中继"]
+    subgraph SVC_CATALOG["catalog 服务"]
         direction TB
-        SCH["中继调度器\n~500 ms 轮询"]
-        KF[["Kafka\norder.placed"]]
-
-        OB --> SCH --> KF
+        subgraph CAT_INT["interfaces/"]
+            C_REST["BookCommandController\nBookQueryController"]
+            C_CONS["OrderCancelledConsumer"]
+        end
+        subgraph CAT_DOM["domain/"]
+            C_AGG["Book（聚合根）"]
+            C_REPO["BookPersistence（端口）"]
+        end
+        subgraph CAT_INF["infrastructure/"]
+            C_JPA["BookJpaRepository\n+ PostgreSQL"]
+            C_REDIS["BookCacheAdapter\n+ Redis"]
+        end
     end
 
-    subgraph PROJ["投影器"]
+    subgraph SVC_NOTIF["notification 服务"]
         direction TB
-        PRJ["OrderReadModelProjector\nKafka Consumer (order.read-model)"]
-        ESW[("ElasticSearch\n索引写入")]
-
-        KF --> PRJ --> ESW
+        subgraph N_INT["interfaces/"]
+            N_CONS["OrderPlacedConsumer\nOrderConfirmedConsumer"]
+        end
+        subgraph N_DOM["domain/"]
+            N_AGG["Notification（聚合根）"]
+        end
     end
 
-    subgraph RS["读侧（查询）"]
-        direction TB
-        QRY["REST Controller\nGET /orders\nGET /orders/{id}"]
-        QSVC["GetOrderQueryHandler\nListOrdersQueryHandler\n（绕过领域层）"]
-        ESR[("ElasticSearch\n读模型")]
-
-        QRY --> QSVC --> ESR
+    subgraph KAFKA["Kafka（shared-events/ Avro Schema）"]
+        T1["bookstore.order.placed"]
+        T2["bookstore.order.cancelled"]
     end
 
-    ESW -. "同一索引" .-> ESR
+    O_REST -->|分发| O_CMD
+    O_REST -->|分发| O_QRY
+    O_CONS -->|分发| O_CMD
+    O_CMD --> O_AGG
+    O_AGG -->|注册| O_EVT
+    O_EVT -->|outbox 中继| O_OUTBOX
+    O_OUTBOX --> T1
+    O_OUTBOX --> T2
+    O_JPA -->|写| ORDER_DOM
+    O_ES  -->|读模型| O_QRY
+    O_CLI -->|HTTP| C_REST
+
+    T1 --> N_CONS
+    T2 --> C_CONS
+    C_CONS -->|分发| CAT_DOM
+    N_CONS -->|分发| N_DOM
+
+    style ORDER_DOM fill:#fef3c7,stroke:#d97706
+    style CAT_DOM fill:#fef3c7,stroke:#d97706
+    style N_DOM fill:#fef3c7,stroke:#d97706
+    style KAFKA fill:#ede9fe,stroke:#7c3aed
 ```
 
-读模型为**最终一致性** — 通常滞后写侧不超过 500 ms（Outbox 轮询间隔）。
-
-Controller 通过 `CommandBus` / `QueryBus` 派发所有操作，不直接注入具体 Handler 类。
+**图示说明：**
+- 黄色区域（`domain/`）没有任何出站依赖——它们是受保护的核心。
+- 实线箭头为源码依赖，虚线箭头为运行时实现。
+- Kafka（紫色）是服务间唯一的共享面——且仅通过 Avro Schema 契约，不共享任何领域对象。
 
 ---
 
-## 模块结构（每个微服务）
+## 关于本演示
 
-三个服务的目录结构相同，仅适配器因服务而异（见下方对照表）。
+业务场景为**在线书店**，划分出三个限界上下文：
 
-```
-{service}/
-├── src/
-│   ├── main/
-│   │   ├── java/com/example/{service}/
-│   │   │   ├── domain/                      # 零框架依赖 — 纯 Java
-│   │   │   │   ├── model/                   # 实体、聚合根、值对象
-│   │   │   │   ├── event/                   # 领域事件（进程内，不可变 record）
-│   │   │   │   └── service/                 # 领域服务（跨聚合、无状态）
-│   │   │   ├── application/                 # 仅依赖 domain；禁止导入 Spring/JPA/Kafka
-│   │   │   │   ├── port/
-│   │   │   │   │   └── outbound/            # 次端口：Persistence、Client、SearchRepository 接口
-│   │   │   │   ├── command/{aggregate}/     # Command record + @Service CommandHandler（按特性分包）
-│   │   │   │   └── query/{aggregate}/       # Query record + @Service QueryHandler + Response DTO
-│   │   │   ├── infrastructure/              # 被驱动适配器 — 所有框架代码在此
-│   │   │   │   ├── repository/
-│   │   │   │   │   ├── jpa/                 # JPA 实体 + Spring Data 仓储 + 持久化适配器
-│   │   │   │   │   └── elasticsearch/       # ES 文档 + ES 仓储 + 投影器（仅 order）
-│   │   │   │   ├── messaging/
-│   │   │   │   │   └── outbox/              # OutboxMapper 实现（catalog + order）
-│   │   │   │   ├── cache/                   # Redis 适配器（仅 catalog）
-│   │   │   │   └── client/                  # HTTP 客户端（order: CatalogRestClient）
-│   │   │   │       └── email/               # 邮件适配器（仅 notification — 日志模拟）
-│   │   │   └── interfaces/                  # 主适配器 — 驱动（入站）侧
-│   │   │       ├── rest/                    # REST Controller；通过 CommandBus / QueryBus 派发
-│   │   │       └── messaging/
-│   │   │           └── consumer/            # Kafka 消费者（notification + order 读模型投影器）
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       └── db/
-│   │           └── migration/               # Flyway 迁移脚本（V1__xxx.sql, V2__xxx.sql …）
-│   └── test/
-│       ├── java/com/example/{service}/
-│       │   ├── domain/                      # 纯单元测试 — 无 Spring 上下文，无 Docker
-│       │   ├── application/                 # Handler 单元测试 — Mock 出站端口
-│       │   └── infrastructure/              # 适配器集成测试（@Tag("integration"), Testcontainers）
-│       └── resources/
-│           └── application-test.yml
-├── helm/                                    # 服务专属 Helm Chart
-│   ├── Chart.yaml
-│   ├── values.yaml
-│   └── templates/
-│       ├── _helpers.tpl
-│       ├── deployment.yaml
-│       ├── service.yaml
-│       ├── serviceaccount.yaml
-│       ├── configmap.yaml
-│       ├── hpa.yaml
-│       ├── networkpolicy.yaml               # 服务专属流量放行规则
-│       ├── virtual.yaml                     # Istio VirtualService（超时/重试）
-│       ├── destination-rule.yaml            # Istio DestinationRule（熔断器）
-│       └── NOTES.txt
-└── build.gradle.kts
-```
+| 服务 | 端口 | 职责 |
+|---|---|---|
+| [`catalog`](catalog/README-zh.md) | 8081 | 图书/库存管理；Redis 缓存 |
+| [`order`](order/README-zh.md) | 8082 | 订单全生命周期（CQRS）；PostgreSQL 写 + ElasticSearch 读 |
+| [`notification`](notification/README-zh.md) | 8083 | 事件驱动通知（日志模拟） |
+| [`shared-events`](shared-events/README-zh.md) | — | 跨服务事件 Avro Schema SDK |
+| `seedwork` | — | 可复用的 DDD + CQRS 基础抽象 |
 
-> 镜像使用 **Jib** 构建（无需 `Dockerfile`）。执行 `./gradlew jibDockerBuild` 即可推送至本地 Docker daemon。
-
-### 各服务适配器对照
-
-| 适配器包 | catalog | order | notification |
-|---|---|---|---|
-| `interfaces/rest/` | ✅ | ✅ | ✅ |
-| `infrastructure/repository/jpa/` | ✅ | ✅ | ✅ |
-| `infrastructure/messaging/outbox/` | ✅（发布库存事件） | ✅（Outbox 中继） | — |
-| `infrastructure/cache/` | ✅ Redis | — | — |
-| `infrastructure/repository/elasticsearch/` | — | ✅ ElasticSearch | — |
-| `infrastructure/client/email/` | — | — | ✅ LogEmailAdapter |
-| `infrastructure/client/`（HTTP） | — | ✅ CatalogRestClient | — |
-| `interfaces/messaging/consumer/` | — | ✅ OrderReadModelProjector | ✅ OrderEventConsumer |
-
-### 领域事件 vs 集成事件
-
-| 类型 | 包位置 | 作用域 | 示例 |
-|---|---|---|---|
-| **领域事件** | `domain/event/` | 进程内；聚合根所有；触发 Outbox 写入 | `OrderPlaced` |
-| **集成事件** | `shared-events/`（Avro） | 跨服务，经 Kafka 传递；schema 契约 | `com.example.events.v1.OrderPlaced` |
-
-Kafka 发布是纯基础设施关注点。Outbox 模式（由 `seedwork` 实现）在同一事务中原子写入事件行。领域对象不导入 `shared-events` Avro 类 — 只有 `OutboxMapper` 才会导入。
-
-> **测试分层**：单元测试（`domain/`、`application/`）无需 Docker，毫秒级完成。集成测试（`infrastructure/`）标注 `@Tag("integration")`，通过 Testcontainers 按需启动 PostgreSQL / Redis / Kafka / ES。
-
----
-
-## 技术栈
-
-| 分类 | 技术 |
-|---|---|
-| 语言 | Java 21（虚拟线程、Records、模式匹配） |
-| 框架 | Spring Boot 3.x |
-| 构建工具 | Gradle 8.x（每个服务独立项目） |
-| 数据库 | PostgreSQL 16（写存储） |
-| 缓存 | Redis 7（catalog 缓存、幂等键） |
-| 搜索 | ElasticSearch 8（order 读/查询侧） |
-| 消息系统 | Apache Kafka（领域事件总线） |
-| 可观测性 | OpenTelemetry（链路追踪 + 指标）+ SigNoz |
-| 容器 | Docker + Kubernetes |
-| 服务网格 | Istio（mTLS、流量管理、金丝雀发布） |
-| 打包 | Helm 3 |
-| 镜像构建 | Jib（无需 Dockerfile） |
-| 测试 | JUnit 5、Testcontainers、RestAssured |
-| 契约测试 | PactFlow（双向契约测试） |
-
----
-
-## 项目目录结构
-
-```
-explicit-architecture/
-├── catalog/                    # 图书目录限界上下文
-│   ├── src/
-│   ├── helm/                   # 服务专属 Helm Chart
-│   └── build.gradle.kts
-├── order/                      # 订单管理限界上下文（CQRS）
-│   ├── src/
-│   ├── helm/
-│   └── build.gradle.kts
-├── notification/               # 通知服务限界上下文
-│   ├── src/
-│   ├── helm/
-│   └── build.gradle.kts
-├── shared-events/              # 事件 Schema SDK（各服务通过 mavenLocal() 依赖）
-│   ├── src/main/avro/com/example/events/
-│   │   ├── v1/                 # OrderPlaced, OrderCancelled, StockReserved …
-│   │   └── v2/                 # 破坏性变更时使用（当前为空占位）
-│   ├── scripts/
-│   │   └── register-schemas.sh # Schema Registry 一键注册脚本
-│   ├── CHANGELOG.md            # 版本变更日志（每次 schema 变更必填）
-│   └── build.gradle.kts
-├── seedwork/                   # 可复用 DDD + CQRS 框架抽象
-│   └── build.gradle.kts
-├── e2e/                        # 端到端测试（针对线上环境的 REST 调用）
-│   └── build.gradle.kts
-├── docs/
-│   ├── architecture/           # 架构决策记录（ADR）
-│   └── api/                    # OpenAPI 规范文档
-├── build.gradle.kts            # 根版本目录（共享依赖版本）
-├── settings.gradle.kts
-└── README.md
-```
-
-> 每个服务（`catalog`、`order`、`notification`、`seedwork`、`shared-events`、`e2e`）都是**独立的 Gradle 项目**，拥有各自的 `settings.gradle.kts`，不存在根多模块构建。根目录的 `build.gradle.kts` 仅提供共享版本目录。
+各服务的 README 包含其领域模型、API 参考、环境变量和部署说明。
 
 ---
 
 ## 快速开始
 
-### 前置条件
-
-| 工具 | 版本要求 | 用途 |
-|---|---|---|
-| JDK | 21+ | 构建并运行服务 |
-| Docker | 24+ | 通过 Jib 构建镜像 |
-| kubectl | 1.28+ | Kubernetes 部署 |
-| Helm | 3.13+ | Chart 打包与部署 |
-| minikube / kind | 最新版 | 本地 Kubernetes 集群（可选） |
-
-### 本地开发
-
 ```bash
-# 1. 将基础设施中间件部署到本地 Kubernetes（minikube / kind）
-helm upgrade --install bookstore-infra ./infrastructure/helm -f infrastructure/helm/values.yaml
-
-# 2. 将共享库发布到 mavenLocal（首次使用时执行；每次修改 seedwork/shared-events 后重新执行）
-cd seedwork && ./gradlew publishToMavenLocal
+# 1. 发布共享库（需执行一次；每次修改后重新执行）
+cd seedwork      && ./gradlew publishToMavenLocal
 cd ../shared-events && ./gradlew publishToMavenLocal
 
-# 3. 本地运行服务（连接到 K8s 中运行的中间件）
+# 2. 运行某个服务（需要 PostgreSQL、Redis、Kafka 可访问）
 cd catalog && ./gradlew bootRun
 ```
 
-### 运行测试
-
-```bash
-# 仅单元测试 — 无需 Docker，秒级完成
-cd catalog && ./gradlew test -PtestProfile=unit
-
-# 集成测试 — 需要 Docker（Testcontainers）
-cd catalog && ./gradlew test -PtestProfile=integration
-
-# 运行单个服务的全部测试
-cd order && ./gradlew test
-
-# 契约测试（无需 Testcontainers）
-cd order && ./gradlew test --tests "com.example.order.contract.*"
-```
-
-### 验证环境
-
-```bash
-# 健康检查
-curl http://localhost:8081/actuator/health   # catalog
-curl http://localhost:8082/actuator/health   # order
-curl http://localhost:8083/actuator/health   # notification
-
-# 端到端冒烟测试
-# 1. 获取图书
-curl http://localhost:8081/api/v1/books | jq '.[0].id'
-
-# 2. 下单
-curl -X POST http://localhost:8082/api/v1/orders \
-  -H "Content-Type: application/json" \
-  -d '{"customerId":"00000000-0000-0000-0000-000000000001","items":[{"bookId":"<id>","quantity":1}]}'
-
-# 3. 查看通知
-curl http://localhost:8083/api/v1/notifications/00000000-0000-0000-0000-000000000001
-```
-
-### 构建并推送镜像（Jib）
-
-```bash
-# 构建到本地 Docker daemon（不推送至远程仓库）
-cd catalog      && ./gradlew jibDockerBuild
-cd order        && ./gradlew jibDockerBuild
-cd notification && ./gradlew jibDockerBuild
-
-# 推送到镜像仓库
-cd catalog      && ./gradlew jib
-cd order        && ./gradlew jib
-cd notification && ./gradlew jib
-```
-
-### Kubernetes 部署
-
-```bash
-# 1. 安装 Istio（如尚未安装）
-istioctl install --set profile=demo -y
-kubectl label namespace bookstore istio-injection=enabled
-
-# 2. 通过 Helm 伞形 Chart 部署
-helm install bookstore ./infrastructure/helm/bookstore \
-  --namespace bookstore \
-  --create-namespace \
-  -f infrastructure/helm/bookstore/values-local.yaml
-
-# 3. 检查部署状态
-kubectl -n bookstore rollout status deployment/catalog
-kubectl -n bookstore get pods
-
-# 4. 端口转发到本地
-kubectl -n bookstore port-forward svc/catalog 8081:8081
-```
-
-### 升级 / 回滚
-
-```bash
-# 升级
-helm upgrade bookstore ./infrastructure/helm/bookstore \
-  --namespace bookstore \
-  -f infrastructure/helm/bookstore/values-local.yaml
-
-# 回滚
-helm rollback bookstore 1 --namespace bookstore
-```
-
 ---
 
-## API 快速参考
+## 延伸阅读
 
-完整 OpenAPI 规范：[`docs/api/`](docs/api/)
-
-### catalog `localhost:8081`
-
-| 方法 | 路径 | 描述 | 权限 |
-|---|---|---|---|
-| `GET` | `/api/v1/books` | 列出图书（分页，可按分类过滤） | 公开 |
-| `GET` | `/api/v1/books/{id}` | 获取图书详情及作者信息 | 公开 |
-| `POST` | `/api/v1/books` | 新增图书 | 管理员 |
-| `PUT` | `/api/v1/books/{id}` | 更新图书元数据或价格 | 管理员 |
-| `GET` | `/api/v1/books/{id}/stock` | 查询当前库存量 | 内部 |
-| `POST` | `/api/v1/books/{id}/stock/reserve` | 为订单预留库存 | 内部 |
-| `GET` | `/actuator/health` | 健康检查 | 内部 |
-| `GET` | `/actuator/prometheus` | Prometheus 指标采集端点 | 内部 |
-
-### order `localhost:8082`
-
-| 方法 | 路径 | 描述 | 侧 |
-|---|---|---|---|
-| `POST` | `/api/v1/orders` | 下单（命令） | 写侧 |
-| `PUT` | `/api/v1/orders/{id}/cancel` | 取消订单（命令） | 写侧 |
-| `GET` | `/api/v1/orders/{id}` | 按 ID 查询订单（查询，ES 读模型） | 读侧 |
-| `GET` | `/api/v1/orders?customerId=&status=&page=&size=` | 搜索订单（ElasticSearch） | 读侧 |
-| `GET` | `/actuator/health` | 健康检查 | 内部 |
-
-**下单请求体：**
-```json
-{
-  "customerId": "uuid",
-  "items": [
-    { "bookId": "uuid", "quantity": 2 }
-  ]
-}
-```
-
-### notification `localhost:8083`
-
-| 方法 | 路径 | 描述 |
-|---|---|---|
-| `GET` | `/api/v1/notifications?customerId=&page=&size=` | 查询某客户的通知列表 |
-| `GET` | `/api/v1/notifications/{id}` | 获取单条通知详情 |
-| `GET` | `/actuator/health` | 健康检查 |
-
----
-
-## 架构决策记录
-
-完整 ADR 索引见 [`docs/architecture/`](docs/architecture/)。
-
-| ADR | 决策内容 |
+| 文档 | 用途 |
 |---|---|
-| [ADR-001](docs/architecture/adr/ADR-001-explicit-architecture-over-layered.md) | 采用 Explicit Architecture，替代传统分层架构 |
-| [ADR-002](docs/architecture/adr/ADR-002-cqrs-scope-order-service.md) | CQRS 仅应用于 order 服务（PostgreSQL 写 + ES 读） |
-| [ADR-003](docs/architecture/adr/ADR-003-event-schema-ownership.md) | Kafka 事件 Schema 统一由 `shared-events` 模块管理 |
-| [ADR-004](docs/architecture/adr/ADR-004-istio-service-mesh.md) | 使用 Istio 实现弹性，替代应用层库（如 Resilience4j） |
-| [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md) | Outbox 模式保障领域事件至少一次投递 |
-| [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md) | 每服务独立数据库，无共享表，采用编排式 Saga |
-| [ADR-007](docs/architecture/adr/ADR-007-java21-virtual-threads.md) | Java 21 特性使用规范：虚拟线程、Records、密封类 |
-| [ADR-008](docs/architecture/adr/ADR-008-shared-events-versioning.md) | shared-events SDK 版本策略：SemVer + 强制 CHANGELOG + 破坏性变更命名空间隔离 |
-| [ADR-009](docs/architecture/adr/ADR-009-kafka-consumer-idempotency-retry.md) | Kafka 消费者幂等性与数据库支持的重试策略 |
-| [ADR-010](docs/architecture/adr/ADR-010-opentelemetry-observability.md) | 通过 Kubernetes Operator 统一使用 OpenTelemetry 实现可观测性 |
-| [ADR-011](docs/architecture/adr/ADR-011-swaggerhub-pactflow-bdct.md) | API 治理：SwaggerHub + PactFlow 双向契约测试 |
-
----
-
-## 可观测性
-
-所有服务通过 **OpenTelemetry** 上报链路追踪、指标和日志，统一汇聚到 **SigNoz** — 一体化可观测性平台，替代 Jaeger + Prometheus + Grafana + OTel Collector 的组合方案。
-
-### 本地可观测性入口
-
-| 工具 | URL | 用途 |
-|---|---|---|
-| SigNoz UI | http://localhost:3301 | 链路追踪、指标、日志、服务地图、告警 |
-| SigNoz OTLP（gRPC） | localhost:4317 | 应用 Telemetry 上报端点 |
-| SigNoz OTLP（HTTP） | localhost:4318 | 应用 Telemetry 上报端点（备用） |
-
-### 信号采集方式
-
-| 信号 | 采集方式 | 目标 |
-|---|---|---|
-| 链路追踪 | OTel Java Agent（自动）+ 手动 Span | SigNoz via OTLP gRPC |
-| 指标 | Micrometer OTLP Registry（JVM、HTTP、HikariCP） | SigNoz via OTLP gRPC |
-| 日志 | Logback JSON（含 `trace_id`、`span_id` 字段） | SigNoz（与 Trace 自动关联） |
-| 服务网格指标 | Istio Envoy sidecar | Kiali（Kubernetes 环境） |
-
-### Trace 传播
-
-`traceparent`（W3C 标准）头自动传播：
-- **HTTP 调用**：由 Spring Boot OTel 自动插桩注入/提取
-- **Kafka 消息**：通过消息头传播；OTel agent 在消费者侧自动提取
-
-Span 命名约定：`{service}.{aggregate}.{operation}`，例如：`order.order.place`、`catalog.book.reserve-stock`
-
-### SigNoz 内置告警
-
-在 SigNoz UI 中配置（无需 AlertManager）：
-
-| 告警 | 触发条件 | 级别 |
-|---|---|---|
-| 服务高错误率 | 任意服务 5xx 率 > 1% | Critical |
-| Kafka 消费积压 | 任意 Consumer Group lag > 1000 | Warning |
-| 数据库连接池耗尽 | `hikaricp_connections_pending > 5` | Warning |
-
----
-
-## 环境变量
-
-每个服务从 `application.yml` 读取配置，所有配置均可通过环境变量覆盖。
-
-### catalog
-
-| 变量 | 默认值 | 描述 |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/catalog` | PostgreSQL 连接 URL |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | 数据库用户名 |
-| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | 数据库密码 |
-| `SPRING_DATA_REDIS_HOST` | `localhost` | Redis 主机地址 |
-| `SPRING_DATA_REDIS_PORT` | `6379` | Redis 端口 |
-| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka Broker 地址 |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel 采集器端点 |
-| `OTEL_SERVICE_NAME` | `catalog` | 链路追踪中的服务名称 |
-
-### order
-
-| 变量 | 默认值 | 描述 |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/order` | PostgreSQL（写侧） |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | 数据库用户名 |
-| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | 数据库密码 |
-| `SPRING_ELASTICSEARCH_URIS` | `http://localhost:9200` | ElasticSearch（读侧） |
-| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka Broker 地址 |
-| `SPRING_KAFKA_CONSUMER_GROUP_ID` | `order.read-model` | 读模型投影器的 Kafka 消费者组 |
-| `CATALOG_SERVICE_URL` | `http://localhost:8081` | catalog 服务基础 URL |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel 采集器端点 |
-| `OTEL_SERVICE_NAME` | `order` | 链路追踪中的服务名称 |
-
-### notification
-
-| 变量 | 默认值 | 描述 |
-|---|---|---|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/notification` | PostgreSQL 连接 URL |
-| `SPRING_DATASOURCE_USERNAME` | `bookstore` | 数据库用户名 |
-| `SPRING_DATASOURCE_PASSWORD` | `bookstore` | 数据库密码 |
-| `SPRING_KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka Broker 地址 |
-| `SPRING_KAFKA_CONSUMER_GROUP_ID` | `notification.order-events` | Kafka 消费者组 |
-| `NOTIFICATION_EMAIL_LOG_ONLY` | `true` | `true` = 日志模拟；`false` = 真实 SMTP（仅生产环境） |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | OTel 采集器端点 |
-| `OTEL_SERVICE_NAME` | `notification` | 链路追踪中的服务名称 |
-
----
-
-## 本地基础设施端口
-
-| 服务 | 端口 | 说明 |
-|---|---|---|
-| catalog | 8081 | REST API |
-| order | 8082 | REST API |
-| notification | 8083 | REST API（邮件通过日志模拟） |
-| PostgreSQL | 5432 | 三个逻辑数据库；`wal_level=logical` |
-| Redis | 6379 | catalog 服务使用 |
-| Kafka | 9092 | 领域事件总线 |
-| Kafka UI | 8080 | Topic / 消息浏览（集成 Schema Registry） |
-| Schema Registry | 8085 | Avro Schema 存储（容器内 8081 → 宿主机 8085） |
-| Debezium Connect | 8084 | 注册 Connector 的 REST API（容器内 8083 → 宿主机 8084） |
-| ElasticSearch | 9200 | order 读模型 |
-| SigNoz UI | 3301 | 链路追踪、指标、日志一体化 |
-| SigNoz OTLP gRPC | 4317 | 应用 Telemetry 上报 |
-| SigNoz OTLP HTTP | 4318 | 应用 Telemetry 上报（备用） |
+| [`docs/architecture/clarified-architecture/clarified-architecture-zh.md`](docs/architecture/clarified-architecture/clarified-architecture-zh.md) | Clarified Architecture 完整规范（权威来源） |
+| [`docs/architecture/architecture-spec-zh.md`](docs/architecture/architecture-spec-zh.md) | 项目专属命名规范、包结构与实现规则 |
+| [`docs/architecture/adr/`](docs/architecture/adr/) | 架构决策记录（ADR-001 – ADR-011） |
+| [`docs/testing-strategy/`](docs/testing-strategy/) | 测试策略与测试金字塔参考 |
