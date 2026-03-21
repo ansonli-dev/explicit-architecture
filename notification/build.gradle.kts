@@ -11,7 +11,7 @@ application {
 }
 
 jib {
-    from { image = "eclipse-temurin:21-jre-alpine" }
+    from { image = "docker://eclipse-temurin:21-jre-alpine" }
     to { image = "notification"; tags = setOf("latest") }
     container {
         jvmFlags = listOf(

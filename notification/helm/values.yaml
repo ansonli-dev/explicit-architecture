@@ -1,9 +1,9 @@
 secret:
   datasource:
-    password: "notification-secret-123"
+    password: "notification-dev-123"
   kafka:
     username: "notification"
-    password: "notification-secret-123"
+    password: "notification-kafka-dev-123"
 
 image:
   repository: notification
@@ -24,7 +24,7 @@ resources:
 
 hpa:
   enabled: true
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 70
 

@@ -40,7 +40,8 @@ class NotificationPersistenceAdapter implements NotificationRepository {
     }
 
     private NotificationJpaEntity toEntity(Notification n) {
-        NotificationJpaEntity e = new NotificationJpaEntity();
+        NotificationJpaEntity e = jpaRepository.findById(n.getId().value())
+                .orElse(new NotificationJpaEntity());
         e.setId(n.getId().value());
         e.setCustomerId(n.getCustomerId());
         e.setRecipientEmail(n.getRecipientEmail());

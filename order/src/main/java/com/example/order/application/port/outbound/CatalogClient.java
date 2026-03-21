@@ -13,4 +13,6 @@ public interface CatalogClient {
     StockAvailability checkStock(UUID bookId);
 
     void reserveStock(UUID bookId, UUID orderId, int quantity);
+
+    void releaseStock(UUID bookId, UUID orderId, int quantity);
 }

@@ -1,9 +1,9 @@
 secret:
   datasource:
-    password: "catalog-secret-123"
+    password: "catalog-dev-123"
   kafka:
     username: "catalog"
-    password: "catalog-secret-123"
+    password: "catalog-kafka-dev-123"
 
 image:
   repository: catalog
@@ -24,7 +24,7 @@ resources:
 
 hpa:
   enabled: true
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
 

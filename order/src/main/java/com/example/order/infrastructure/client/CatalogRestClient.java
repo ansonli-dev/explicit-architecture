@@ -43,5 +43,17 @@ public class CatalogRestClient implements CatalogClient {
                 .block();
     }
 
+    @Override
+    public void releaseStock(UUID bookId, UUID orderId, int quantity) {
+        log.info("Releasing stock: bookId={}, qty={}", bookId, quantity);
+        webClient.post()
+                .uri("/api/v1/books/{id}/stock/release", bookId)
+                .bodyValue(new ReleaseRequest(orderId, quantity))
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
+
     record ReserveRequest(UUID orderId, int quantity) {}
+    record ReleaseRequest(UUID orderId, int quantity) {}
 }

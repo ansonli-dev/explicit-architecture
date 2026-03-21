@@ -29,11 +29,11 @@ spec:
         - port: 8080
           protocol: TCP
   egress:
-    # 基础设施组件 (都在 bookstore namespace)
+    # 基础设施组件 (都在 infra namespace)
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: bookstore
+              kubernetes.io/metadata.name: infra
       ports:
         - port: 5432   # PostgreSQL
           protocol: TCP

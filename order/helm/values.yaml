@@ -1,9 +1,9 @@
 secret:
   datasource:
-    password: "order-secret-123"
+    password: "order-dev-123"
   kafka:
     username: "order"
-    password: "order-secret-123"
+    password: "order-kafka-dev-123"
 
 image:
   repository: order
@@ -24,7 +24,7 @@ resources:
 
 hpa:
   enabled: true
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
 

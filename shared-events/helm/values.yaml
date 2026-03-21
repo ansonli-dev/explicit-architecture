@@ -5,4 +5,4 @@ kafka:
   bootstrapServers: "kafka.infra.svc.cluster.local:29092"
   adminBootstrapServers: "kafka.infra.svc.cluster.local:39092"
   adminUsername: "admin"
-  adminPassword: "admin-secret-123"
+  adminPassword: "kafka-admin-dev-123"
