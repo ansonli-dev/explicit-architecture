@@ -43,7 +43,7 @@ class ListNotificationsQueryHandlerTest {
         when(notificationRepository.findByCustomerId(customerId, 0, 20)).thenReturn(List.of(notification));
 
         // Act
-        List<NotificationResponse> responses = handler.handle(new ListNotificationsQuery(customerId, 0, 20));
+        List<NotificationView> responses = handler.handle(new ListNotificationsQuery(customerId, 0, 20));
 
         // Assert
         assertThat(responses).hasSize(1);
@@ -58,7 +58,7 @@ class ListNotificationsQueryHandlerTest {
         when(notificationRepository.findByCustomerId(any(), anyInt(), anyInt())).thenReturn(List.of());
 
         // Act
-        List<NotificationResponse> responses = handler.handle(new ListNotificationsQuery(customerId, 0, 20));
+        List<NotificationView> responses = handler.handle(new ListNotificationsQuery(customerId, 0, 20));
 
         // Assert
         assertThat(responses).isEmpty();
