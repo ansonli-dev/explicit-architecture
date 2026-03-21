@@ -51,7 +51,7 @@ sequenceDiagram
     deactivate NS
 ```
 
-**Cross-service consistency** is handled via a Choreography-based Saga (see [ADR-006](docs/architecture/ADR-006-database-per-service.md)) and guaranteed event delivery via the Outbox Pattern (see [ADR-005](docs/architecture/ADR-005-outbox-pattern.md)).
+**Cross-service consistency** is handled via a Choreography-based Saga (see [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md)) and guaranteed event delivery via the Outbox Pattern (see [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md)).
 
 ---
 
@@ -70,12 +70,13 @@ graph LR
         subgraph APP["application/"]
             CMD["CommandHandlers\n(write side)"]
             QRY["QueryHandlers\n(read side)"]
-            POUT["«port outbound»\nRepository / Client interfaces"]
+            POUT["«port outbound»\nClient / Cache / Search\ninterfaces"]
         end
         subgraph DOM["domain/"]
             AGG["Entities · Aggregates"]
             VO["Value Objects · Domain Events"]
             DS["Domain Services"]
+            REPO["«port»\ndomain/ports/\nWrite-side Repository interfaces"]
         end
     end
 
@@ -91,10 +92,12 @@ graph LR
     REST  -->|"Query"        | QRY
     CONS  -->|"Command"      | CMD
     CMD   -->                 POUT
+    CMD   -->|"save via"     | REPO
     CMD   -->|"orchestrates" | AGG
     QRY   -->                 POUT
     AGG   ---                 VO
     AGG   ---                 DS
+    REPO  -.->|"implemented by"| JPA
     POUT  -.->|"implemented by"| JPA
     POUT  -.->|"implemented by"| KAF
     POUT  -.->|"implemented by"| RDS
@@ -189,7 +192,7 @@ All three services share the same directory layout. Only the adapters differ per
 │   │   │   │   └── service/                 # Domain Services (cross-aggregate, stateless)
 │   │   │   ├── application/                 # depends on domain only; no Spring/JPA/Kafka imports
 │   │   │   │   ├── port/
-│   │   │   │   │   └── outbound/            # Secondary Ports: Persistence, Client, SearchRepository interfaces
+│   │   │   │   │   └── outbound/            # Secondary Ports that are NOT domain concepts: Client, Cache, SearchRepository, ReadRepository
 │   │   │   │   ├── command/{aggregate}/     # Command record + @Service CommandHandler (package-by-feature)
 │   │   │   │   └── query/{aggregate}/       # Query record + @Service QueryHandler + Response DTO
 │   │   │   ├── infrastructure/              # driven adapters — all framework code lives here
@@ -487,17 +490,17 @@ See [`docs/architecture/`](docs/architecture/) for the full ADR index.
 
 | ADR | Decision |
 |---|---|
-| [ADR-001](docs/architecture/ADR-001-explicit-architecture-over-layered.md) | Adopt Explicit Architecture over traditional layered architecture |
-| [ADR-002](docs/architecture/ADR-002-cqrs-scope-order-service.md) | Apply CQRS only to order service (PostgreSQL write + ES read) |
-| [ADR-003](docs/architecture/ADR-003-event-schema-ownership.md) | Centralize Kafka event schemas in `shared-events` module |
-| [ADR-004](docs/architecture/ADR-004-istio-service-mesh.md) | Use Istio for resilience instead of application-level libraries |
-| [ADR-005](docs/architecture/ADR-005-outbox-pattern.md) | Outbox Pattern for guaranteed at-least-once domain event delivery |
-| [ADR-006](docs/architecture/ADR-006-database-per-service.md) | Database-per-service, no shared tables, Choreography Saga |
-| [ADR-007](docs/architecture/ADR-007-java21-virtual-threads.md) | Java 21: Virtual Threads, Records, Sealed Classes usage guidelines |
-| [ADR-008](docs/architecture/ADR-008-shared-events-versioning.md) | shared-events SDK versioning: SemVer + mandatory CHANGELOG + namespace isolation for breaking changes |
-| [ADR-009](docs/architecture/ADR-009-kafka-consumer-idempotency-retry.md) | Kafka consumer idempotency and DB-backed retry strategy |
-| [ADR-010](docs/architecture/ADR-010-opentelemetry-observability.md) | OpenTelemetry via Kubernetes Operator for unified observability |
-| [ADR-011](docs/architecture/ADR-011-swaggerhub-pactflow-bdct.md) | API governance with SwaggerHub + PactFlow Bi-Directional Contract Testing |
+| [ADR-001](docs/architecture/adr/ADR-001-explicit-architecture-over-layered.md) | Adopt Explicit Architecture over traditional layered architecture |
+| [ADR-002](docs/architecture/adr/ADR-002-cqrs-scope-order-service.md) | Apply CQRS only to order service (PostgreSQL write + ES read) |
+| [ADR-003](docs/architecture/adr/ADR-003-event-schema-ownership.md) | Centralize Kafka event schemas in `shared-events` module |
+| [ADR-004](docs/architecture/adr/ADR-004-istio-service-mesh.md) | Use Istio for resilience instead of application-level libraries |
+| [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md) | Outbox Pattern for guaranteed at-least-once domain event delivery |
+| [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md) | Database-per-service, no shared tables, Choreography Saga |
+| [ADR-007](docs/architecture/adr/ADR-007-java21-virtual-threads.md) | Java 21: Virtual Threads, Records, Sealed Classes usage guidelines |
+| [ADR-008](docs/architecture/adr/ADR-008-shared-events-versioning.md) | shared-events SDK versioning: SemVer + mandatory CHANGELOG + namespace isolation for breaking changes |
+| [ADR-009](docs/architecture/adr/ADR-009-kafka-consumer-idempotency-retry.md) | Kafka consumer idempotency and DB-backed retry strategy |
+| [ADR-010](docs/architecture/adr/ADR-010-opentelemetry-observability.md) | OpenTelemetry via Kubernetes Operator for unified observability |
+| [ADR-011](docs/architecture/adr/ADR-011-swaggerhub-pactflow-bdct.md) | API governance with SwaggerHub + PactFlow Bi-Directional Contract Testing |
 
 ---
 

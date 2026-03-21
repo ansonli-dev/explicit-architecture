@@ -105,5 +105,5 @@ flowchart TD
 ## 相关文档
 
 - [ADR-003 — Event Schema Ownership](ADR-003-event-schema-ownership.md)
-- [shared-events README](../../shared-events/README.md)
-- [shared-events CHANGELOG](../../shared-events/CHANGELOG.md)
+- [shared-events README](../../../shared-events/README.md)
+- [shared-events CHANGELOG](../../../shared-events/CHANGELOG.md)

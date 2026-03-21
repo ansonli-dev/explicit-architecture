@@ -4,12 +4,12 @@
 
 > Version 1.0 · March 2026
 >
-> **This is the authoritative spec document.** All other documents (ADRs, `project_structure_guidelines.md`, `CLAUDE.md`) are subordinate references. In any conflict, this document and the verified project code win.
+> **Authority chain:** [`clarified-architecture-en.md`](clarified-architecture/clarified-architecture-en.md) is the canonical source for architectural principles. This document translates those principles into project-specific naming, package structure, and implementation rules. In any conflict between this document and `clarified-architecture-en.md`, the latter wins. In any conflict between this document and `CLAUDE.md`, this document wins.
 >
 > Upstream references:
 > - [Herberto Graça — Explicit Architecture](https://herbertograca.com/2017/11/16/explicit-architecture-01-ddd-hexagonal-onion-clean-cqrs-how-i-put-it-all-together/)
-> - [`docs/clarified-architecture-en.md`](clarified-architecture-en.md) — pragmatic refinements to the above
-> - Project code — the final source of truth for what is actually implemented
+> - [`clarified-architecture-en.md`](clarified-architecture/clarified-architecture-en.md) — canonical architectural principles (authoritative)
+> - Project code — source of truth for what is actually implemented
 
 ---
 
@@ -138,7 +138,7 @@ public PlaceOrderResult handle(PlaceOrderCommand cmd) {
 
 | Path | Port location | Rationale |
 |------|--------------|-----------|
-| **Write-side** (Commands) | `domain/ports/` | `OrderPersistence` is a domain concept — "the collection of all Orders." Speaks only domain types. |
+| **Write-side** (Commands) | `domain/ports/` | `OrderPersistence` is a domain concept — "the collection of all Orders." Parameters that represent domain objects use domain types (`OrderId`, `Order`), not raw `UUID`/`String`; primitive types for pagination or simple filters are acceptable. |
 | **Read-side** (Queries) | `application/port/outbound/` | `OrderSearchRepository`, `OrderReadRepository` are infrastructure abstractions with no domain meaning. |
 
 ```
@@ -178,7 +178,7 @@ shared-events/build/generated/avro/
 Rules:
 - Domain objects (`domain/event/`) never import Avro classes.
 - Only `infrastructure/messaging/outbox/{Service}OutboxMapper.java` maps domain events → Avro.
-- Schema changes follow [ADR-008](architecture/ADR-008-shared-events-versioning.md): BACKWARD-compatible changes → PATCH/MINOR bump; breaking changes → new version namespace (`v2/`) + MAJOR bump.
+- Schema changes follow [ADR-008](adr/ADR-008-shared-events-versioning.md): BACKWARD-compatible changes → PATCH/MINOR bump; breaking changes → new version namespace (`v2/`) + MAJOR bump.
 
 ### 2.5 Clarification 5 — Cross-Service Data Consistency
 
@@ -206,7 +206,7 @@ com.example.{service}/
 ├── domain/                          ← Zero framework dependencies. Pure Java.
 │   ├── model/                       ← Aggregates, Entities, Value Objects (records), Enums
 │   ├── event/                       ← Domain Events (records implementing DomainEvent)
-│   ├── ports/                       ← Write-side Repository interfaces (domain language only)
+│   ├── ports/                       ← Write-side Repository interfaces (domain objects use domain types, not raw UUID/String; primitive types for pagination/filters are fine)
 │   └── service/                     ← Domain Services (stateless, no I/O, no @Transactional)
 │
 ├── application/                     ← @Service, Lombok OK. No JPA/Redis/Kafka imports.
@@ -219,7 +219,7 @@ com.example.{service}/
 │   │   └── {aggregate}/             ← package-by-feature
 │   │       ├── {Criteria}{Agg}Query.java
 │   │       ├── {Criteria}{Agg}QueryHandler.java
-│   │       └── {Agg}{Purpose}Response.java
+│   │       └── {Agg}{Purpose}View.java
 │   └── port/
 │       └── outbound/                ← Secondary ports that are NOT domain concepts
 │           ├── {Agg}SearchRepository.java   ← ES read model
@@ -250,9 +250,11 @@ com.example.{service}/
 └── interfaces/                      ← Primary (driving) adapters. No business logic.
     ├── rest/
     │   ├── {Agg}CommandController.java
-    │   └── {Agg}QueryController.java
-    ├── dto/                         ← HTTP request body DTOs (interfaces layer only)
-    │   └── {Action}{Agg}Request.java  ← one file per request body; omit if no request body
+    │   ├── {Agg}QueryController.java
+    │   ├── request/                 ← HTTP request body DTOs (one record per endpoint with a body)
+    │   │   └── {Action}{Agg}Request.java
+    │   └── response/                ← HTTP response DTOs (map from *View / *Result in controller)
+    │       └── {Agg}{Purpose}Response.java
     └── messaging/
         └── consumer/                ← Only in services that consume Kafka events
             ├── {Topic}EventConsumer.java    ← single @KafkaListener entry point
@@ -285,17 +287,16 @@ domain/event/    OrderPlaced, OrderConfirmed, OrderShipped, OrderCancelled
 domain/ports/    OrderPersistence
 domain/service/  OrderPricingService
 application/command/order/   PlaceOrder, CancelOrder (+ PlaceOrderResult)
-application/query/order/     GetOrder, ListOrders (+ OrderDetailResponse, OrderItemResponse, OrderResponse, StockCheckResponse)
-application/port/outbound/   CatalogClient, OrderSearchRepository, OrderReadRepository
+application/query/order/     GetOrder, ListOrders (+ OrderDetailView, OrderItemView, OrderSummaryView)
+application/port/outbound/   CatalogClient, StockAvailability, OrderSearchRepository, OrderReadRepository
 infrastructure/repository/jpa/         OrderJpaEntity, OrderJpaRepository, OrderPersistenceAdapter
 infrastructure/repository/elasticsearch/ OrderElasticDocument, OrderElasticRepository, OrderSearchAdapter
 infrastructure/messaging/outbox/        OrderOutboxMapper
 infrastructure/client/                  CatalogRestClient
 interfaces/rest/             OrderCommandController, OrderQueryController
-interfaces/dto/              PlaceOrderRequest, CancelOrderRequest
-```
-
-> **Note:** The `order` service does **not** have a Kafka consumer (`interfaces/messaging/consumer/`). It only produces events via the Outbox. The ES read model is populated when the Outbox relay delivers events — projection is handled by Debezium's downstream topology or direct consumption by the ES adapter triggered through the outbox.
+interfaces/rest/request/     PlaceOrderRequest, CancelOrderRequest
+interfaces/rest/response/    PlaceOrderResponse, OrderDetailResponse, OrderSummaryResponse
+interfaces/messaging/consumer/ OrderReadModelProjector (ES read-model sync)
 
 **notification** (port 8083 | PostgreSQL):
 
@@ -348,7 +349,7 @@ interfaces/messaging/consumer/     OrderEventConsumer, OrderPlacedHandler, Order
 
 ### 4.1 Scope
 
-CQRS (physically separated read and write storage) is applied **exclusively to `order`** (see [ADR-002](architecture/ADR-002-cqrs-scope-order-service.md)).
+CQRS (physically separated read and write storage) is applied **exclusively to `order`** (see [ADR-002](adr/ADR-002-cqrs-scope-order-service.md)).
 
 - `catalog`: single PostgreSQL with Redis cache layer — no CQRS overhead justified.
 - `notification`: insert-only log, simple reads — no CQRS needed.
@@ -374,7 +375,7 @@ PlaceOrderCommandHandler                  [application/command/order/]
        OutboxWriteListener (BEFORE_COMMIT) writes outbox_event row atomically
        @Transactional commits
   ↓
-OutboxRelayScheduler / Debezium           [seedwork / infrastructure]
+OutboxRelayScheduler                      [seedwork / infrastructure]
   publishes OrderPlaced (Avro) to Kafka topic bookstore.order.placed
   ↓
 returns PlaceOrderResult                  ← assembled from in-memory domain state; zero extra I/O
@@ -391,7 +392,7 @@ OrderQueryController                      [interfaces/rest/]
 GetOrderQueryHandler                      [application/query/order/]
   1. OrderSearchRepository.findById()     ← Elasticsearch (primary)
      OR OrderReadRepository.findDetailById() ← JPA projection (fallback if ES unavailable)
-  returns OrderDetailResponse             ← flat DTO; domain layer never loaded
+  returns OrderDetailView             ← flat DTO; domain layer never loaded
 ```
 
 The read path **never loads domain entities**. It returns DTOs directly from ES documents or JPA projections.
@@ -403,9 +404,9 @@ These are independent types and must not be merged:
 | | Type | Location | Assembled from |
 |--|------|----------|----------------|
 | **Command result** | `PlaceOrderResult` | `application/command/order/` | In-memory domain state after `save()` — **zero extra I/O** |
-| **Query response** | `OrderDetailResponse` | `application/query/order/` | ES document or JPA projection — may require a DB/ES read |
+| **Query view** | `OrderDetailView` | `application/query/order/` | ES document or JPA projection — may require a DB/ES read |
 
-`PlaceOrderResult` and `OrderDetailResponse` may share similar fields but are separate records with separate purposes. Coupling them would create a bidirectional dependency between the write and read sides.
+`PlaceOrderResult` and `OrderDetailView` may share similar fields but are separate records with separate purposes. Coupling them would create a bidirectional dependency between the write and read sides.
 
 ---
 
@@ -459,8 +460,7 @@ Aggregate.someAction()
              writes OutboxEventJpaEntity to outbox_event table
     @Transactional commits (aggregate + outbox row in same ACID transaction)
     ↓
-OutboxRelayScheduler (scheduler strategy)
-OR Debezium CDC (production strategy)
+OutboxRelayScheduler
     reads PENDING outbox rows
     publishes Avro bytes to Kafka
     marks rows PUBLISHED
@@ -519,7 +519,7 @@ KafkaMessageProcessor.process(handler, record, ack)
         ack                                 ← unblock the Kafka partition
 ```
 
-Retry uses **DB-backed exponential backoff** with a claim pattern that prevents duplicate processing across multiple service instances. See [ADR-009](architecture/ADR-009-kafka-consumer-idempotency-retry.md) for full design.
+Retry uses **DB-backed exponential backoff** with a claim pattern that prevents duplicate processing across multiple service instances. See [ADR-009](adr/ADR-009-kafka-consumer-idempotency-retry.md) for full design.
 
 ---
 
@@ -610,7 +610,7 @@ order consumes StockReservationFailed:
 | Command Result | `application/command/{agg}/` | `{Action}{Agg}Result` | `PlaceOrderResult` |
 | Query | `application/query/{agg}/` | `{Criteria}{Agg}Query` | `GetOrderQuery`, `ListOrdersQuery` |
 | Query Handler | `application/query/{agg}/` | `{Criteria}{Agg}QueryHandler` | `GetOrderQueryHandler` |
-| Response DTO | `application/query/{agg}/` | `{Agg}{Purpose}Response` | `OrderDetailResponse`, `OrderSummaryResponse` |
+| Read Model View | `application/query/{agg}/` | `{Agg}{Purpose}View` | `OrderDetailView`, `OrderSummaryView` |
 | Write-side Port | `domain/ports/` | `{Agg}Persistence` | `OrderPersistence`, `BookPersistence` |
 | Read-side Port | `application/port/outbound/` | `{Agg}SearchRepository` | `OrderSearchRepository` |
 | Read fallback Port | `application/port/outbound/` | `{Agg}ReadRepository` | `OrderReadRepository` |
@@ -629,7 +629,8 @@ order consumes StockReservationFailed:
 | Cache Adapter | `infrastructure/cache/` | `{Technology}{Agg}Cache` | `RedisBookCache` |
 | REST Controller (write) | `interfaces/rest/` | `{Agg}CommandController` | `OrderCommandController` |
 | REST Controller (read) | `interfaces/rest/` | `{Agg}QueryController` | `OrderQueryController` |
-| HTTP Request DTO | `interfaces/dto/` | `{Action}{Agg}Request` | `PlaceOrderRequest` |
+| HTTP Request DTO | `interfaces/rest/request/` | `{Action}{Agg}Request` | `PlaceOrderRequest` |
+| HTTP Response DTO | `interfaces/rest/response/` | `{Agg}{Purpose}Response` | `OrderDetailResponse`, `PlaceOrderResponse` |
 | Kafka Consumer | `interfaces/messaging/consumer/` | `{Topic}EventConsumer` | `OrderEventConsumer` |
 | Kafka Event Handler | `interfaces/messaging/consumer/` | `{Event}Handler` | `OrderPlacedHandler` |
 
@@ -701,7 +702,7 @@ Scope: `order-service` (Consumer) → `catalog-service` (Provider)
 cd order && ./gradlew test --tests "com.example.order.contract.*"
 ```
 
-See [ADR-011](architecture/ADR-011-swaggerhub-pactflow-bdct.md) for full CI workflow.
+See [ADR-011](adr/ADR-011-swaggerhub-pactflow-bdct.md) for full CI workflow.
 
 ---
 
@@ -752,16 +753,16 @@ See [ADR-011](architecture/ADR-011-swaggerhub-pactflow-bdct.md) for full CI work
 
 | ADR | Decision | Rationale |
 |-----|----------|-----------|
-| [ADR-001](architecture/ADR-001-explicit-architecture-over-layered.md) | Adopt Explicit Architecture over traditional layered | Testability, enforced boundaries, framework independence |
-| [ADR-002](architecture/ADR-002-cqrs-scope-order-service.md) | CQRS applied only to `order` (PostgreSQL write + Elasticsearch read) | Order has complex read patterns; catalog and notification do not justify the overhead |
-| [ADR-003](architecture/ADR-003-event-schema-ownership.md) | `shared-events` as Avro SDK (schema → generated classes → mavenLocal) | Compile-time contract; Schema Registry enforces backward compatibility |
-| [ADR-005](architecture/ADR-005-outbox-pattern.md) | Outbox Pattern for guaranteed event delivery | Atomic aggregate + event row in same ACID TX; no distributed transaction needed |
-| [ADR-006](architecture/ADR-006-database-per-service.md) | Database-per-service, no shared tables | Bounded context isolation; independent deployment and scaling |
-| [ADR-007](architecture/ADR-007-java21-virtual-threads.md) | Java 21 + Virtual Threads + modern language features | Records for VOs/events/DTOs; sealed interfaces for domain enums; pattern matching in domain logic |
-| [ADR-008](architecture/ADR-008-shared-events-versioning.md) | SemVer for `shared-events`; BACKWARD-only schema changes; `v2/` namespace for breaking changes | Prevents consumers from being silently broken by schema evolution |
-| [ADR-009](architecture/ADR-009-kafka-consumer-idempotency-retry.md) | DB-backed idempotency (`processed_events`) + claim-pattern retry (`consumer_retry_events`) | Never blocks Kafka partition; survives pod restarts; distributed-safe without external lock manager |
-| [ADR-010](architecture/ADR-010-opentelemetry-observability.md) | OpenTelemetry via Kubernetes operator for traces + Prometheus for metrics | Uniform observability without per-service agent config |
-| [ADR-011](architecture/ADR-011-swaggerhub-pactflow-bdct.md) | SwaggerHub (API registry) + PactFlow BDCT (contract testing) | Provider team never blocked by consumer pact state; OAS generated from actual controller code |
+| [ADR-001](adr/ADR-001-explicit-architecture-over-layered.md) | Adopt Explicit Architecture over traditional layered | Testability, enforced boundaries, framework independence |
+| [ADR-002](adr/ADR-002-cqrs-scope-order-service.md) | CQRS applied only to `order` (PostgreSQL write + Elasticsearch read) | Order has complex read patterns; catalog and notification do not justify the overhead |
+| [ADR-003](adr/ADR-003-event-schema-ownership.md) | `shared-events` as Avro SDK (schema → generated classes → mavenLocal) | Compile-time contract; Schema Registry enforces backward compatibility |
+| [ADR-005](adr/ADR-005-outbox-pattern.md) | Outbox Pattern for guaranteed event delivery | Atomic aggregate + event row in same ACID TX; no distributed transaction needed |
+| [ADR-006](adr/ADR-006-database-per-service.md) | Database-per-service, no shared tables | Bounded context isolation; independent deployment and scaling |
+| [ADR-007](adr/ADR-007-java21-virtual-threads.md) | Java 21 + Virtual Threads + modern language features | Records for VOs/events/DTOs; sealed interfaces for domain enums; pattern matching in domain logic |
+| [ADR-008](adr/ADR-008-shared-events-versioning.md) | SemVer for `shared-events`; BACKWARD-only schema changes; `v2/` namespace for breaking changes | Prevents consumers from being silently broken by schema evolution |
+| [ADR-009](adr/ADR-009-kafka-consumer-idempotency-retry.md) | DB-backed idempotency (`processed_events`) + claim-pattern retry (`consumer_retry_events`) | Never blocks Kafka partition; survives pod restarts; distributed-safe without external lock manager |
+| [ADR-010](adr/ADR-010-opentelemetry-observability.md) | OpenTelemetry via Kubernetes operator for traces + Prometheus for metrics | Uniform observability without per-service agent config |
+| [ADR-011](adr/ADR-011-swaggerhub-pactflow-bdct.md) | SwaggerHub (API registry) + PactFlow BDCT (contract testing) | Provider team never blocked by consumer pact state; OAS generated from actual controller code |
 
 ### Module Build Order
 

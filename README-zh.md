@@ -51,7 +51,7 @@ sequenceDiagram
     deactivate NS
 ```
 
-**跨服务一致性**通过基于编排的 Saga 保障（参见 [ADR-006](docs/architecture/ADR-006-database-per-service.md)），事件可靠投递通过 Outbox 模式实现（参见 [ADR-005](docs/architecture/ADR-005-outbox-pattern.md)）。
+**跨服务一致性**通过基于编排的 Saga 保障（参见 [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md)），事件可靠投递通过 Outbox 模式实现（参见 [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md)）。
 
 ---
 
@@ -487,17 +487,17 @@ helm rollback bookstore 1 --namespace bookstore
 
 | ADR | 决策内容 |
 |---|---|
-| [ADR-001](docs/architecture/ADR-001-explicit-architecture-over-layered.md) | 采用 Explicit Architecture，替代传统分层架构 |
-| [ADR-002](docs/architecture/ADR-002-cqrs-scope-order-service.md) | CQRS 仅应用于 order 服务（PostgreSQL 写 + ES 读） |
-| [ADR-003](docs/architecture/ADR-003-event-schema-ownership.md) | Kafka 事件 Schema 统一由 `shared-events` 模块管理 |
-| [ADR-004](docs/architecture/ADR-004-istio-service-mesh.md) | 使用 Istio 实现弹性，替代应用层库（如 Resilience4j） |
-| [ADR-005](docs/architecture/ADR-005-outbox-pattern.md) | Outbox 模式保障领域事件至少一次投递 |
-| [ADR-006](docs/architecture/ADR-006-database-per-service.md) | 每服务独立数据库，无共享表，采用编排式 Saga |
-| [ADR-007](docs/architecture/ADR-007-java21-virtual-threads.md) | Java 21 特性使用规范：虚拟线程、Records、密封类 |
-| [ADR-008](docs/architecture/ADR-008-shared-events-versioning.md) | shared-events SDK 版本策略：SemVer + 强制 CHANGELOG + 破坏性变更命名空间隔离 |
-| [ADR-009](docs/architecture/ADR-009-kafka-consumer-idempotency-retry.md) | Kafka 消费者幂等性与数据库支持的重试策略 |
-| [ADR-010](docs/architecture/ADR-010-opentelemetry-observability.md) | 通过 Kubernetes Operator 统一使用 OpenTelemetry 实现可观测性 |
-| [ADR-011](docs/architecture/ADR-011-swaggerhub-pactflow-bdct.md) | API 治理：SwaggerHub + PactFlow 双向契约测试 |
+| [ADR-001](docs/architecture/adr/ADR-001-explicit-architecture-over-layered.md) | 采用 Explicit Architecture，替代传统分层架构 |
+| [ADR-002](docs/architecture/adr/ADR-002-cqrs-scope-order-service.md) | CQRS 仅应用于 order 服务（PostgreSQL 写 + ES 读） |
+| [ADR-003](docs/architecture/adr/ADR-003-event-schema-ownership.md) | Kafka 事件 Schema 统一由 `shared-events` 模块管理 |
+| [ADR-004](docs/architecture/adr/ADR-004-istio-service-mesh.md) | 使用 Istio 实现弹性，替代应用层库（如 Resilience4j） |
+| [ADR-005](docs/architecture/adr/ADR-005-outbox-pattern.md) | Outbox 模式保障领域事件至少一次投递 |
+| [ADR-006](docs/architecture/adr/ADR-006-database-per-service.md) | 每服务独立数据库，无共享表，采用编排式 Saga |
+| [ADR-007](docs/architecture/adr/ADR-007-java21-virtual-threads.md) | Java 21 特性使用规范：虚拟线程、Records、密封类 |
+| [ADR-008](docs/architecture/adr/ADR-008-shared-events-versioning.md) | shared-events SDK 版本策略：SemVer + 强制 CHANGELOG + 破坏性变更命名空间隔离 |
+| [ADR-009](docs/architecture/adr/ADR-009-kafka-consumer-idempotency-retry.md) | Kafka 消费者幂等性与数据库支持的重试策略 |
+| [ADR-010](docs/architecture/adr/ADR-010-opentelemetry-observability.md) | 通过 Kubernetes Operator 统一使用 OpenTelemetry 实现可观测性 |
+| [ADR-011](docs/architecture/adr/ADR-011-swaggerhub-pactflow-bdct.md) | API 治理：SwaggerHub + PactFlow 双向契约测试 |
 
 ---
 

@@ -2,7 +2,7 @@
 
 This file provides guidance for Claude Code when working in this repository. Read it fully before making changes.
 
-> **Canonical architecture reference:** `docs/clarified-architecture-en.md` is the authoritative source for architectural decisions. Where this file and the architecture doc conflict, the architecture doc wins.
+> **Authority chain:** `docs/architecture/clarified-architecture/clarified-architecture-en.md` is the canonical source for architectural principles (highest authority). `docs/architecture/architecture-spec.md` translates those principles into project-specific naming and structure rules. This file (`CLAUDE.md`) provides Claude Code operational guidance. In any conflict, the higher-authority document wins.
 
 ---
 
@@ -87,7 +87,7 @@ com.example.{service}/
 ├── domain/                        ← depends only on seedwork.domain; zero framework deps
 │   ├── model/                     ← Aggregates extend AggregateRoot<ID>, IDs implement DomainId<T>
 │   │                                 Value Objects: use records (immutable, structural equality)
-│   ├── ports/                     ← Write-side Repository interfaces (domain language, domain types only)
+│   ├── ports/                     ← Write-side Repository interfaces (domain language; domain objects use domain types, not raw String/UUID)
 │   │                                 e.g. OrderPersistence, BookPersistence, NotificationRepository
 │   ├── event/                     ← Domain Events implement DomainEvent (records with eventId+occurredAt)
 │   └── service/                   ← Domain Services (cross-aggregate, stateless pure logic)
@@ -99,7 +99,7 @@ com.example.{service}/
 │   ├── command/                   ← CommandHandler<C,R> implementations
 │   │   └── {aggregate}/           ← Command record + @Service CommandHandler + Result record (package-by-feature)
 │   └── query/                     ← QueryHandler<Q,R> implementations
-│       └── {aggregate}/           ← Query record + @Service QueryHandler + Response DTO (package-by-feature)
+│       └── {aggregate}/           ← Query record + @Service QueryHandler + Read Model View (package-by-feature)
 ├── infrastructure/                ← depends on application + domain + all frameworks; @Transactional lives here
 │   ├── repository/
 │   │   ├── jpa/                   ← JPA entities + Spring Data repos + persistence adapter
@@ -111,10 +111,12 @@ com.example.{service}/
 │   └── client/                    ← HTTP clients for outbound calls (implements {Target}Client)
 └── interfaces/                    ← Primary adapters (driving side); no business logic
     ├── rest/                      ← REST controllers; dispatch via CommandBus / QueryBus
+    │   ├── request/               ← HTTP request DTOs ({Aggregate}XxxRequest records)
+    │   └── response/              ← HTTP response DTOs ({Aggregate}XxxResponse records); map from *View/*Result
     └── messaging/consumer/        ← Kafka consumers (only in services that consume events)
 ```
 
-> **Why write-side Repository ports live in `domain/ports/`:** `OrderPersistence` is a domain concept — "the collection of all Orders." It speaks only in domain types (`OrderId`, `Order`). Placing it in the application layer hides this semantic ownership. Client ports (`CatalogClient`), cache ports (`BookCache`), and search ports (`OrderSearchRepository`) are infrastructure abstractions with no domain meaning — they belong in `application/port/outbound/`.
+> **Why write-side Repository ports live in `domain/ports/`:** `OrderPersistence` is a domain concept — "the collection of all Orders." Parameters that represent domain objects use domain types (`OrderId`, `Order`), not raw `UUID` or `String`; primitive types (`int`, `String`) for simple values like pagination or filter strings are fine. Placing it in the application layer hides this semantic ownership. Client ports (`CatalogClient`), cache ports (`BookCache`), and search ports (`OrderSearchRepository`) are infrastructure abstractions with no domain meaning — they belong in `application/port/outbound/`.
 
 > **Why `interfaces/` is separate from `infrastructure/`**: REST controllers are *primary (driving) adapters* — they receive requests and drive the application. JPA repositories and Kafka producers are *secondary (driven) adapters* — they are driven by the application. Conflating both in `infrastructure/` obscures this fundamental distinction from Hexagonal Architecture.
 
@@ -122,16 +124,21 @@ com.example.{service}/
 
 Only include the adapter packages a service actually uses. Do NOT create empty adapter packages as placeholders.
 
-### Command Result vs Query DTO
+### Command Result vs Query View vs HTTP Response
 
-**Command Handlers must not return Query-layer DTOs.** Command and query paths are independent — coupling them creates bidirectional dependencies between write and read sides.
+There are three distinct layers of data representation; each has a different lifecycle:
 
-| Path | Return Type | Location |
-|------|-------------|----------|
-| Command Handler | `{Action}{Aggregate}Result` record | `application/command/{aggregate}/` |
-| Query Handler | `{Aggregate}{Purpose}Response` record | `application/query/{aggregate}/` |
+| Layer | Type | Location | Purpose |
+|------|------|----------|---------|
+| Command Handler output | `{Action}{Aggregate}Result` | `application/command/{aggregate}/` | In-memory domain state, zero extra IO |
+| Query Handler output | `{Aggregate}{Purpose}View` | `application/query/{aggregate}/` | Read model projection from DB/ES |
+| HTTP API contract | `{Aggregate}{Purpose}Response` | `interfaces/rest/response/` | External API shape; may include HATEOAS links, versioning |
 
-`PlaceOrderResult` and `OrderDetailResponse` may have similar fields but are separate types. `PlaceOrderResult` is assembled from in-memory domain state — **zero extra IO**. `OrderDetailResponse` may require a DB/ES read.
+**Command Handlers must not return Query-layer Views.** Command and query paths are independent — coupling them creates bidirectional dependencies between write and read sides.
+
+Controllers map explicitly: `*Result` / `*View` → `*Response`. This decouples the API lifecycle (client-facing versioning, HATEOAS) from the business lifecycle (domain model evolution).
+
+`PlaceOrderResult` and `OrderDetailView` may have similar fields but are separate types. `PlaceOrderResult` is assembled from in-memory domain state — **zero extra IO**. `OrderDetailView` may require a DB/ES read.
 
 ### Business Logic Placement
 
@@ -173,7 +180,9 @@ Aggregate.someAction()  →  registers DomainEvent internally
 | Command Result | `application/command/{aggregate}/` | `{Action}{Aggregate}Result` | `PlaceOrderResult` |
 | Query record | `application/query/{aggregate}/` | `{Criteria}{Aggregate}Query` | `GetOrderQuery`, `ListOrdersQuery` |
 | QueryHandler | `application/query/{aggregate}/` | `{Criteria}{Aggregate}QueryHandler` | `ListOrdersQueryHandler` |
-| Response DTO | `application/query/{aggregate}/` | `{Aggregate}{Purpose}Response` | `OrderDetailResponse`, `OrderSummaryResponse` |
+| Read Model View | `application/query/{aggregate}/` | `{Aggregate}{Purpose}View` | `OrderDetailView`, `OrderSummaryView` |
+| HTTP Request | `interfaces/rest/request/` | `{Action}{Aggregate}Request` | `PlaceOrderRequest`, `AddBookRequest` |
+| HTTP Response | `interfaces/rest/response/` | `{Aggregate}{Purpose}Response` | `OrderDetailResponse`, `OrderSummaryResponse` |
 | Repository Port (write-side) | `domain/ports/` | `{Aggregate}Persistence` | `OrderPersistence` |
 | Read/Search Port (app-side) | `application/port/outbound/` | `{Aggregate}SearchRepository`, `{Aggregate}ReadRepository` | `OrderSearchRepository`, `OrderReadRepository` |
 | Cache Port | `application/port/outbound/` | `{Aggregate}Cache` | `BookCache` |
@@ -226,7 +235,7 @@ Aggregate.someAction()  →  registers DomainEvent internally
 - `shared-events` module contains **only** Avro schema files — no executable business logic
 - Services never call each other's domain layer directly — only via events or REST APIs (ports)
 - Use the **Outbox Pattern** to guarantee at-least-once event delivery (write event to `outbox` table in same transaction, then relay via Kafka)
-- `outbox.relay.strategy` in each service's `application.yml` defaults to `debezium` (production). Override to `scheduler` (env var `OUTBOX_RELAY_STRATEGY=scheduler`) when running without Debezium.
+- `outbox.relay.strategy` in each service's `application.yml` defaults to `scheduler`. Debezium CDC is no longer used; the scheduler-based relay covers all environments.
 - Cross-service stock operations (e.g., releasing reserved stock on order cancel) are event-driven: `OrderCancelled` integration event carries item details; catalog service consumes it and releases stock idempotently. No synchronous HTTP calls for cross-service state changes.
 
 ### Database
@@ -339,7 +348,7 @@ Span naming convention: `{service}.{aggregate}.{operation}` (e.g., `order.order.
 ## What NOT To Do
 
 ### Architecture
-- Do NOT put write-side Repository interfaces in `application/port/outbound/` — they belong in `domain/ports/` (they speak domain language and use domain types only)
+- Do NOT put write-side Repository interfaces in `application/port/outbound/` — they belong in `domain/ports/` (parameters representing domain objects must use domain types, not raw `UUID`/`String`; primitive types for pagination or simple filters are fine)
 - Do NOT import application-layer types in `domain/ports/` — Repository interfaces must only reference domain model types (`OrderId`, `Order`, etc.)
 - Do NOT place REST controllers or Kafka consumers inside `infrastructure/` — they are primary adapters and belong in `interfaces/`
 - Do NOT inject concrete handler classes into controllers or Kafka consumers — always dispatch via `CommandBus` / `QueryBus`
@@ -353,7 +362,7 @@ Span naming convention: `{service}.{aggregate}.{operation}` (e.g., `order.order.
 
 ### Application Layer
 - Do NOT import JPA/Redis/Kafka in `application/` packages — only `@Service`, Lombok, and domain/seedwork imports
-- Do NOT have Command Handlers return Query-layer DTOs (`{Aggregate}DetailResponse`, etc.) — use dedicated `{Action}{Aggregate}Result` records assembled from in-memory domain state
+- Do NOT have Command Handlers return Query-layer Views (`{Aggregate}DetailView`, etc.) — use dedicated `{Action}{Aggregate}Result` records assembled from in-memory domain state
 - Do NOT put business logic (if/else on business conditions) in Command Handlers — delegate to the Domain Model or Domain Service; the Handler only orchestrates
 - Do NOT reconstitute domain entities on the read path — Query Handlers return DTOs directly from DB/ES projections, bypassing the domain layer entirely
 
@@ -407,12 +416,12 @@ helm upgrade --install catalog ./catalog/helm -f catalog/helm/values.yaml
 
 1. [ ] Define the domain model change in `domain/model/`
 2. [ ] Add/update domain event in `domain/event/`
-3. [ ] If the feature needs persistence: define or update the write-side port in `domain/ports/` (domain types only)
+3. [ ] If the feature needs persistence: define or update the write-side port in `domain/ports/` (parameters that are domain objects use domain types, not raw `UUID`/`String`)
 4. [ ] If the feature needs external clients, cache, or search: define ports in `application/port/outbound/`
 5. [ ] Add `Command<Result>` record + `{Action}{Aggregate}Result` record + `@Service CommandHandler` in `application/command/{aggregate}/`
-6. [ ] Add `Query<R>` record + `@Service QueryHandler` + Response DTO in `application/query/{aggregate}/`
+6. [ ] Add `Query<R>` record + `@Service QueryHandler` + `{Aggregate}{Purpose}View` in `application/query/{aggregate}/`
 7. [ ] Implement persistence adapter in `infrastructure/repository/jpa/` — include cache invalidation here if needed
-8. [ ] Add REST endpoint in `interfaces/rest/` — dispatch via `CommandBus` / `QueryBus`
+8. [ ] Add REST endpoint in `interfaces/rest/` — dispatch via `CommandBus` / `QueryBus`; map `*View`/`*Result` → `*Response` (HTTP) in controller
 9. [ ] Add Flyway migration if schema changes
 10. [ ] Write unit tests for domain behavior (no mocks, no Spring context)
 11. [ ] Write unit tests for handler (mock ports with Mockito)

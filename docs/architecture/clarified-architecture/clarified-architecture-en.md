@@ -113,7 +113,7 @@ At runtime, the flow reverses: a Controller (outer zone) invokes a Handler (appl
 
 Clarified Architecture fully retains the Ports & Adapters (Hexagonal) model:
 
-- **Ports** are interfaces defined inside the Application zone. They describe what the application needs from the outside world (persistence, messaging, search, notifications) in the application's own language.
+- **Ports** are interfaces that describe what the application needs from the outside world, in the application's own language. Most Ports live in the Application zone, but **write-side Repository interfaces are an exception**: because they speak only in domain types (`OrderId`, `Order`) and represent a domain concept ("the collection of all Orders"), they belong in the Domain Model zone (see §3.3).
 - **Driving Adapters** (Controllers, CLI commands, message consumers) sit in the UI/Infrastructure zone and translate external input into Port calls.
 - **Driven Adapters** (Repository implementations, API clients, email senders) implement Ports and are injected into Handlers via dependency injection.
 
@@ -221,8 +221,12 @@ This is not a workaround; it is the correct separation of concerns. I/O decision
 **Three rules govern the Event Registry:**
 
 1. **Event ownership belongs to the publisher.** The `OrderPlaced` event class exists only inside the Order component. No other component may import it directly.
-2. **The registry contains schemas, not classes.** Each event is described by a name and a list of typed fields (JSON Schema, Protobuf, or Avro). The registry is versioned in source control alongside the codebase.
+2. **The registry contains schemas, not business logic.** Each event is described by a name and a list of typed fields (JSON Schema, Protobuf, or Avro). The registry is versioned in source control alongside the codebase.
 3. **Consumers build their own DTOs.** The Billing component receives a raw `OrderPlaced` message and deserializes it into a `BillingOrderPlacedDTO` that contains only the fields Billing cares about. This is the Anti-Corruption Layer pattern applied at the event boundary.
+
+> **Pragmatic note on code generation**
+>
+> Rule 2 says "no business logic," not "no generated code." When the schema format supports build-time code generation (e.g., Avro → `SpecificRecord` Java classes), generating typed accessor classes from the schema is acceptable and encouraged. These classes contain only field mappings and serialization machinery — no domain logic. They are published as a library for type-safe interop between producers and consumers. This is an engineering convenience that avoids each team hand-writing their own deserialization from raw bytes. The spirit of the rule — keeping business logic out of the shared artifact — is fully preserved.
 
 **Schema evolution governance:**
 
