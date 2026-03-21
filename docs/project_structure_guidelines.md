@@ -12,10 +12,11 @@ This document uses **order-service** as an example to explain the code organisat
 
 1. **Dependency direction**: `interfaces/` and `infrastructure/` depend on `application/`; `application/` depends on `domain/`. Reverse dependencies are strictly forbidden.
 2. **Domain purity**: `domain/` must not contain any framework annotations or I/O operations — pure Java only.
-3. **CQRS separation**: `command/` (write operations) and `query/` (read operations) are strictly separated at the application layer, each with its own independent Handler.
-4. **Package by feature**: Within `application/command/` and `application/query/`, organise packages vertically by aggregate (e.g., `order`) rather than laying all Commands/Queries flat.
-5. **Adapter sides**: REST Controllers and Kafka Consumers (driving side) go in `interfaces/`; JPA, Redis, Kafka Producers, and HTTP Clients (driven side) go in `infrastructure/`.
-6. **CommandBus / QueryBus as driving-side entry points**: Controllers depend only on the `CommandBus` and `QueryBus` interfaces — they never inject concrete Handler classes, and no per-use-case inbound port interfaces are defined.
+3. **Write-side ports in `domain/ports/`**: `{Agg}Persistence` interfaces speak only domain types (`Order`, `OrderId`) and live in `domain/ports/`. Read-side ports (`{Agg}SearchRepository`, `{Agg}ReadRepository`, `{Agg}Cache`, `{Target}Client`) are infrastructure abstractions and live in `application/port/outbound/`.
+4. **CQRS separation**: `command/` (write operations) and `query/` (read operations) are strictly separated at the application layer, each with its own independent Handler.
+5. **Package by feature**: Within `application/command/` and `application/query/`, organise packages vertically by aggregate (e.g., `order`) rather than laying all Commands/Queries flat.
+6. **Adapter sides**: REST Controllers and Kafka Consumers (driving side) go in `interfaces/`; JPA, Redis, Kafka Producers, and HTTP Clients (driven side) go in `infrastructure/`.
+7. **CommandBus / QueryBus as driving-side entry points**: Controllers depend only on the `CommandBus` and `QueryBus` interfaces — they never inject concrete Handler classes, and no per-use-case inbound port interfaces are defined.
 
 ---
 
@@ -79,9 +80,9 @@ domain/
 ```text
 application/
 ├── port/
-│   └── outbound/                       # Secondary ports: declarations of this service's external dependencies
-│       ├── OrderPersistence.java       # → JPA implementation (infrastructure/repository/jpa/)
+│   └── outbound/                       # Secondary ports that are NOT domain concepts
 │       ├── OrderSearchRepository.java  # → ElasticSearch implementation (infrastructure/repository/elasticsearch/)
+│       ├── OrderReadRepository.java    # → JPA read projection / fallback (infrastructure/repository/jpa/)
 │       └── CatalogClient.java          # → HTTP implementation (infrastructure/client/)
 ├── command/
 │   └── order/                         # Packaged by aggregate
@@ -92,12 +93,13 @@ application/
 └── query/
     └── order/                         # Packaged by aggregate
         ├── GetOrderQuery.java          # Query record: fetch single order by ID
-        ├── GetOrderQueryHandler.java   # @Service, implements QueryHandler<GetOrderQuery, OrderDetailResponse>; queries ES directly
+        ├── GetOrderQueryHandler.java   # @Service; tries ES first, falls back to JPA projection
         ├── ListOrdersQuery.java        # Query record: pagination + filter criteria
-        ├── ListOrdersQueryHandler.java # @Service, implements QueryHandler<ListOrdersQuery, List<OrderSummaryResponse>>
+        ├── ListOrdersQueryHandler.java # @Service, implements QueryHandler<ListOrdersQuery, List<OrderResponse>>
         ├── OrderDetailResponse.java    # Response DTO record (single order detail)
         ├── OrderItemResponse.java      # Response DTO record (order item)
-        ├── OrderSummaryResponse.java   # Response DTO record (list summary)
+        ├── OrderResponse.java          # Response DTO record (list summary)
+        ├── StockCheckResponse.java     # Response DTO record (stock check result)
         └── OrderNotFoundException.java # Application-layer exception: order not found
 ```
 
@@ -121,14 +123,15 @@ application/
 infrastructure/
 ├── repository/
 │   ├── jpa/
-│   │   ├── OrderPersistenceAdapter.java  # Implements OrderPersistence (includes @Transactional)
+│   │   ├── OrderPersistenceAdapter.java  # Implements OrderPersistence (domain/ports/) AND OrderReadRepository
+│   │   │                                  # (application/port/outbound/); @Transactional on save()
 │   │   ├── OrderJpaEntity.java           # JPA entity (@Entity); must not leave this package
-│   │   ├── OrderItemJpaEntity.java       # JPA entity
 │   │   └── OrderJpaRepository.java       # Spring Data JPA interface
 │   └── elasticsearch/
-│       ├── OrderSearchAdapter.java       # Implements OrderSearchRepository
+│       ├── OrderSearchAdapter.java       # Implements OrderSearchRepository; graceful ES fallback
 │       ├── OrderElasticDocument.java     # ES document model
-│       └── OrderElasticRepository.java   # Spring Data ES interface
+│       ├── OrderElasticRepository.java   # Spring Data ES interface
+│       └── converter/                    # ES field converters (items stored as JSON string)
 ├── messaging/
 │   └── outbox/
 │       └── OrderOutboxMapper.java        # Implements seedwork OutboxMapper SPI (domain event → Avro payload)
@@ -152,11 +155,12 @@ interfaces/
 ├── rest/
 │   ├── OrderCommandController.java     # POST /api/v1/orders, PUT /api/v1/orders/{id}/cancel
 │   └── OrderQueryController.java       # GET /api/v1/orders/{id}, GET /api/v1/orders
-└── messaging/
-    └── consumer/
-        ├── OrderEventConsumer.java     # @IdempotentKafkaListener single entry point, routes to per-event handlers
-        └── OrderPlacedHandler.java     # Handles OrderPlaced event; dispatches to CommandBus
+└── dto/
+    ├── PlaceOrderRequest.java          # HTTP request body DTO (interfaces layer only)
+    └── CancelOrderRequest.java         # HTTP request body DTO (interfaces layer only)
 ```
+
+> **Note:** The `order` service does **not** have a `messaging/consumer/` package — it only produces events via the Outbox. Services that consume Kafka events (`catalog`, `notification`) have this package.
 
 ---
 
@@ -193,9 +197,11 @@ Debezium CDC / OutboxRelayScheduler             [seedwork / infrastructure]
 | Query record | `{Criteria}{Aggregate}Query` | `GetOrderQuery`, `ListOrdersQuery` |
 | QueryHandler | `{Criteria}{Aggregate}QueryHandler` | `ListOrdersQueryHandler` |
 | Response DTO | `{Aggregate}{Purpose}Response` | `OrderDetailResponse` |
-| Repository Port | `{Aggregate}Persistence` | `OrderPersistence` |
-| Read Model Port | `{Aggregate}SearchRepository` | `OrderSearchRepository` |
-| Service Client Port | `{Target}Client` | `CatalogClient` |
+| Write-side Port | `{Aggregate}Persistence` | `OrderPersistence` (in `domain/ports/`) |
+| Read-side Search Port | `{Aggregate}SearchRepository` | `OrderSearchRepository` (in `application/port/outbound/`) |
+| Read-side Fallback Port | `{Aggregate}ReadRepository` | `OrderReadRepository` (in `application/port/outbound/`) |
+| Cache Port | `{Aggregate}Cache` | `BookCache` (in `application/port/outbound/`) |
+| Service Client Port | `{Target}Client` | `CatalogClient` (in `application/port/outbound/`) |
 | Domain Event | `{Aggregate}{PastTense}` | `OrderPlaced` |
 | JPA Entity | `{Aggregate}JpaEntity` | `OrderJpaEntity` |
 | JPA Repository | `{Aggregate}JpaRepository` | `OrderJpaRepository` |
@@ -203,6 +209,8 @@ Debezium CDC / OutboxRelayScheduler             [seedwork / infrastructure]
 | ES Repository | `{Aggregate}ElasticRepository` | `OrderElasticRepository` |
 | REST Controller (write) | `{Aggregate}CommandController` | `OrderCommandController` |
 | REST Controller (read) | `{Aggregate}QueryController` | `OrderQueryController` |
+| HTTP Request DTO | `{Action}{Aggregate}Request` | `PlaceOrderRequest` (in `interfaces/dto/`) |
 | Outbox Mapper adapter | `{Service}OutboxMapper` | `OrderOutboxMapper` |
-| Kafka Consumer adapter | `{Event}Consumer` | `OrderEventConsumer` |
+| Kafka Consumer adapter | `{Topic}EventConsumer` | `OrderEventConsumer` |
+| Kafka Event Handler | `{Event}Handler` | `OrderPlacedHandler` |
 | HTTP Client adapter | `{Target}RestClient` | `CatalogRestClient` |
