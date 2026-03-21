@@ -4,5 +4,5 @@ import com.example.seedwork.application.query.Query;
 
 import java.util.UUID;
 
-public record GetOrderQuery(UUID orderId) implements Query<OrderDetailResponse> {
+public record GetOrderQuery(UUID orderId) implements Query<OrderDetailView> {
 }

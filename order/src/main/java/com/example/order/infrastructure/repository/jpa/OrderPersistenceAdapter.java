@@ -2,8 +2,8 @@ package com.example.order.infrastructure.repository.jpa;
 
 import com.example.order.domain.ports.OrderPersistence;
 import com.example.order.application.port.outbound.OrderReadRepository;
-import com.example.order.application.query.order.OrderDetailResponse;
-import com.example.order.application.query.order.OrderItemResponse;
+import com.example.order.application.query.order.OrderDetailView;
+import com.example.order.application.query.order.OrderItemView;
 import com.example.order.domain.model.*;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,16 +69,16 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<OrderDetailResponse> findDetailById(OrderId id) {
+    public Optional<OrderDetailView> findDetailById(OrderId id) {
         return orderJpaRepository.findById(id.value())
                 .map(entity -> {
-                    List<OrderItemResponse> items = entity.getItems().stream()
-                            .map(i -> new OrderItemResponse(
+                    List<OrderItemView> items = entity.getItems().stream()
+                            .map(i -> new OrderItemView(
                                     i.bookId(), i.bookTitle(),
                                     i.unitPriceCents(), i.currency(),
                                     i.quantity()))
                             .toList();
-                    return new OrderDetailResponse(
+                    return new OrderDetailView(
                             entity.getId(), entity.getCustomerId(),
                             entity.getCustomerEmail(), entity.getStatus(),
                             items, entity.getTotalCents(), entity.getCurrency());

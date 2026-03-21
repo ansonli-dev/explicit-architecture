@@ -1,7 +1,7 @@
 package com.example.order.infrastructure.client;
 
 import com.example.order.application.port.outbound.CatalogClient;
-import com.example.order.application.query.order.StockCheckResponse;
+import com.example.order.application.port.outbound.StockAvailability;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -24,11 +24,11 @@ public class CatalogRestClient implements CatalogClient {
     }
 
     @Override
-    public StockCheckResponse checkStock(UUID bookId) {
+    public StockAvailability checkStock(UUID bookId) {
         return webClient.get()
                 .uri("/api/v1/books/{id}/stock", bookId)
                 .retrieve()
-                .bodyToMono(StockCheckResponse.class)
+                .bodyToMono(StockAvailability.class)
                 .block();
     }
 
@@ -43,17 +43,5 @@ public class CatalogRestClient implements CatalogClient {
                 .block();
     }
 
-    @Override
-    public void releaseStock(UUID bookId, UUID orderId, int quantity) {
-        log.info("Releasing stock: bookId={}, qty={}", bookId, quantity);
-        webClient.post()
-                .uri("/api/v1/books/{id}/stock/release", bookId)
-                .bodyValue(new ReleaseRequest(orderId, quantity))
-                .retrieve()
-                .toBodilessEntity()
-                .block();
-    }
-
     record ReserveRequest(UUID orderId, int quantity) {}
-    record ReleaseRequest(UUID orderId, int quantity) {}
 }

@@ -29,15 +29,15 @@ class GetOrderQueryHandlerTest {
     private GetOrderQueryHandler handler;
     private final UUID customerId = UUID.randomUUID();
     private final UUID orderId = UUID.randomUUID();
-    private OrderDetailResponse esResponse;
-    private OrderDetailResponse dbResponse;
+    private OrderDetailView esResponse;
+    private OrderDetailView dbResponse;
 
     @BeforeEach
     void setUp() {
         handler = new GetOrderQueryHandler(orderSearchRepository, orderReadRepository);
-        esResponse = new OrderDetailResponse(orderId, customerId, "user@example.com",
+        esResponse = new OrderDetailView(orderId, customerId, "user@example.com",
                 "PENDING", List.of(), 20_000, "CNY");
-        dbResponse = new OrderDetailResponse(orderId, customerId, "user@example.com",
+        dbResponse = new OrderDetailView(orderId, customerId, "user@example.com",
                 "PENDING", List.of(), 20_000, "CNY");
     }
 
@@ -45,7 +45,7 @@ class GetOrderQueryHandlerTest {
     void givenOrderInElasticSearch_whenHandle_thenReturnedFromEsWithoutFallingBack() {
         when(orderSearchRepository.findById(orderId)).thenReturn(Optional.of(esResponse));
 
-        OrderDetailResponse response = handler.handle(new GetOrderQuery(orderId));
+        OrderDetailView response = handler.handle(new GetOrderQuery(orderId));
 
         assertThat(response.orderId()).isEqualTo(orderId);
         assertThat(response.status()).isEqualTo("PENDING");
@@ -57,7 +57,7 @@ class GetOrderQueryHandlerTest {
         when(orderSearchRepository.findById(orderId)).thenReturn(Optional.empty());
         when(orderReadRepository.findDetailById(OrderId.of(orderId))).thenReturn(Optional.of(dbResponse));
 
-        OrderDetailResponse response = handler.handle(new GetOrderQuery(orderId));
+        OrderDetailView response = handler.handle(new GetOrderQuery(orderId));
 
         assertThat(response.orderId()).isEqualTo(orderId);
         verify(orderReadRepository).findDetailById(OrderId.of(orderId));

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class ListOrdersQueryHandler implements QueryHandler<ListOrdersQuery, List<OrderResponse>> {
+public class ListOrdersQueryHandler implements QueryHandler<ListOrdersQuery, List<OrderSummaryView>> {
 
     private final OrderSearchRepository orderSearchRepository;
 
@@ -16,7 +16,7 @@ public class ListOrdersQueryHandler implements QueryHandler<ListOrdersQuery, Lis
     }
 
     @Override
-    public List<OrderResponse> handle(ListOrdersQuery query) {
+    public List<OrderSummaryView> handle(ListOrdersQuery query) {
         // ES unavailability is handled inside OrderSearchAdapter (returns empty list + logs warn)
         return orderSearchRepository.findByCustomerIdAndStatus(
                 query.customerId(), query.status(), query.page(), query.size());

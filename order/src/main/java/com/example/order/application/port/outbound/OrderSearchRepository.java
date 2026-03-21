@@ -1,7 +1,7 @@
 package com.example.order.application.port.outbound;
 
-import com.example.order.application.query.order.OrderDetailResponse;
-import com.example.order.application.query.order.OrderResponse;
+import com.example.order.application.query.order.OrderDetailView;
+import com.example.order.application.query.order.OrderSummaryView;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +14,7 @@ import java.util.UUID;
  */
 public interface OrderSearchRepository {
 
-    Optional<OrderDetailResponse> findById(UUID orderId);
+    Optional<OrderDetailView> findById(UUID orderId);
 
-    List<OrderResponse> findByCustomerIdAndStatus(UUID customerId, String status, int page, int size);
+    List<OrderSummaryView> findByCustomerIdAndStatus(UUID customerId, String status, int page, int size);
 }

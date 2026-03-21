@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class GetOrderQueryHandler implements QueryHandler<GetOrderQuery, OrderDetailResponse> {
+public class GetOrderQueryHandler implements QueryHandler<GetOrderQuery, OrderDetailView> {
 
     private final OrderSearchRepository orderSearchRepository;
     private final OrderReadRepository orderReadRepository;
@@ -21,7 +21,7 @@ public class GetOrderQueryHandler implements QueryHandler<GetOrderQuery, OrderDe
     }
 
     @Override
-    public OrderDetailResponse handle(GetOrderQuery query) {
+    public OrderDetailView handle(GetOrderQuery query) {
         var fromEs = orderSearchRepository.findById(query.orderId());
         if (fromEs.isPresent()) {
             return fromEs.get();

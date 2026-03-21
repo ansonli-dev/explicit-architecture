@@ -1,6 +1,5 @@
 package com.example.order.application.port.outbound;
 
-import com.example.order.application.query.order.StockCheckResponse;
 
 import java.util.UUID;
 
@@ -11,9 +10,7 @@ import java.util.UUID;
  * The application layer declares what it needs; infrastructure decides how to deliver it.
  */
 public interface CatalogClient {
-    StockCheckResponse checkStock(UUID bookId);
+    StockAvailability checkStock(UUID bookId);
 
     void reserveStock(UUID bookId, UUID orderId, int quantity);
-
-    void releaseStock(UUID bookId, UUID orderId, int quantity);
 }

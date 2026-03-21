@@ -2,7 +2,7 @@ package com.example.order.application.command.order;
 
 import com.example.order.application.port.outbound.CatalogClient;
 import com.example.order.domain.ports.OrderPersistence;
-import com.example.order.application.query.order.StockCheckResponse;
+import com.example.order.application.port.outbound.StockAvailability;
 import com.example.order.domain.model.InsufficientStockException;
 import com.example.order.domain.model.CustomerId;
 import com.example.order.domain.model.Money;
@@ -51,7 +51,7 @@ class PlaceOrderCommandHandlerTest {
         var command = new PlaceOrderCommand(customerId, "user@example.com",
                 List.of(new PlaceOrderCommand.OrderItem(bookId, "Clean Code", 10_000, "CNY", 2)));
 
-        when(catalogClient.checkStock(bookId)).thenReturn(new StockCheckResponse(bookId, 10));
+        when(catalogClient.checkStock(bookId)).thenReturn(new StockAvailability(bookId, 10));
         when(orderPersistence.save(any())).thenReturn(buildSavedOrder());
 
         // Act
@@ -71,7 +71,7 @@ class PlaceOrderCommandHandlerTest {
         var command = new PlaceOrderCommand(customerId, "user@example.com",
                 List.of(new PlaceOrderCommand.OrderItem(bookId, "Clean Code", 10_000, "CNY", 5)));
 
-        when(catalogClient.checkStock(bookId)).thenReturn(new StockCheckResponse(bookId, 2));
+        when(catalogClient.checkStock(bookId)).thenReturn(new StockAvailability(bookId, 2));
 
         // Act & Assert
         assertThatThrownBy(() -> handler.handle(command))
