@@ -2,6 +2,7 @@ package com.example.catalog.interfaces.rest;
 
 import com.example.catalog.application.command.book.*;
 import com.example.catalog.application.query.book.StockResponse;
+import com.example.catalog.interfaces.dto.*;
 import com.example.seedwork.application.bus.CommandBus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -42,13 +43,4 @@ class BookCommandController {
         commandBus.dispatch(new ReleaseStockCommand(id, request.orderId(), request.quantity()));
     }
 
-    record AddBookRequest(String title, String authorName, String authorBiography,
-            long priceCents, String currency, String categoryName, int initialStock) {}
-
-    record UpdateBookRequest(String title, String authorName, String authorBiography,
-            Long priceCents, String currency, Integer restockQuantity) {}
-
-    record ReserveStockRequest(UUID orderId, int quantity) {}
-
-    record ReleaseStockRequest(UUID orderId, int quantity) {}
 }

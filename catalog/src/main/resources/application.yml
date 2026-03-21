@@ -40,7 +40,7 @@ spring:
 
 outbox:
     relay:
-        strategy: debezium   # debezium | scheduler — Debezium CDC tails WAL; scheduler disabled to prevent duplicates
+        strategy: scheduler   # scheduler — polls outbox table on fixed interval; no Debezium dependency
 
 server:
     port: 8081
