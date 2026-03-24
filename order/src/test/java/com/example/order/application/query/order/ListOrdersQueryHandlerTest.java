@@ -33,12 +33,12 @@ class ListOrdersQueryHandlerTest {
     @Test
     void givenOrdersExistForCustomer_whenHandle_thenAllReturned() {
         // Arrange
-        var orderResponse = new OrderSummaryView(orderId, customerId, "PENDING", 20_000, "CNY");
+        var orderResponse = new OrderSummaryResult(orderId, customerId, "PENDING", 20_000, "CNY");
         when(orderSearchRepository.findByCustomerIdAndStatus(customerId, null, 0, 20))
                 .thenReturn(List.of(orderResponse));
 
         // Act
-        List<OrderSummaryView> responses = handler.handle(new ListOrdersQuery(customerId, null, 0, 20));
+        List<OrderSummaryResult> responses = handler.handle(new ListOrdersQuery(customerId, null, 0, 20));
 
         // Assert
         assertThat(responses).hasSize(1);
@@ -52,7 +52,7 @@ class ListOrdersQueryHandlerTest {
                 .thenReturn(List.of());
 
         // Act
-        List<OrderSummaryView> responses = handler.handle(new ListOrdersQuery(customerId, "PENDING", 0, 20));
+        List<OrderSummaryResult> responses = handler.handle(new ListOrdersQuery(customerId, "PENDING", 0, 20));
 
         // Assert
         assertThat(responses).isEmpty();

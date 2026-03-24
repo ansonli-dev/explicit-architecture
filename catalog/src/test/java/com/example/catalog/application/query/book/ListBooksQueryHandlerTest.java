@@ -46,7 +46,7 @@ class ListBooksQueryHandlerTest {
         when(bookRepository.findAll(0, 20, null)).thenReturn(List.of(existingBook));
 
         // Act
-        List<BookSummaryView> responses = handler.handle(new ListBooksQuery(null, 0, 20));
+        List<BookSummaryResult> responses = handler.handle(new ListBooksQuery(null, 0, 20));
 
         // Assert
         assertThat(responses).hasSize(1);
@@ -59,7 +59,7 @@ class ListBooksQueryHandlerTest {
         when(bookRepository.findAll(0, 20, null)).thenReturn(List.of());
 
         // Act
-        List<BookSummaryView> responses = handler.handle(new ListBooksQuery(null, 0, 20));
+        List<BookSummaryResult> responses = handler.handle(new ListBooksQuery(null, 0, 20));
 
         // Assert
         assertThat(responses).isEmpty();
@@ -71,7 +71,7 @@ class ListBooksQueryHandlerTest {
         when(bookRepository.findAll(0, 20, "Tech")).thenReturn(List.of(existingBook));
 
         // Act
-        List<BookSummaryView> responses = handler.handle(new ListBooksQuery("Tech", 0, 20));
+        List<BookSummaryResult> responses = handler.handle(new ListBooksQuery("Tech", 0, 20));
 
         // Assert
         assertThat(responses).hasSize(1);

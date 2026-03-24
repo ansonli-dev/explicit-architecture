@@ -5,7 +5,7 @@ import com.example.catalog.application.port.inbound.GetStockUseCase;
 import com.example.catalog.application.port.inbound.ListBooksUseCase;
 import com.example.catalog.application.query.book.GetBookQuery;
 import com.example.catalog.application.query.book.GetStockQuery;
-import com.example.catalog.application.query.book.BookSummaryView;
+import com.example.catalog.application.query.book.BookSummaryResult;
 import com.example.catalog.application.query.book.ListBooksQuery;
 import com.example.catalog.interfaces.rest.response.BookDetailResponse;
 import com.example.catalog.interfaces.rest.response.BookSummaryResponse;
@@ -30,7 +30,7 @@ class BookQueryController {
             @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<BookSummaryView> views = listBooks.handle(ListBooksQuery.of(category, page, size));
+        List<BookSummaryResult> views = listBooks.handle(ListBooksQuery.of(category, page, size));
         return views.stream().map(BookSummaryResponse::from).toList();
     }
 

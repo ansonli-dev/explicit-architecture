@@ -1,6 +1,6 @@
 package com.example.catalog.infrastructure.cache;
 
-import com.example.catalog.application.query.book.BookDetailView;
+import com.example.catalog.application.query.book.BookDetailResult;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -12,11 +12,11 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 class RedisConfiguration {
 
     @Bean
-    RedisTemplate<String, BookDetailView> bookDetailRedisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, BookDetailView> template = new RedisTemplate<>();
+    RedisTemplate<String, BookDetailResult> bookDetailRedisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, BookDetailResult> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(BookDetailView.class));
+        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(BookDetailResult.class));
         return template;
     }
 }

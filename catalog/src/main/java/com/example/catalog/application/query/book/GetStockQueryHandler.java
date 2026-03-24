@@ -15,9 +15,9 @@ public class GetStockQueryHandler implements GetStockUseCase {
     private final BookPersistence repository;
 
     @Override
-    public StockView handle(GetStockQuery query) {
+    public StockResult handle(GetStockQuery query) {
         Book book = repository.findById(BookId.of(query.id()))
                 .orElseThrow(() -> new BookNotFoundException(query.id()));
-        return new StockView(book.getId().value(), book.getStockLevel().available());
+        return new StockResult(book.getId().value(), book.getStockLevel().available());
     }
 }

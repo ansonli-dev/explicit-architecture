@@ -219,7 +219,7 @@ com.example.{service}/
 │   │   └── {aggregate}/             ← package-by-feature
 │   │       ├── {Criteria}{Agg}Query.java
 │   │       ├── {Criteria}{Agg}QueryHandler.java
-│   │       └── {Agg}{Purpose}View.java
+│   │       └── {Agg}{Purpose}Result.java
 │   └── port/
 │       └── outbound/                ← Secondary ports that are NOT domain concepts
 │           ├── {Agg}SearchRepository.java   ← ES read model
@@ -253,7 +253,7 @@ com.example.{service}/
     │   ├── {Agg}QueryController.java
     │   ├── request/                 ← HTTP request body DTOs (one record per endpoint with a body)
     │   │   └── {Action}{Agg}Request.java
-    │   └── response/                ← HTTP response DTOs (map from *View / *Result in controller)
+    │   └── response/                ← HTTP response DTOs (map from *Result in controller)
     │       └── {Agg}{Purpose}Response.java
     └── messaging/
         └── consumer/                ← Only in services that consume Kafka events
@@ -287,7 +287,7 @@ domain/event/    OrderPlaced, OrderConfirmed, OrderShipped, OrderCancelled
 domain/ports/    OrderPersistence
 domain/service/  OrderPricingService
 application/command/order/   PlaceOrder, CancelOrder (+ PlaceOrderResult)
-application/query/order/     GetOrder, ListOrders (+ OrderDetailView, OrderItemView, OrderSummaryView)
+application/query/order/     GetOrder, ListOrders (+ OrderDetailResult, OrderItemResult, OrderSummaryResult)
 application/port/outbound/   CatalogClient, StockAvailability, OrderSearchRepository, OrderReadRepository
 infrastructure/repository/jpa/         OrderJpaEntity, OrderJpaRepository, OrderPersistenceAdapter
 infrastructure/repository/elasticsearch/ OrderElasticDocument, OrderElasticRepository, OrderSearchAdapter
@@ -392,21 +392,21 @@ OrderQueryController                      [interfaces/rest/]
 GetOrderQueryHandler                      [application/query/order/]
   1. OrderSearchRepository.findById()     ← Elasticsearch (primary)
      OR OrderReadRepository.findDetailById() ← JPA projection (fallback if ES unavailable)
-  returns OrderDetailView             ← flat DTO; domain layer never loaded
+  returns OrderDetailResult            ← flat DTO; domain layer never loaded
 ```
 
 The read path **never loads domain entities**. It returns DTOs directly from ES documents or JPA projections.
 
-### 4.4 Command Result vs Query DTO
+### 4.4 Command Result vs Query Result
 
 These are independent types and must not be merged:
 
 | | Type | Location | Assembled from |
 |--|------|----------|----------------|
 | **Command result** | `PlaceOrderResult` | `application/command/order/` | In-memory domain state after `save()` — **zero extra I/O** |
-| **Query view** | `OrderDetailView` | `application/query/order/` | ES document or JPA projection — may require a DB/ES read |
+| **Query result** | `OrderDetailResult` | `application/query/order/` | ES document or JPA projection — may require a DB/ES read |
 
-`PlaceOrderResult` and `OrderDetailView` may share similar fields but are separate records with separate purposes. Coupling them would create a bidirectional dependency between the write and read sides.
+`PlaceOrderResult` and `OrderDetailResult` may share similar fields but are separate records with separate purposes. Coupling them would create a bidirectional dependency between the write and read sides.
 
 ---
 
@@ -610,7 +610,7 @@ order consumes StockReservationFailed:
 | Command Result | `application/command/{agg}/` | `{Action}{Agg}Result` | `PlaceOrderResult` |
 | Query | `application/query/{agg}/` | `{Criteria}{Agg}Query` | `GetOrderQuery`, `ListOrdersQuery` |
 | Query Handler | `application/query/{agg}/` | `{Criteria}{Agg}QueryHandler` | `GetOrderQueryHandler` |
-| Read Model View | `application/query/{agg}/` | `{Agg}{Purpose}View` | `OrderDetailView`, `OrderSummaryView` |
+| Read Model Result | `application/query/{agg}/` | `{Agg}{Purpose}Result` | `OrderDetailResult`, `OrderSummaryResult` |
 | Write-side Port | `domain/ports/` | `{Agg}Persistence` | `OrderPersistence`, `BookPersistence` |
 | Read-side Port | `application/port/outbound/` | `{Agg}SearchRepository` | `OrderSearchRepository` |
 | Read fallback Port | `application/port/outbound/` | `{Agg}ReadRepository` | `OrderReadRepository` |

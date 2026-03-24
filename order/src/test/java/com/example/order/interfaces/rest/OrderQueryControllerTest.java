@@ -2,8 +2,8 @@ package com.example.order.interfaces.rest;
 
 import com.example.order.application.query.order.GetOrderQuery;
 import com.example.order.application.query.order.ListOrdersQuery;
-import com.example.order.application.query.order.OrderDetailView;
-import com.example.order.application.query.order.OrderSummaryView;
+import com.example.order.application.query.order.OrderDetailResult;
+import com.example.order.application.query.order.OrderSummaryResult;
 import com.example.seedwork.application.bus.QueryBus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ class OrderQueryControllerTest {
     @Test
     void givenOrderExists_whenGetOrder_thenReturns200AndOrderDetailResponse() throws Exception {
         // Arrange
-        var response = new OrderDetailView(orderId, customerId, "user@example.com", "PENDING", List.of(), 9998L, "CNY");
+        var response = new OrderDetailResult(orderId, customerId, "user@example.com", "PENDING", List.of(), 9998L, "CNY");
         when(queryBus.dispatch(any(GetOrderQuery.class))).thenReturn(response);
 
         // Act + Assert
@@ -48,7 +48,7 @@ class OrderQueryControllerTest {
     @Test
     void givenOrdersExistForCustomer_whenListOrders_thenReturns200AndOrderList() throws Exception {
         // Arrange
-        var order = new OrderSummaryView(orderId, customerId, "PENDING", 9998L, "CNY");
+        var order = new OrderSummaryResult(orderId, customerId, "PENDING", 9998L, "CNY");
         when(queryBus.dispatch(any(ListOrdersQuery.class))).thenReturn(List.of(order));
 
         // Act + Assert

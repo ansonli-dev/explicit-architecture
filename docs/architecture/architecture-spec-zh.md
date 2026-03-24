@@ -219,7 +219,7 @@ com.example.{service}/
 │   │   └── {aggregate}/             ← 按特性分包
 │   │       ├── {Criteria}{Agg}Query.java
 │   │       ├── {Criteria}{Agg}QueryHandler.java
-│   │       └── {Agg}{Purpose}View.java
+│   │       └── {Agg}{Purpose}Result.java
 │   └── port/
 │       └── outbound/                ← 非领域概念的次要端口
 │           ├── {Agg}SearchRepository.java   ← ES 读模型
@@ -253,7 +253,7 @@ com.example.{service}/
     │   ├── {Agg}QueryController.java
     │   ├── request/                 ← HTTP 请求体 DTO（每个带有请求体的端点一个记录类）
     │   │   └── {Action}{Agg}Request.java
-    │   └── response/                ← HTTP 响应 DTO（在控制器中从 *View / *Result 映射）
+    │   └── response/                ← HTTP 响应 DTO（在控制器中从 *Result 映射）
     │       └── {Agg}{Purpose}Response.java
     └── messaging/
         └── consumer/                ← 仅在消费 Kafka 事件的服务中存在
@@ -287,7 +287,7 @@ domain/event/    OrderPlaced, OrderConfirmed, OrderShipped, OrderCancelled
 domain/ports/    OrderPersistence
 domain/service/  OrderPricingService
 application/command/order/   PlaceOrder, CancelOrder (+ PlaceOrderResult)
-application/query/order/     GetOrder, ListOrders (+ OrderDetailView, OrderItemView, OrderSummaryView)
+application/query/order/     GetOrder, ListOrders (+ OrderDetailResult, OrderItemResult, OrderSummaryResult)
 application/port/outbound/   CatalogClient, StockAvailability, OrderSearchRepository, OrderReadRepository
 infrastructure/repository/jpa/         OrderJpaEntity, OrderJpaRepository, OrderPersistenceAdapter
 infrastructure/repository/elasticsearch/ OrderElasticDocument, OrderElasticRepository, OrderSearchAdapter
@@ -393,21 +393,21 @@ OrderQueryController                      [interfaces/rest/]
 GetOrderQueryHandler                      [application/query/order/]
   1. OrderSearchRepository.findById()     ← Elasticsearch（主要）
      或 OrderReadRepository.findDetailById() ← JPA 投影（ES 不可用时备用）
-  返回 OrderDetailView                    ← 扁平 DTO；领域层永不加载
+  返回 OrderDetailResult                   ← 扁平 DTO；领域层永不加载
 ```
 
 读路径**永不加载领域实体**。它直接从 ES 文档或 JPA 投影返回 DTO。
 
-### 4.4 命令结果 vs 查询 DTO
+### 4.4 命令结果 vs 查询结果
 
 这些是独立的类型，不得合并：
 
 | | 类型 | 位置 | 组装来源 |
 |--|------|----------|----------------|
 | **命令结果** | `PlaceOrderResult` | `application/command/order/` | `save()` 后的内存中领域状态 — **零额外 I/O** |
-| **查询视图** | `OrderDetailView` | `application/query/order/` | ES 文档或 JPA 投影 — 可能需要 DB/ES 读取 |
+| **查询结果** | `OrderDetailResult` | `application/query/order/` | ES 文档或 JPA 投影 — 可能需要 DB/ES 读取 |
 
-`PlaceOrderResult` 和 `OrderDetailView` 可能共享相似的字段，但它们是具有不同用途的独立记录类。耦合它们将在写侧和读侧之间创建双向依赖。
+`PlaceOrderResult` 和 `OrderDetailResult` 可能共享相似的字段，但它们是具有不同用途的独立记录类。耦合它们将在写侧和读侧之间创建双向依赖。
 
 ---
 
@@ -611,7 +611,7 @@ order 消费 StockReservationFailed:
 | 命令结果 | `application/command/{agg}/` | `{Action}{Agg}Result` | `PlaceOrderResult` |
 | 查询 | `application/query/{agg}/` | `{Criteria}{Agg}Query` | `GetOrderQuery`, `ListOrdersQuery` |
 | 查询处理器 | `application/query/{agg}/` | `{Criteria}{Agg}QueryHandler` | `GetOrderQueryHandler` |
-| 读模型视图 | `application/query/{agg}/` | `{Agg}{Purpose}View` | `OrderDetailView`, `OrderSummaryView` |
+| 读模型结果 | `application/query/{agg}/` | `{Agg}{Purpose}Result` | `OrderDetailResult`, `OrderSummaryResult` |
 | 写侧端口 | `domain/ports/` | `{Agg}Persistence` | `OrderPersistence`, `BookPersistence` |
 | 读侧端口 | `application/port/outbound/` | `{Agg}SearchRepository` | `OrderSearchRepository` |
 | 读取备用端口 | `application/port/outbound/` | `{Agg}ReadRepository` | `OrderReadRepository` |

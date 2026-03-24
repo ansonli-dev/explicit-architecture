@@ -99,7 +99,7 @@ com.example.{service}/
 │   ├── command/                   ← CommandHandler<C,R> implementations
 │   │   └── {aggregate}/           ← Command record + @Service CommandHandler + Result record (package-by-feature)
 │   └── query/                     ← QueryHandler<Q,R> implementations
-│       └── {aggregate}/           ← Query record + @Service QueryHandler + Read Model View (package-by-feature)
+│       └── {aggregate}/           ← Query record + @Service QueryHandler + Read Model Result (package-by-feature)
 ├── infrastructure/                ← depends on application + domain + all frameworks; @Transactional lives here
 │   ├── repository/
 │   │   ├── jpa/                   ← JPA entities + Spring Data repos + persistence adapter
@@ -112,7 +112,7 @@ com.example.{service}/
 └── interfaces/                    ← Primary adapters (driving side); no business logic
     ├── rest/                      ← REST controllers; dispatch via CommandBus / QueryBus
     │   ├── request/               ← HTTP request DTOs ({Aggregate}XxxRequest records)
-    │   └── response/              ← HTTP response DTOs ({Aggregate}XxxResponse records); map from *View/*Result
+    │   └── response/              ← HTTP response DTOs ({Aggregate}XxxResponse records); map from *Result
     └── messaging/consumer/        ← Kafka consumers (only in services that consume events)
 ```
 
@@ -124,21 +124,21 @@ com.example.{service}/
 
 Only include the adapter packages a service actually uses. Do NOT create empty adapter packages as placeholders.
 
-### Command Result vs Query View vs HTTP Response
+### Command Result vs Query Result vs HTTP Response
 
 There are three distinct layers of data representation; each has a different lifecycle:
 
 | Layer | Type | Location | Purpose |
 |------|------|----------|---------|
 | Command Handler output | `{Action}{Aggregate}Result` | `application/command/{aggregate}/` | In-memory domain state, zero extra IO |
-| Query Handler output | `{Aggregate}{Purpose}View` | `application/query/{aggregate}/` | Read model projection from DB/ES |
+| Query Handler output | `{Aggregate}{Purpose}Result` | `application/query/{aggregate}/` | Read model projection from DB/ES |
 | HTTP API contract | `{Aggregate}{Purpose}Response` | `interfaces/rest/response/` | External API shape; may include HATEOAS links, versioning |
 
-**Command Handlers must not return Query-layer Views.** Command and query paths are independent — coupling them creates bidirectional dependencies between write and read sides.
+**Command Handlers must not return Query-layer Results.** Command and query paths are independent — coupling them creates bidirectional dependencies between write and read sides.
 
-Controllers map explicitly: `*Result` / `*View` → `*Response`. This decouples the API lifecycle (client-facing versioning, HATEOAS) from the business lifecycle (domain model evolution).
+Controllers map explicitly: `*Result` → `*Response`. This decouples the API lifecycle (client-facing versioning, HATEOAS) from the business lifecycle (domain model evolution).
 
-`PlaceOrderResult` and `OrderDetailView` may have similar fields but are separate types. `PlaceOrderResult` is assembled from in-memory domain state — **zero extra IO**. `OrderDetailView` may require a DB/ES read.
+`PlaceOrderResult` and `OrderDetailResult` may have similar fields but are separate types. `PlaceOrderResult` is assembled from in-memory domain state — **zero extra IO**. `OrderDetailResult` may require a DB/ES read.
 
 ### Business Logic Placement
 
@@ -180,7 +180,7 @@ Aggregate.someAction()  →  registers DomainEvent internally
 | Command Result | `application/command/{aggregate}/` | `{Action}{Aggregate}Result` | `PlaceOrderResult` |
 | Query record | `application/query/{aggregate}/` | `{Criteria}{Aggregate}Query` | `GetOrderQuery`, `ListOrdersQuery` |
 | QueryHandler | `application/query/{aggregate}/` | `{Criteria}{Aggregate}QueryHandler` | `ListOrdersQueryHandler` |
-| Read Model View | `application/query/{aggregate}/` | `{Aggregate}{Purpose}View` | `OrderDetailView`, `OrderSummaryView` |
+| Read Model Result | `application/query/{aggregate}/` | `{Aggregate}{Purpose}Result` | `OrderDetailResult`, `OrderSummaryResult` |
 | HTTP Request | `interfaces/rest/request/` | `{Action}{Aggregate}Request` | `PlaceOrderRequest`, `AddBookRequest` |
 | HTTP Response | `interfaces/rest/response/` | `{Aggregate}{Purpose}Response` | `OrderDetailResponse`, `OrderSummaryResponse` |
 | Repository Port (write-side) | `domain/ports/` | `{Aggregate}Persistence` | `OrderPersistence` |
@@ -362,7 +362,7 @@ Span naming convention: `{service}.{aggregate}.{operation}` (e.g., `order.order.
 
 ### Application Layer
 - Do NOT import JPA/Redis/Kafka in `application/` packages — only `@Service`, Lombok, and domain/seedwork imports
-- Do NOT have Command Handlers return Query-layer Views (`{Aggregate}DetailView`, etc.) — use dedicated `{Action}{Aggregate}Result` records assembled from in-memory domain state
+- Do NOT have Command Handlers return Query-layer Results (`{Aggregate}DetailResult`, etc.) — use dedicated `{Action}{Aggregate}Result` records assembled from in-memory domain state
 - Do NOT put business logic (if/else on business conditions) in Command Handlers — delegate to the Domain Model or Domain Service; the Handler only orchestrates
 - Do NOT reconstitute domain entities on the read path — Query Handlers return DTOs directly from DB/ES projections, bypassing the domain layer entirely
 
@@ -419,9 +419,9 @@ helm upgrade --install catalog ./catalog/helm -f catalog/helm/values.yaml
 3. [ ] If the feature needs persistence: define or update the write-side port in `domain/ports/` (parameters that are domain objects use domain types, not raw `UUID`/`String`)
 4. [ ] If the feature needs external clients, cache, or search: define ports in `application/port/outbound/`
 5. [ ] Add `Command<Result>` record + `{Action}{Aggregate}Result` record + `@Service CommandHandler` in `application/command/{aggregate}/`
-6. [ ] Add `Query<R>` record + `@Service QueryHandler` + `{Aggregate}{Purpose}View` in `application/query/{aggregate}/`
+6. [ ] Add `Query<R>` record + `@Service QueryHandler` + `{Aggregate}{Purpose}Result` in `application/query/{aggregate}/`
 7. [ ] Implement persistence adapter in `infrastructure/repository/jpa/` — include cache invalidation here if needed
-8. [ ] Add REST endpoint in `interfaces/rest/` — dispatch via `CommandBus` / `QueryBus`; map `*View`/`*Result` → `*Response` (HTTP) in controller
+8. [ ] Add REST endpoint in `interfaces/rest/` — dispatch via `CommandBus` / `QueryBus`; map `*Result` → `*Response` (HTTP) in controller
 9. [ ] Add Flyway migration if schema changes
 10. [ ] Write unit tests for domain behavior (no mocks, no Spring context)
 11. [ ] Write unit tests for handler (mock ports with Mockito)

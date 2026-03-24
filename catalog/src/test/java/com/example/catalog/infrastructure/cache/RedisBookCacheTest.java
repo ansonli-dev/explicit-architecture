@@ -1,6 +1,6 @@
 package com.example.catalog.infrastructure.cache;
 
-import com.example.catalog.application.query.book.BookDetailView;
+import com.example.catalog.application.query.book.BookDetailResult;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ class RedisBookCacheTest {
     @Test
     void givenNoCachedValue_whenGet_thenReturnsEmpty() {
         // Act
-        Optional<BookDetailView> result = redisBookCache.get(UUID.randomUUID());
+        Optional<BookDetailResult> result = redisBookCache.get(UUID.randomUUID());
 
         // Assert
         assertThat(result).isEmpty();
@@ -49,11 +49,11 @@ class RedisBookCacheTest {
     @Test
     void givenBookPut_whenGet_thenReturnsCachedValue() {
         // Arrange
-        var book = new BookDetailView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
+        var book = new BookDetailResult(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
         redisBookCache.put(bookId, book);
 
         // Act
-        Optional<BookDetailView> result = redisBookCache.get(bookId);
+        Optional<BookDetailResult> result = redisBookCache.get(bookId);
 
         // Assert
         assertThat(result).isPresent();
@@ -65,7 +65,7 @@ class RedisBookCacheTest {
     void givenCachedBook_whenInvalidate_thenGetReturnsEmpty() {
         // Arrange
         UUID id = UUID.randomUUID();
-        var book = new BookDetailView(id, "Refactoring", "Martin Fowler", "Programming", 5999L, "CNY", 50);
+        var book = new BookDetailResult(id, "Refactoring", "Martin Fowler", "Programming", 5999L, "CNY", 50);
         redisBookCache.put(id, book);
 
         // Act

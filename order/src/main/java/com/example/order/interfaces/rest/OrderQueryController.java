@@ -3,7 +3,7 @@ package com.example.order.interfaces.rest;
 import com.example.seedwork.application.bus.QueryBus;
 import com.example.order.application.query.order.GetOrderQuery;
 import com.example.order.application.query.order.ListOrdersQuery;
-import com.example.order.application.query.order.OrderSummaryView;
+import com.example.order.application.query.order.OrderSummaryResult;
 import com.example.order.interfaces.rest.response.OrderDetailResponse;
 import com.example.order.interfaces.rest.response.OrderSummaryResponse;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ class OrderQueryController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<OrderSummaryView> views = queryBus.dispatch(new ListOrdersQuery(customerId, status, page, size));
+        List<OrderSummaryResult> views = queryBus.dispatch(new ListOrdersQuery(customerId, status, page, size));
         return views.stream().map(OrderSummaryResponse::from).toList();
     }
 }

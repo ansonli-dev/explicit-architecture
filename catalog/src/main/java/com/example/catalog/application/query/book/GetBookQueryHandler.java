@@ -17,16 +17,16 @@ public class GetBookQueryHandler implements GetBookUseCase {
     private final BookCache cache;
 
     @Override
-    public BookDetailView handle(GetBookQuery query) {
+    public BookDetailResult handle(GetBookQuery query) {
         return cache.get(query.id()).orElseGet(() -> {
             Book book = repository.findById(BookId.of(query.id()))
                     .orElseThrow(() -> new BookNotFoundException(query.id()));
-            BookDetailView view = new BookDetailView(book.getId().value(), book.getTitle().value(),
+            BookDetailResult result = new BookDetailResult(book.getId().value(), book.getTitle().value(),
                     book.getAuthor().name(), book.getCategory().getName(),
                     book.getPrice() != null ? book.getPrice().cents() : 0,
                     book.getPrice() != null ? book.getPrice().currency() : "USD", book.getStockLevel().available());
-            cache.put(query.id(), view);
-            return view;
+            cache.put(query.id(), result);
+            return result;
         });
     }
 }

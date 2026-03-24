@@ -3,12 +3,12 @@ package com.example.catalog.interfaces.rest;
 import com.example.catalog.application.port.inbound.GetBookUseCase;
 import com.example.catalog.application.port.inbound.GetStockUseCase;
 import com.example.catalog.application.port.inbound.ListBooksUseCase;
-import com.example.catalog.application.query.book.BookDetailView;
-import com.example.catalog.application.query.book.BookSummaryView;
+import com.example.catalog.application.query.book.BookDetailResult;
+import com.example.catalog.application.query.book.BookSummaryResult;
 import com.example.catalog.application.query.book.GetBookQuery;
 import com.example.catalog.application.query.book.GetStockQuery;
 import com.example.catalog.application.query.book.ListBooksQuery;
-import com.example.catalog.application.query.book.StockView;
+import com.example.catalog.application.query.book.StockResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -37,7 +37,7 @@ class BookQueryControllerTest {
 
     @Test
     void givenBooksExist_whenListBooks_thenReturns200AndBookList() throws Exception {
-        var book = new BookSummaryView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
+        var book = new BookSummaryResult(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
         when(listBooks.handle(any(ListBooksQuery.class))).thenReturn(List.of(book));
 
         mockMvc.perform(get("/api/v1/books"))
@@ -60,8 +60,8 @@ class BookQueryControllerTest {
 
     @Test
     void givenBookExists_whenGetBook_thenReturns200AndBookDetailResponse() throws Exception {
-        var view = new BookDetailView(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
-        when(getBook.handle(any(GetBookQuery.class))).thenReturn(view);
+        var result = new BookDetailResult(bookId, "Clean Code", "Robert Martin", "Programming", 4999L, "CNY", 100);
+        when(getBook.handle(any(GetBookQuery.class))).thenReturn(result);
 
         mockMvc.perform(get("/api/v1/books/{id}", bookId))
                 .andExpect(status().isOk())
@@ -73,8 +73,8 @@ class BookQueryControllerTest {
 
     @Test
     void givenBookExists_whenGetStock_thenReturns200AndStockResponse() throws Exception {
-        var view = new StockView(bookId, 95);
-        when(getStock.handle(any(GetStockQuery.class))).thenReturn(view);
+        var result = new StockResult(bookId, 95);
+        when(getStock.handle(any(GetStockQuery.class))).thenReturn(result);
 
         mockMvc.perform(get("/api/v1/books/{id}/stock", bookId))
                 .andExpect(status().isOk())

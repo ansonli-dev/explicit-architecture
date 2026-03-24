@@ -1,7 +1,7 @@
 package com.example.notification.interfaces.rest;
 
 import com.example.notification.application.query.notification.ListNotificationsQuery;
-import com.example.notification.application.query.notification.NotificationView;
+import com.example.notification.application.query.notification.NotificationResult;
 import com.example.seedwork.application.bus.QueryBus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ class NotificationControllerTest {
     @Test
     void givenNotificationsExist_whenListNotifications_thenReturns200AndNotificationList() throws Exception {
         // Arrange
-        var response = new NotificationView(notificationId, customerId, "user@example.com", "EMAIL", "Order Placed", "SENT");
+        var response = new NotificationResult(notificationId, customerId, "user@example.com", "EMAIL", "Order Placed", "SENT");
         when(queryBus.dispatch(any(ListNotificationsQuery.class))).thenReturn(List.of(response));
 
         // Act + Assert

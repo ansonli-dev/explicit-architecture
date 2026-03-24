@@ -1,8 +1,8 @@
 package com.example.order.infrastructure.repository.elasticsearch;
 
 import com.example.order.application.port.outbound.OrderSearchRepository;
-import com.example.order.application.query.order.OrderDetailView;
-import com.example.order.application.query.order.OrderSummaryView;
+import com.example.order.application.query.order.OrderDetailResult;
+import com.example.order.application.query.order.OrderSummaryResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.elasticsearch.DataElasticsearchTest;
@@ -65,10 +65,10 @@ class OrderSearchAdapterTest {
     }
 
     @Test
-    void givenCdcDocument_whenFindById_thenOrderDetailViewReturned() {
+    void givenCdcDocument_whenFindById_thenOrderDetailResultReturned() {
         elasticRepository.save(buildCdcDoc(orderId, customerId, "PENDING"));
 
-        Optional<OrderDetailView> found = orderSearchRepository.findById(orderId);
+        Optional<OrderDetailResult> found = orderSearchRepository.findById(orderId);
 
         assertThat(found).isPresent();
         assertThat(found.get().orderId()).isEqualTo(orderId);
@@ -88,8 +88,8 @@ class OrderSearchAdapterTest {
         elasticRepository.save(buildCdcDoc(orderId, customerId, "PENDING"));
         elasticRepository.save(buildCdcDoc(UUID.randomUUID(), customerId, "CONFIRMED"));
 
-        List<OrderSummaryView> pending = orderSearchRepository.findByCustomerIdAndStatus(customerId, "PENDING", 0, 20);
-        List<OrderSummaryView> all     = orderSearchRepository.findByCustomerIdAndStatus(customerId, null, 0, 20);
+        List<OrderSummaryResult> pending = orderSearchRepository.findByCustomerIdAndStatus(customerId, "PENDING", 0, 20);
+        List<OrderSummaryResult> all     = orderSearchRepository.findByCustomerIdAndStatus(customerId, null, 0, 20);
 
         assertThat(pending).hasSize(1);
         assertThat(pending.get(0).orderId()).isEqualTo(orderId);

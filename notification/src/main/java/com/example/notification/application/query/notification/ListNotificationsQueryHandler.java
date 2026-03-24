@@ -9,15 +9,15 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ListNotificationsQueryHandler implements QueryHandler<ListNotificationsQuery, List<NotificationView>> {
+public class ListNotificationsQueryHandler implements QueryHandler<ListNotificationsQuery, List<NotificationResult>> {
 
     private final NotificationRepository notificationRepository;
 
     @Override
-    public List<NotificationView> handle(ListNotificationsQuery query) {
+    public List<NotificationResult> handle(ListNotificationsQuery query) {
         return notificationRepository.findByCustomerId(query.customerId(), query.page(), query.size())
                 .stream()
-                .map(n -> new NotificationView(
+                .map(n -> new NotificationResult(
                         n.getId().value(), n.getCustomerId(), n.getRecipientEmail(),
                         n.getChannel().name(), n.getPayload().subject(), n.getDeliveryStatus().name()))
                 .toList();
