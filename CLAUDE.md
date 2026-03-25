@@ -113,7 +113,9 @@ com.example.{service}/
     ├── rest/                      ← REST controllers; dispatch via CommandBus / QueryBus
     │   ├── request/               ← HTTP request DTOs ({Aggregate}XxxRequest records)
     │   └── response/              ← HTTP response DTOs ({Aggregate}XxxResponse records); map from *View/*Result
-    └── messaging/consumer/        ← Kafka consumers (only in services that consume events)
+    ├── messaging/consumer/        ← Kafka consumers (only in services that consume events)
+    └── event/                     ← Same-service domain event listeners with business semantics
+        └── {Event}{Reaction}Listener.java  ← @TransactionalEventListener; dispatches Command via CommandBus
 ```
 
 > **Why write-side Repository ports live in `domain/ports/`:** `OrderPersistence` is a domain concept — "the collection of all Orders." Parameters that represent domain objects use domain types (`OrderId`, `Order`), not raw `UUID` or `String`; primitive types (`int`, `String`) for simple values like pagination or filter strings are fine. Placing it in the application layer hides this semantic ownership. Client ports (`CatalogClient`), cache ports (`BookCache`), and search ports (`OrderSearchRepository`) are infrastructure abstractions with no domain meaning — they belong in `application/port/outbound/`.
@@ -196,6 +198,8 @@ Aggregate.someAction()  →  registers DomainEvent internally
 | REST Controller (read) | `interfaces/rest/` | `{Aggregate}QueryController` | `OrderQueryController` |
 | Outbox Mapper (adapter) | `infrastructure/messaging/outbox/` | `{Service}OutboxMapper` | `OrderOutboxMapper` |
 | Kafka Consumer (adapter) | `interfaces/messaging/consumer/` | `{Event}Consumer` | `OrderPlacedConsumer` |
+| Same-service event listener (business) | `interfaces/event/` | `{Event}{Reaction}Listener` | `OrderPlacedAutoConfirmListener` |
+| Same-service event listener (technical) | `infrastructure/{concern}/` | `{Aggregate}{Concern}Listener` | `BookCacheInvalidationListener` |
 | HTTP Client (adapter) | `infrastructure/client/` | `{Target}RestClient` | `CatalogRestClient` |
 
 ---
@@ -351,6 +355,7 @@ Span naming convention: `{service}.{aggregate}.{operation}` (e.g., `order.order.
 - Do NOT put write-side Repository interfaces in `application/port/outbound/` — they belong in `domain/ports/` (parameters representing domain objects must use domain types, not raw `UUID`/`String`; primitive types for pagination or simple filters are fine)
 - Do NOT import application-layer types in `domain/ports/` — Repository interfaces must only reference domain model types (`OrderId`, `Order`, etc.)
 - Do NOT place REST controllers or Kafka consumers inside `infrastructure/` — they are primary adapters and belong in `interfaces/`
+- Do NOT put business-logic event listeners in `infrastructure/` — if the listener dispatches a Command via CommandBus, it is a driving adapter and belongs in `interfaces/event/`
 - Do NOT inject concrete handler classes into controllers or Kafka consumers — always dispatch via `CommandBus` / `QueryBus`
 - Do NOT add cross-cutting logic (logging, metrics) to individual handlers — put it in the bus implementation
 - Do NOT define per-use-case inbound port interfaces (`PlaceOrderUseCase` etc.) — `CommandBus` / `QueryBus` serve as the inbound ports

@@ -114,6 +114,24 @@ public class Order extends AggregateRoot<OrderId> {
         return event;
     }
 
+    /**
+     * Confirms the order if it is in PLACED status and the total amount
+     * is at or below the given threshold. Returns true if confirmed.
+     *
+     * <p>This is a conditional state transition — unlike {@link #confirm()},
+     * it does not throw on ineligible state; it simply returns false.
+     */
+    public boolean confirmIfEligible(Money threshold) {
+        if (!(this.status instanceof OrderStatus.Placed)) {
+            return false;
+        }
+        if (this.totalAmount.cents() > threshold.cents()) {
+            return false;
+        }
+        confirm();
+        return true;
+    }
+
     public OrderShipped ship(String trackingNumber) {
         assertStatus(OrderStatus.Confirmed.class, "ship");
         this.status = new OrderStatus.Shipped(trackingNumber);

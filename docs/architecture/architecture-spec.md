@@ -255,10 +255,12 @@ com.example.{service}/
     │   │   └── {Action}{Agg}Request.java
     │   └── response/                ← HTTP response DTOs (map from *View / *Result in controller)
     │       └── {Agg}{Purpose}Response.java
-    └── messaging/
-        └── consumer/                ← Only in services that consume Kafka events
-            ├── {Topic}EventConsumer.java    ← single @KafkaListener entry point
-            └── {Event}Handler.java          ← per-event handler, dispatches to CommandBus
+    ├── messaging/
+    │   └── consumer/                ← Only in services that consume Kafka events
+    │       ├── {Topic}EventConsumer.java    ← single @KafkaListener entry point
+    │       └── {Event}Handler.java          ← per-event handler, dispatches to CommandBus
+    └── event/                       ← Same-service domain event listeners with business logic
+        └── {Event}{Reaction}Listener.java  ← dispatches Command via CommandBus
 ```
 
 ### 3.2 Actual Service Structures
@@ -286,7 +288,7 @@ domain/model/    Order, OrderId, OrderItem, CustomerId, Money, PricingResult, Or
 domain/event/    OrderPlaced, OrderConfirmed, OrderShipped, OrderCancelled
 domain/ports/    OrderPersistence
 domain/service/  OrderPricingService
-application/command/order/   PlaceOrder, CancelOrder (+ PlaceOrderResult)
+application/command/order/   PlaceOrder, CancelOrder, AutoConfirmOrder (+ PlaceOrderResult)
 application/query/order/     GetOrder, ListOrders (+ OrderDetailView, OrderItemView, OrderSummaryView)
 application/port/outbound/   CatalogClient, StockAvailability, OrderSearchRepository, OrderReadRepository
 infrastructure/repository/jpa/         OrderJpaEntity, OrderJpaRepository, OrderPersistenceAdapter
@@ -296,7 +298,7 @@ infrastructure/client/                  CatalogRestClient
 interfaces/rest/             OrderCommandController, OrderQueryController
 interfaces/rest/request/     PlaceOrderRequest, CancelOrderRequest
 interfaces/rest/response/    PlaceOrderResponse, OrderDetailResponse, OrderSummaryResponse
-interfaces/messaging/consumer/ OrderReadModelProjector (ES read-model sync)
+interfaces/event/            OrderPlacedAutoConfirmListener
 
 **notification** (port 8083 | PostgreSQL):
 
@@ -565,7 +567,38 @@ public void onBookPersisted(BookPersistedEvent event) {
 }
 ```
 
-### 6.3 Never Wrap External I/O in a Transaction
+### 6.3 Same-Service Domain Event Listener Classification
+
+Same-service domain event listeners serve two fundamentally different architectural roles. Placing them correctly requires understanding the Hexagonal Architecture distinction between driving and driven adapters.
+
+**Infrastructure listeners (driven adapters)** perform pure technical I/O — data synchronization with no business logic. They live in `infrastructure/`:
+
+| Listener | Location | What it does |
+|----------|----------|--------------|
+| `OutboxWriteListener` | `seedwork/.../infrastructure/outbox/` | Serializes domain event → writes outbox row (BEFORE_COMMIT) |
+| `BookCacheInvalidationListener` | `catalog/.../infrastructure/cache/` | Invalidates Redis cache entry (AFTER_COMMIT) |
+
+Note: ES read model sync in the order service is handled externally by the Debezium CDC → ES Sink Connector pipeline, not by an in-application listener.
+
+**Business event listeners (driving adapters)** translate domain events into Commands dispatched via CommandBus. They contain zero business logic — the decision-making lives in the CommandHandler and Domain Model. They are structurally identical to REST controllers and Kafka consumers:
+
+| Driving adapter | Trigger source | Action |
+|----------------|---------------|--------|
+| REST Controller | HTTP request | `commandBus.dispatch(Command)` |
+| Kafka Consumer | Kafka message | `commandBus.dispatch(Command)` |
+| **Event Listener** | **Domain Event** | `commandBus.dispatch(Command)` |
+
+Business event listeners live in `interfaces/event/`:
+
+| Listener | Location | What it dispatches |
+|----------|----------|-------------------|
+| `OrderPlacedAutoConfirmListener` | `order/.../interfaces/event/` | `AutoConfirmOrderCommand` via CommandBus |
+
+**Classification test:** Does the listener drive the application layer to execute business logic, or does it perform a technical I/O operation itself?
+- Drives application → `interfaces/event/` (driving adapter)
+- Performs I/O → `infrastructure/` (driven adapter)
+
+### 6.4 Never Wrap External I/O in a Transaction
 
 Holding a DB connection open across an HTTP call or email send:
 - Exhausts the connection pool under load.
@@ -573,15 +606,15 @@ Holding a DB connection open across an HTTP call or email send:
 
 `@Transactional` on `save()` means the transaction is already committed before the Handler makes any post-save calls.
 
-### 6.4 Never on Domain Services
+### 6.5 Never on Domain Services
 
 `@Transactional` on a Domain Service creates a Spring proxy and adds a hidden dependency on `PlatformTransactionManager`. The Domain Service can no longer be tested without a Spring context.
 
-### 6.5 Cross-Aggregate Atomicity (Same Database)
+### 6.6 Cross-Aggregate Atomicity (Same Database)
 
 If a single use case must save two aggregate roots atomically to the same DB, place `@Transactional` on the CommandHandler. This is an architectural exception — document it in an ADR. First verify that the two aggregates are not actually one.
 
-### 6.6 Cross-Service Atomicity
+### 6.7 Cross-Service Atomicity
 
 Impossible at the DB level. Use the Saga pattern: each step is an independent atomic commit; failures are handled by compensating transactions published as events.
 
@@ -633,6 +666,8 @@ order consumes StockReservationFailed:
 | HTTP Response DTO | `interfaces/rest/response/` | `{Agg}{Purpose}Response` | `OrderDetailResponse`, `PlaceOrderResponse` |
 | Kafka Consumer | `interfaces/messaging/consumer/` | `{Topic}EventConsumer` | `OrderEventConsumer` |
 | Kafka Event Handler | `interfaces/messaging/consumer/` | `{Event}Handler` | `OrderPlacedHandler` |
+| Same-service event listener (business) | `interfaces/event/` | `{Event}{Reaction}Listener` | `OrderPlacedAutoConfirmListener` |
+| Same-service event listener (technical) | `infrastructure/{concern}/` | `{Aggregate}{Concern}Listener` | `BookCacheInvalidationListener` |
 
 ---
 
