@@ -9,6 +9,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -27,8 +30,16 @@ class CatalogRestClientTest {
     void setUp() throws IOException {
         mockWebServer = new MockWebServer();
         mockWebServer.start();
-        String baseUrl = mockWebServer.url("/").toString();
-        catalogRestClient = new CatalogRestClient(baseUrl);
+
+        RestClient restClient = RestClient.builder()
+                .baseUrl(mockWebServer.url("/").toString())
+                .build();
+        CatalogHttpClient httpClient = HttpServiceProxyFactory
+                .builderFor(RestClientAdapter.create(restClient))
+                .build()
+                .createClient(CatalogHttpClient.class);
+
+        catalogRestClient = new CatalogRestClient(httpClient);
     }
 
     @AfterEach

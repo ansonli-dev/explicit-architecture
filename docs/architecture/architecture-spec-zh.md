@@ -255,10 +255,12 @@ com.example.{service}/
     │   │   └── {Action}{Agg}Request.java
     │   └── response/                ← HTTP 响应 DTO（在控制器中从 *Result 映射）
     │       └── {Agg}{Purpose}Response.java
-    └── messaging/
-        └── consumer/                ← 仅在消费 Kafka 事件的服务中存在
-            ├── {Topic}EventConsumer.java    ← 单一 @KafkaListener 入口点
-            └── {Event}Handler.java          ← 按事件处理，分发到 CommandBus
+    ├── messaging/
+    │   └── consumer/                ← 仅在消费 Kafka 事件的服务中存在
+    │       ├── {Topic}EventConsumer.java    ← 单一 @KafkaListener 入口点
+    │       └── {Event}Handler.java          ← 按事件处理，分发到 CommandBus
+    └── event/                       ← 同服务领域事件监听器（含业务语义）
+        └── {Event}{Reaction}Listener.java  ← 通过 CommandBus 分发 Command
 ```
 
 ### 3.2 各服务实际结构
@@ -286,7 +288,7 @@ domain/model/    Order, OrderId, OrderItem, CustomerId, Money, PricingResult, Or
 domain/event/    OrderPlaced, OrderConfirmed, OrderShipped, OrderCancelled
 domain/ports/    OrderPersistence
 domain/service/  OrderPricingService
-application/command/order/   PlaceOrder, CancelOrder (+ PlaceOrderResult)
+application/command/order/   PlaceOrder, CancelOrder, AutoConfirmOrder (+ PlaceOrderResult)
 application/query/order/     GetOrder, ListOrders (+ OrderDetailResult, OrderItemResult, OrderSummaryResult)
 application/port/outbound/   CatalogClient, StockAvailability, OrderSearchRepository, OrderReadRepository
 infrastructure/repository/jpa/         OrderJpaEntity, OrderJpaRepository, OrderPersistenceAdapter
@@ -296,7 +298,8 @@ infrastructure/client/                  CatalogRestClient
 interfaces/rest/             OrderCommandController, OrderQueryController
 interfaces/rest/request/     PlaceOrderRequest, CancelOrderRequest
 interfaces/rest/response/    PlaceOrderResponse, OrderDetailResponse, OrderSummaryResponse
-interfaces/messaging/consumer/ OrderReadModelProjector（ES 读模型同步）
+interfaces/messaging/consumer/ OrderEventConsumer, OrderCancelledHandler
+interfaces/event/            OrderPlacedAutoConfirmListener
 ```
 
 **notification**（端口 8083 | PostgreSQL）：
@@ -566,7 +569,38 @@ public void onBookPersisted(BookPersistedEvent event) {
 }
 ```
 
-### 6.3 永不在事务中包裹外部 I/O
+### 6.3 同服务领域事件监听器分类
+
+同服务领域事件监听器在架构中扮演两种截然不同的角色。正确放置它们需要理解六边形架构中主动适配器（driving）和被动适配器（driven）的区分。
+
+**基础设施监听器（被动适配器）** 执行纯技术 I/O — 数据同步，不含业务逻辑。位于 `infrastructure/`：
+
+| 监听器 | 位置 | 职责 |
+|--------|------|------|
+| `OutboxWriteListener` | `seedwork/.../infrastructure/outbox/` | 序列化领域事件 → 写入 outbox 行（BEFORE_COMMIT） |
+| `BookCacheInvalidationListener` | `catalog/.../infrastructure/cache/` | 失效 Redis 缓存条目（AFTER_COMMIT） |
+
+注意：order 服务的 ES 读模型同步由外部 Debezium CDC → ES Sink Connector 管道处理，不是应用内监听器。
+
+**业务事件监听器（主动适配器）** 将领域事件翻译为 Command，通过 CommandBus 分发。不含任何业务逻辑 — 决策在 CommandHandler 和领域模型中。结构上与 REST Controller 和 Kafka Consumer 完全对称：
+
+| 主动适配器 | 触发源 | 动作 |
+|-----------|--------|------|
+| REST Controller | HTTP 请求 | `commandBus.dispatch(Command)` |
+| Kafka Consumer | Kafka 消息 | `commandBus.dispatch(Command)` |
+| **事件监听器** | **领域事件** | `commandBus.dispatch(Command)` |
+
+业务事件监听器位于 `interfaces/event/`：
+
+| 监听器 | 位置 | 分发的 Command |
+|--------|------|---------------|
+| `OrderPlacedAutoConfirmListener` | `order/.../interfaces/event/` | 通过 CommandBus 分发 `AutoConfirmOrderCommand` |
+
+**判断标准：** 监听器是驱动应用层执行业务逻辑，还是自己在做技术 I/O？
+- 驱动应用层 → `interfaces/event/`（主动适配器）
+- 执行 I/O → `infrastructure/`（被动适配器）
+
+### 6.4 永不在事务中包裹外部 I/O
 
 在 HTTP 调用或发送邮件期间持有 DB 连接：
 - 在高负载下耗尽连接池。
@@ -574,15 +608,15 @@ public void onBookPersisted(BookPersistedEvent event) {
 
 `@Transactional` 在 `save()` 上意味着处理器进行任何保存后调用之前，事务已经提交。
 
-### 6.4 永不在领域服务上使用事务注解
+### 6.5 永不在领域服务上使用事务注解
 
 领域服务上的 `@Transactional` 会创建一个 Spring 代理，并对 `PlatformTransactionManager` 添加隐藏依赖。领域服务将无法在没有 Spring 上下文的情况下进行测试。
 
-### 6.5 跨聚合原子性（同一数据库）
+### 6.6 跨聚合原子性（同一数据库）
 
 如果单个用例必须原子性地将两个聚合根保存到同一数据库，将 `@Transactional` 放在 CommandHandler 上。这是一个架构例外 — 需在 ADR 中记录。首先验证这两个聚合实际上不是同一个聚合。
 
-### 6.6 跨服务原子性
+### 6.7 跨服务原子性
 
 在数据库层面不可能实现。使用 Saga 模式：每个步骤是一个独立的原子提交；失败通过作为事件发布的补偿事务处理。
 
@@ -634,6 +668,8 @@ order 消费 StockReservationFailed:
 | HTTP 响应 DTO | `interfaces/rest/response/` | `{Agg}{Purpose}Response` | `OrderDetailResponse`, `PlaceOrderResponse` |
 | Kafka 消费者 | `interfaces/messaging/consumer/` | `{Topic}EventConsumer` | `OrderEventConsumer` |
 | Kafka 事件处理器 | `interfaces/messaging/consumer/` | `{Event}Handler` | `OrderPlacedHandler` |
+| 同服务事件监听器（业务） | `interfaces/event/` | `{Event}{Reaction}Listener` | `OrderPlacedAutoConfirmListener` |
+| 同服务事件监听器（技术） | `infrastructure/{concern}/` | `{Aggregate}{Concern}Listener` | `BookCacheInvalidationListener` |
 
 ---
 

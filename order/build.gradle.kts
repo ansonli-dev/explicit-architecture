@@ -93,8 +93,7 @@ dependencies {
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.validation)
 
-    // HTTP client (to call catalog service)
-    implementation(libs.spring.boot.starter.webflux)
+    // HTTP client: uses Spring 6 HTTP Interface with RestClient (part of spring-boot-starter-web)
 
     // Kafka + Avro
     implementation(libs.spring.kafka)
