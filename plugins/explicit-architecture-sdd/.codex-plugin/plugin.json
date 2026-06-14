@@ -1,0 +1,24 @@
+{
+  "name": "explicit-architecture-sdd",
+  "version": "0.1.0",
+  "description": "Java 17 + Spring Boot 3 Explicit Architecture rules for SDD, TDD, code generation, and review.",
+  "author": {
+    "name": "Yuan Li"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Explicit Architecture SDD",
+    "shortDescription": "Java/Spring explicit architecture guardrails for SDD and TDD.",
+    "longDescription": "Use this plugin to guide Codex toward correct Java 17 + Spring Boot 3 code in Explicit Architecture projects: DDD domain model, hexagonal ports/adapters, CQRS command/query separation, strict layer boundaries, and Fowler-style microservice testing.",
+    "developerName": "Yuan Li",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use Explicit Architecture SDD when planning this Java Spring Boot feature.",
+      "Generate this feature with DDD, Hexagonal Architecture, CQRS, and TDD."
+    ]
+  }
+}
