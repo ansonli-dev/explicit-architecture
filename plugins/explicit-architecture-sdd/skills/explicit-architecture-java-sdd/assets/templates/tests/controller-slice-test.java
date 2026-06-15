@@ -1,7 +1,7 @@
 package {{BASE_PACKAGE}}.interfaces.rest;
 
 import {{BASE_PACKAGE}}.application.command.{{FEATURE_PACKAGE}}.{{ACTION}}{{AGGREGATE}}Result;
-import {{BASE_PACKAGE}}.application.port.inbound.CommandBus;
+import {{COMMAND_BUS_IMPORT}};
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

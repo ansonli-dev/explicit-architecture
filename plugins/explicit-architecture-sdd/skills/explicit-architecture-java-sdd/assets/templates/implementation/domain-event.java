@@ -1,6 +1,6 @@
 package {{BASE_PACKAGE}}.domain.event;
 
-import {{BASE_PACKAGE}}.domain.model.DomainEvent;
+import {{DOMAIN_EVENT_IMPORT}};
 
 import java.time.Instant;
 import java.util.UUID;

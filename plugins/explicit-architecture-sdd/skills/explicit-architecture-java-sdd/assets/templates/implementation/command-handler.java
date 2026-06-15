@@ -2,27 +2,23 @@ package {{BASE_PACKAGE}}.application.command.{{FEATURE_PACKAGE}};
 
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}}Id;
 import {{BASE_PACKAGE}}.domain.model.{{ACTOR_ID_TYPE}};
-import {{BASE_PACKAGE}}.domain.ports.{{AGGREGATE}}Repository;
+import {{BASE_PACKAGE}}.domain.ports.{{AGGREGATE}}Persistence;
+import {{COMMAND_HANDLER_IMPORT}};
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
-public record {{ACTION}}{{AGGREGATE}}Command(UUID aggregateId, UUID actorId) {}
-
-public record {{ACTION}}{{AGGREGATE}}Result(UUID aggregateId, String status) {}
-
 @Service
-public class {{ACTION}}{{AGGREGATE}}CommandHandler {
-    private final {{AGGREGATE}}Repository repository;
+public class {{ACTION}}{{AGGREGATE}}CommandHandler implements CommandHandler<{{ACTION}}{{AGGREGATE}}Command, {{ACTION}}{{AGGREGATE}}Result> {
+    private final {{AGGREGATE}}Persistence persistence;
 
-    public {{ACTION}}{{AGGREGATE}}CommandHandler({{AGGREGATE}}Repository repository) {
-        this.repository = repository;
+    public {{ACTION}}{{AGGREGATE}}CommandHandler({{AGGREGATE}}Persistence persistence) {
+        this.persistence = persistence;
     }
 
+    @Override
     public {{ACTION}}{{AGGREGATE}}Result handle({{ACTION}}{{AGGREGATE}}Command command) {
-        var aggregate = repository.getById(new {{AGGREGATE}}Id(command.aggregateId()));
+        var aggregate = persistence.getById(new {{AGGREGATE}}Id(command.aggregateId()));
         aggregate.{{BUSINESS_METHOD}}(new {{ACTOR_ID_TYPE}}(command.actorId()));
-        repository.save(aggregate);
+        persistence.save(aggregate);
         return new {{ACTION}}{{AGGREGATE}}Result(aggregate.id().value(), aggregate.status().name());
     }
 }

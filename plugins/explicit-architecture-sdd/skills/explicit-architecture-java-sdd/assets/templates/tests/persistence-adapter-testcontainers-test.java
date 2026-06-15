@@ -1,4 +1,4 @@
-package {{BASE_PACKAGE}}.infrastructure.persistence;
+package {{BASE_PACKAGE}}.infrastructure.repository.jpa;
 
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}};
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}}Id;

@@ -1,6 +1,7 @@
 package {{BASE_PACKAGE}}.domain.model;
 
 import {{BASE_PACKAGE}}.domain.event.{{AGGREGATE}}{{PAST_TENSE_EVENT}};
+import {{DOMAIN_EVENT_IMPORT}};
 
 import java.time.Instant;
 import java.util.ArrayList;

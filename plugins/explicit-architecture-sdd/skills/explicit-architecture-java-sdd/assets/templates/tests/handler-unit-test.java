@@ -3,7 +3,7 @@ package {{BASE_PACKAGE}}.application.command.{{FEATURE_PACKAGE}};
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}};
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}}Id;
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}}Status;
-import {{BASE_PACKAGE}}.domain.ports.{{AGGREGATE}}Repository;
+import {{BASE_PACKAGE}}.domain.ports.{{AGGREGATE}}Persistence;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class {{ACTION}}{{AGGREGATE}}CommandHandlerTest {
     @Mock
-    {{AGGREGATE}}Repository repository;
+    {{AGGREGATE}}Persistence persistence;
 
     @Test
     void handles_command_and_saves_aggregate() {
@@ -27,13 +27,13 @@ class {{ACTION}}{{AGGREGATE}}CommandHandlerTest {
         var actorId = UUID.randomUUID();
         var aggregate = {{AGGREGATE}}.create(new {{AGGREGATE}}Id(aggregateId));
 
-        when(repository.getById(new {{AGGREGATE}}Id(aggregateId))).thenReturn(aggregate);
+        when(persistence.getById(new {{AGGREGATE}}Id(aggregateId))).thenReturn(aggregate);
 
-        var handler = new {{ACTION}}{{AGGREGATE}}CommandHandler(repository);
+        var handler = new {{ACTION}}{{AGGREGATE}}CommandHandler(persistence);
         var result = handler.handle(new {{ACTION}}{{AGGREGATE}}Command(aggregateId, actorId));
 
         var saved = ArgumentCaptor.forClass({{AGGREGATE}}.class);
-        verify(repository).save(saved.capture());
+        verify(persistence).save(saved.capture());
 
         assertThat(saved.getValue().status()).isEqualTo({{AGGREGATE}}Status.{{NEXT_STATUS}});
         assertThat(result.aggregateId()).isEqualTo(aggregateId);

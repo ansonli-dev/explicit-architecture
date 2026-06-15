@@ -1,9 +1,9 @@
-package {{BASE_PACKAGE}}.infrastructure.persistence;
+package {{BASE_PACKAGE}}.infrastructure.repository.jpa;
 
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}};
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}}Id;
 import {{BASE_PACKAGE}}.domain.model.{{AGGREGATE}}Status;
-import {{BASE_PACKAGE}}.domain.ports.{{AGGREGATE}}Repository;
+import {{BASE_PACKAGE}}.domain.ports.{{AGGREGATE}}Persistence;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -54,7 +54,7 @@ class {{AGGREGATE}}Mapper {
 }
 
 @Repository
-public class {{AGGREGATE}}PersistenceAdapter implements {{AGGREGATE}}Repository {
+public class {{AGGREGATE}}PersistenceAdapter implements {{AGGREGATE}}Persistence {
     private final {{AGGREGATE}}JpaRepository jpaRepository;
     private final {{AGGREGATE}}Mapper mapper;
 

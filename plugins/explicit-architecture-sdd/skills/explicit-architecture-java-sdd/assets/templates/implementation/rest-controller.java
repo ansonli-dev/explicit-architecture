@@ -2,9 +2,10 @@ package {{BASE_PACKAGE}}.interfaces.rest;
 
 import {{BASE_PACKAGE}}.application.command.{{FEATURE_PACKAGE}}.{{ACTION}}{{AGGREGATE}}Command;
 import {{BASE_PACKAGE}}.application.command.{{FEATURE_PACKAGE}}.{{ACTION}}{{AGGREGATE}}Result;
-import {{BASE_PACKAGE}}.application.port.inbound.CommandBus;
+import {{BASE_PACKAGE}}.interfaces.rest.request.{{ACTION}}{{AGGREGATE}}Request;
+import {{BASE_PACKAGE}}.interfaces.rest.response.{{AGGREGATE}}{{PURPOSE}}Response;
+import {{COMMAND_BUS_IMPORT}};
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,17 +25,13 @@ public class {{AGGREGATE}}CommandController {
     }
 
     @PostMapping("/{aggregateId}/{{ACTION_PATH}}")
-    public ResponseEntity<{{ACTION}}{{AGGREGATE}}Response> {{ACTION_METHOD}}(
+    public ResponseEntity<{{AGGREGATE}}{{PURPOSE}}Response> {{ACTION_METHOD}}(
         @PathVariable UUID aggregateId,
         @Valid @RequestBody {{ACTION}}{{AGGREGATE}}Request request
     ) {
         {{ACTION}}{{AGGREGATE}}Result result = commandBus.dispatch(
             new {{ACTION}}{{AGGREGATE}}Command(aggregateId, request.actorId())
         );
-        return ResponseEntity.ok(new {{ACTION}}{{AGGREGATE}}Response(result.aggregateId(), result.status()));
+        return ResponseEntity.ok(new {{AGGREGATE}}{{PURPOSE}}Response(result.aggregateId(), result.status()));
     }
 }
-
-record {{ACTION}}{{AGGREGATE}}Request(@NotNull UUID actorId) {}
-
-record {{ACTION}}{{AGGREGATE}}Response(UUID aggregateId, String status) {}

@@ -1,15 +1,15 @@
 {
   "name": "explicit-architecture-sdd",
   "version": "0.1.0",
-  "description": "Java 17 + Spring Boot 3 Explicit Architecture rules for SDD, TDD, code generation, and review.",
+  "description": "面向 Java 17 + Spring Boot 3 显式架构项目 story 卡实现的 SDD、TDD、代码生成与架构评审规则。",
   "author": {
     "name": "Yuan Li"
   },
   "skills": "./skills/",
   "interface": {
-    "displayName": "Explicit Architecture SDD",
-    "shortDescription": "Java/Spring explicit architecture guardrails for SDD and TDD.",
-    "longDescription": "Use this plugin to guide Codex toward correct Java 17 + Spring Boot 3 code in Explicit Architecture projects: DDD domain model, hexagonal ports/adapters, CQRS command/query separation, strict layer boundaries, and Fowler-style microservice testing.",
+    "displayName": "显式架构 SDD",
+    "shortDescription": "从 story 卡稳定触发 Java/Spring 显式架构 SDD/TDD。",
+    "longDescription": "使用本插件引导 Codex 或 Claude Code 根据 story 卡、用户故事、验收标准和概要设计，在 Java 17 + Spring Boot 3 显式架构项目中生成正确代码：DDD 领域模型、六边形端口与适配器、CQRS 命令/查询分离、严格分层边界，以及 Fowler 风格的微服务测试策略。",
     "developerName": "Yuan Li",
     "category": "Coding",
     "capabilities": [
@@ -17,8 +17,8 @@
       "Write"
     ],
     "defaultPrompt": [
-      "Use Explicit Architecture SDD when planning this Java Spring Boot feature.",
-      "Generate this feature with DDD, Hexagonal Architecture, CQRS, and TDD."
+      "请使用 explicit-architecture-java-sdd，根据这张 story 卡和概要设计实现 Java Spring Boot 功能。",
+      "请用 Superpowers + SDD/TDD 实现这个 Java 17 Spring Boot story，遵守 DDD、六边形架构、CQRS 和显式架构分层。"
     ]
   }
 }
