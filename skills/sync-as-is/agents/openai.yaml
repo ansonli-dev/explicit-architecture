@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync As-Is"
+  short_description: "Maintain verified deployable service As-Is baselines"
+  default_prompt: "Use $sync-as-is to build, verify, or promote this deployable service As-Is while keeping capability-owner and central architecture repositories read-only."

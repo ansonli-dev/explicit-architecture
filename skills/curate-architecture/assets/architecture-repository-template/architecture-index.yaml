@@ -1,0 +1,31 @@
+repository:
+  id: "{{REPOSITORY_ID}}"
+  version: "{{INDEX_VERSION}}"
+  owner: "{{OWNER}}"
+  last_reviewed: "{{DATE}}"
+
+documents:
+  - id: "{{DOCUMENT_ID}}"
+    type: "{{LANDSCAPE|ARCHITECTURE|STANDARD|PATTERN|ADR|CAPABILITY_CATALOG|INTEGRATION_CATALOG|GLOSSARY}}"
+    title: "{{TITLE}}"
+    path: "{{RELATIVE_PATH}}"
+    status: "{{DRAFT|ACTIVE|DEPRECATED|SUPERSEDED}}"
+    authority: "{{MANDATORY|ADVISORY|INFORMATIONAL}}"
+    owner: "{{OWNER}}"
+    scope:
+      - "{{SCOPE}}"
+    applies_to:
+      services:
+        - "{{SERVICE}}"
+      protocols:
+        - "{{PROTOCOL}}"
+      capabilities:
+        - "{{CAPABILITY}}"
+      environments:
+        - "{{ENVIRONMENT}}"
+    applies_when:
+      - "{{TRIGGER}}"
+    version: "{{DOCUMENT_VERSION}}"
+    last_reviewed: "{{DATE}}"
+    supersedes: []
+    related: []
