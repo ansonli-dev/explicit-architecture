@@ -1,30 +1,23 @@
 package com.example.catalog.interfaces.messaging.consumer;
 
-import com.example.catalog.application.command.book.ReleaseStockCommand;
-import com.example.catalog.application.port.inbound.ReleaseStockUseCase;
+import com.example.catalog.application.command.book.ReleaseCheckoutCommand;
+import com.example.catalog.application.command.book.ReleaseLegacyStockCommand;
 import com.example.events.v1.OrderCancelled;
+import com.example.seedwork.application.bus.CommandBus;
 import com.example.seedwork.infrastructure.kafka.RetryableKafkaHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.UUID;
 
-/**
- * Releases reserved stock for each item in a cancelled order.
- * Invokes {@link ReleaseStockUseCase} per item — each is handled idempotently
- * by the catalog domain (release is a no-op if the reservation no longer exists).
- */
+@Slf4j
 @Component
+@RequiredArgsConstructor
 public class OrderCancelledHandler implements RetryableKafkaHandler<OrderCancelled> {
 
-    private static final Logger log = LoggerFactory.getLogger(OrderCancelledHandler.class);
-
-    private final ReleaseStockUseCase releaseStock;
-
-    public OrderCancelledHandler(ReleaseStockUseCase releaseStock) {
-        this.releaseStock = releaseStock;
-    }
+    private final CommandBus commands;
 
     @Override
     public Class<OrderCancelled> eventType() {
@@ -38,24 +31,35 @@ public class OrderCancelledHandler implements RetryableKafkaHandler<OrderCancell
 
     @Override
     public void handle(OrderCancelled event) {
-        log.info("Processing OrderCancelled: orderId={}, items={}", event.getOrderId(), event.getItems().size());
         UUID orderId = UUID.fromString(event.getOrderId().toString());
-        for (var item : event.getItems()) {
+        switch (event.getReservationProtocol()) {
+            case 1 -> releaseLegacy(event, orderId);
+            case 2 -> {
+                if (commands.dispatch(new ReleaseCheckoutCommand(orderId)) == ReleaseCheckoutCommand.Result.MISSING) {
+                    log.warn("No checkout reservation for cancelled order {}; recording a release tombstone", orderId);
+                }
+            }
+            default -> throw new IllegalStateException(
+                    "Unsupported catalog reservation protocol: " + event.getReservationProtocol());
+        }
+    }
+
+    private void releaseLegacy(OrderCancelled event, UUID orderId) {
+        log.info("Processing legacy OrderCancelled: orderId={}, items={}", orderId, event.getItems().size());
+        var items = event.getItems().stream()
+                .sorted(Comparator.comparing(item -> item.getBookId().toString()))
+                .toList();
+        for (var item : items) {
             if (item.getQuantity() <= 0) {
                 log.warn("Skipping item with invalid quantity: orderId={}, bookId={}, quantity={}",
                         orderId, item.getBookId(), item.getQuantity());
                 continue;
             }
             try {
-                releaseStock.handle(new ReleaseStockCommand(
-                        UUID.fromString(item.getBookId().toString()),
-                        orderId,
-                        item.getQuantity()));
+                commands.dispatch(new ReleaseLegacyStockCommand(
+                        UUID.fromString(item.getBookId().toString()), orderId, item.getQuantity()));
             } catch (Exception e) {
-                // Log and continue — partial failure must not block remaining items.
-                // Idempotent release (no-op if reservation no longer exists) makes retry safe.
-                log.error("Failed to release stock for orderId={}, bookId={} — will not retry this item",
-                        orderId, item.getBookId(), e);
+                log.error("Failed to release legacy stock for orderId={}, bookId={}", orderId, item.getBookId(), e);
             }
         }
     }

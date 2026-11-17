@@ -27,6 +27,13 @@ public class OrderEventConsumer {
 
     @KafkaListener(topics = KafkaResourceConstants.TOPIC_ORDER_CANCELLED, groupId = "${spring.kafka.consumer.group-id}")
     public void onOrderCancelled(ConsumerRecord<String, OrderCancelled> record, Acknowledgment ack) {
-        processor.process(orderCancelledHandler, record, ack);
+        var event = record.value();
+        if (event.getReservationProtocol() == 1) {
+            processor.process(orderCancelledHandler, record, ack);
+        } else {
+            // A v2 (or unsupported) protocol never enters the legacy retry/ack route.
+            processor.processSimple(record, ack, orderCancelledHandler.eventId(event),
+                    () -> orderCancelledHandler.handle(event));
+        }
     }
 }

@@ -1,0 +1,254 @@
+name: bookstore-demo
+
+x-java-image: &java-image eclipse-temurin:21-jdk
+x-kafka-image: &kafka-image confluentinc/cp-kafka:7.8.2
+
+x-java-environment: &java-environment
+  SPRING_PROFILES_ACTIVE: demo-integrated
+  SPRING_DATASOURCE_USERNAME: bookstore
+  SPRING_DATASOURCE_PASSWORD: bookstore
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  SCHEMA_REGISTRY_URL: http://schema-registry:8081
+  DEMO_JWT_ISSUER: http://localhost:8180/realms/bookstore
+  DEMO_JWT_JWK_SET_URI: http://keycloak:8080/realms/bookstore/protocol/openid-connect/certs
+  OTEL_SDK_DISABLED: "true"
+
+x-bookstore-db: &bookstore-db
+  image: postgres:16-alpine
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U bookstore -d $$POSTGRES_DB"]
+    interval: 3s
+    timeout: 3s
+    retries: 30
+
+services:
+  catalog-db:
+    <<: *bookstore-db
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: bookstore
+      POSTGRES_PASSWORD: bookstore
+    volumes:
+      - catalog-data:/var/lib/postgresql/data
+
+  order-db:
+    <<: *bookstore-db
+    command: ["postgres", "-c", "log_error_verbosity=terse"]
+    environment:
+      POSTGRES_DB: order
+      POSTGRES_USER: bookstore
+      POSTGRES_PASSWORD: bookstore
+    volumes:
+      - order-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=3s"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - order-search:/usr/share/elasticsearch/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_HOSTNAME: http://localhost:8180
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8180:8080"
+    healthcheck:
+      test: ["CMD", "bash", "-ec", "exec 3<>/dev/tcp/localhost/9000; printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3; read -r response <&3; [[ $$response == *' 200 '* ]]"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+
+  kafka:
+    image: *kafka-image
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.8.2
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
+      SCHEMA_REGISTRY_HEAP_OPTS: -Xms128m -Xmx384m
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8081/subjects"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  topic-init:
+    image: *kafka-image
+    entrypoint: ["bash", "/shared/helm/scripts/create-topics.sh"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      TOPICS_YAML: /shared/src/main/resources/kafka/topics.yaml
+    volumes:
+      - ../shared-events:/shared:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  schema-init:
+    image: alpine:3.22
+    entrypoint: ["sh", "-ec", "apk add --no-cache bash curl jq >/dev/null && exec bash /shared/helm/scripts/register-schemas.sh"]
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      TOPICS_YAML: /shared/src/main/resources/kafka/topics.yaml
+      AVSC_DIR: /schemas
+    volumes:
+      - ../shared-events:/shared:ro
+      - ${DEMO_AVRO_DIR:-../shared-events/src/main/avro/com/example/events/v1}:/schemas:ro
+    depends_on:
+      topic-init:
+        condition: service_completed_successfully
+      schema-registry:
+        condition: service_healthy
+
+  catalog:
+    image: *java-image
+    command: ["java", "--enable-preview", "-jar", "/app/catalog.jar"]
+    environment:
+      <<: *java-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://catalog-db:5432/catalog
+      SPRING_DATA_REDIS_HOST: redis
+      DEMO_V2_ADMIN_WRITES_ENABLED: ${DEMO_V2_ADMIN_WRITES_ENABLED:-true}
+      SPRING_KAFKA_CONSUMER_GROUP_ID: bookstore-demo.catalog
+    volumes:
+      - type: bind
+        source: ../catalog/build/libs/catalog-0.0.1-SNAPSHOT.jar
+        target: /app/catalog.jar
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8081/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      catalog-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      schema-init:
+        condition: service_completed_successfully
+
+  catalog-seed:
+    image: postgres:16-alpine
+    command: ["psql", "-h", "catalog-db", "-U", "bookstore", "-d", "catalog", "-v", "ON_ERROR_STOP=1", "-f", "/seed/catalog.sql"]
+    environment:
+      PGPASSWORD: bookstore
+    volumes:
+      - ./seed/catalog.sql:/seed/catalog.sql:ro
+    depends_on:
+      catalog:
+        condition: service_healthy
+
+  order:
+    image: *java-image
+    command: ["java", "--enable-preview", "-jar", "/app/order.jar"]
+    environment:
+      <<: *java-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/order
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+      OUTBOX_RELAY_STRATEGY: scheduler
+      DEMO_CATALOG_URL: http://catalog:8081
+      DEMO_OIDC_TOKEN_URL: http://keycloak:8080/realms/bookstore/protocol/openid-connect/token
+      DEMO_ORDER_CLIENT_SECRET: bookstore-order-local
+      DEMO_V2_INTAKE_ENABLED: ${DEMO_V2_INTAKE_ENABLED:-true}
+    volumes:
+      - type: bind
+        source: ../order/build/libs/order-0.0.1-SNAPSHOT.jar
+        target: /app/order.jar
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8082/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      catalog-seed:
+        condition: service_completed_successfully
+      order-db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  e2e:
+    profiles: [verify]
+    image: *java-image
+    working_dir: /repo/e2e
+    command: ["./gradlew", "--no-daemon", "test", "--tests", "*OrderV2CancellationE2ETest", "--rerun"]
+    environment:
+      GRADLE_USER_HOME: /gradle
+      CATALOG_BASE_URL: http://catalog:8081
+      ORDER_BASE_URL: http://order:8082
+      DEMO_OIDC_BASE_URL: http://keycloak:8080/realms/bookstore
+      DEMO_KAFKA_BOOTSTRAP: kafka:9092
+      DEMO_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      DEMO_VERIFY_INTAKE_CLOSED: ${DEMO_VERIFY_INTAKE_CLOSED:-false}
+      DEMO_VERIFY_CRASH_RECOVERY: ${DEMO_VERIFY_CRASH_RECOVERY:-false}
+    volumes:
+      - ../e2e:/repo/e2e
+      - verify-gradle:/gradle
+      - verify-state:/state
+    depends_on:
+      order:
+        condition: service_healthy
+
+volumes:
+  catalog-data:
+  order-data:
+  order-search:
+  kafka-data:
+  verify-gradle:
+  verify-state:

@@ -73,7 +73,7 @@ tasks.named<Jar>("jar") {
 dependencies {
     // Internal libraries — resolved from GitHub Packages in CI, mavenLocal in local dev
     implementation("com.example:seedwork:0.1.0")
-    implementation("com.example:shared-events:0.1.0")
+    implementation("com.example:shared-events:0.1.1")
 
     // Spring Boot
     implementation(libs.spring.boot.starter.web)
@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.spring.boot.starter.data.redis)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.validation)
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     // Kafka + Avro
     implementation(libs.spring.kafka)

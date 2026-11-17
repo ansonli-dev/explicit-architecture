@@ -72,7 +72,7 @@ tasks.named<Jar>("jar") {
 dependencies {
     // Internal libraries — resolved from GitHub Packages in CI, mavenLocal in local dev
     implementation("com.example:seedwork:0.1.0")
-    implementation("com.example:shared-events:0.1.0")
+    implementation("com.example:shared-events:0.1.1")
 
     // Spring Boot
     implementation(libs.spring.boot.starter.web)

@@ -1,0 +1,23 @@
+demo:
+    jwt:
+        issuer: ${DEMO_JWT_ISSUER}
+        jwk-set-uri: ${DEMO_JWT_JWK_SET_URI}
+    v2:
+        admin-writes-enabled: ${DEMO_V2_ADMIN_WRITES_ENABLED:true}
+
+springdoc:
+    api-docs:
+        enabled: false
+    swagger-ui:
+        enabled: false
+
+spring:
+    jackson:
+        deserialization:
+            fail-on-unknown-properties: true
+            accept-float-as-int: false
+            fail-on-trailing-tokens: true
+        mapper:
+            allow-coercion-of-scalars: false
+        parser:
+            strict-duplicate-detection: true

@@ -84,7 +84,7 @@ extra["commons-lang3.version"] = "3.17.0"
 dependencies {
     // Internal libraries — resolved from GitHub Packages in CI, mavenLocal in local dev
     implementation("com.example:seedwork:0.1.0")
-    implementation("com.example:shared-events:0.1.0")
+    implementation("com.example:shared-events:0.1.1")
 
     // Spring Boot
     implementation(libs.spring.boot.starter.web)
@@ -92,6 +92,7 @@ dependencies {
     implementation(libs.spring.boot.starter.data.elasticsearch)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.validation)
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     // HTTP client: uses Spring 6 HTTP Interface with RestClient (part of spring-boot-starter-web)
 
@@ -115,6 +116,7 @@ dependencies {
 
     // Test
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation(libs.spring.kafka.test)
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)

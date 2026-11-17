@@ -2,15 +2,20 @@ package com.example.catalog.infrastructure.messaging.outbox;
 
 import com.example.catalog.domain.event.StockReleased;
 import com.example.catalog.domain.event.StockReserved;
+import com.example.events.AvroOutboxSerializer;
 import com.example.events.KafkaResourceConstants;
 import com.example.seedwork.domain.DomainEvent;
 import com.example.seedwork.infrastructure.outbox.OutboxEntry;
 import com.example.seedwork.infrastructure.outbox.OutboxMapper;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import jakarta.annotation.PreDestroy;
 import org.apache.kafka.common.serialization.Serializer;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -23,11 +28,20 @@ public class CatalogOutboxMapper implements OutboxMapper {
 
     private final Serializer<Object> avroSerializer;
 
-    @SuppressWarnings("unchecked")
-    public CatalogOutboxMapper(ProducerFactory<String, Object> producerFactory) {
-        var s = new KafkaAvroSerializer();
-        s.configure(producerFactory.getConfigurationProperties(), false);
-        this.avroSerializer = (Serializer<Object>) s;
+    public CatalogOutboxMapper(ProducerFactory<String, Object> producerFactory, Environment environment) {
+        var properties = producerFactory.getConfigurationProperties();
+        var serializer = environment.acceptsProfiles(Profiles.of("demo-integrated"))
+                ? AvroOutboxSerializer.preload(properties, Map.of(
+                        KafkaResourceConstants.TOPIC_STOCK_RESERVED, com.example.events.v1.StockReserved.getClassSchema(),
+                        KafkaResourceConstants.TOPIC_STOCK_RELEASED, com.example.events.v1.StockReleased.getClassSchema()))
+                : new KafkaAvroSerializer();
+        serializer.configure(properties, false);
+        this.avroSerializer = serializer;
+    }
+
+    @PreDestroy
+    void close() {
+        avroSerializer.close();
     }
 
     @Override

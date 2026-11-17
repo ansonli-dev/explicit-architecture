@@ -1,0 +1,281 @@
+openapi: 3.1.0
+info:
+  title: Bookstore Order API
+  version: 2.0.0
+  description: Available in the demo-integrated profile on the private network.
+security:
+  - ReaderToken: []
+paths:
+  /api/v2/me/order-quotes:
+    post:
+      operationId: createOrderQuote
+      description: Quotes authoritative Catalog data in CNY for the token subject. Requires a verified email claim. Valid for ten minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QuoteRequest' }
+      responses:
+        '201':
+          description: Frozen quote
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quote' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '502': { $ref: '#/components/responses/UnsafeAmount' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v2/me/order-submissions:
+    post:
+      operationId: submitOrderQuote
+      description: |
+        Durably accepts a quote for the token subject. One quote may produce one submission.
+        The same subject, quote, and key replay the original submission's current result even after expiry or intake closure.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { $ref: '#/components/schemas/Id' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [quoteId]
+              properties:
+                quoteId: { $ref: '#/components/schemas/Id' }
+      responses:
+        '202':
+          description: Accepted or replayed submission, including a previously completed submission
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Submission' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v2/me/order-submissions/{submissionId}:
+    parameters:
+      - name: submissionId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Id' }
+    get:
+      operationId: getOrderSubmission
+      responses:
+        '200':
+          description: Current submission result for the token subject
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Submission' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v2/me/orders:
+    get:
+      operationId: listMyOrders
+      description: Reads the token subject's orders directly from PostgreSQL, in descending order ID order.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 1 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
+      responses:
+        '200':
+          description: One page of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [orders, page, hasNext]
+                properties:
+                  orders:
+                    type: array
+                    items: { $ref: '#/components/schemas/OrderSummary' }
+                  page: { type: integer, minimum: 1, maximum: 100 }
+                  hasNext: { type: boolean }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502': { $ref: '#/components/responses/UnsafeAmount' }
+  /api/v2/me/orders/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      operationId: getMyOrder
+      responses:
+        '200':
+          description: Authoritative detail for the token subject
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderDetail' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '502': { $ref: '#/components/responses/UnsafeAmount' }
+  /api/v2/me/orders/{orderId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    put:
+      operationId: cancelMyOrder
+      description: Cancels a PLACED or CONFIRMED order at the supplied version. Inventory is released asynchronously.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason, expectedVersion]
+              properties:
+                reason:
+                  type: string
+                  description: Between 1 and 200 characters after trimming.
+                expectedVersion: { $ref: '#/components/schemas/Version' }
+      responses:
+        '204': { description: Cancellation and its outbox record committed }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+components:
+  securitySchemes:
+    ReaderToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Keycloak JWT for the configured issuer, with audience bookstore-order-api, client bookstore-bff, realm role bookstore-reader and a UUID subject.
+  parameters:
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+  responses:
+    InvalidRequest:
+      description: INVALID_REQUEST
+      content: &errorContent
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: UNAUTHORIZED, including invalid signature, issuer, expiration or audience
+      content: *errorContent
+    Forbidden:
+      description: FORBIDDEN or EMAIL_UNVERIFIED
+      content: *errorContent
+    NotFound:
+      description: NOT_FOUND for a missing or foreign private resource, or BOOK_NOT_FOUND for an unavailable book ID
+      content: *errorContent
+    Conflict:
+      description: |
+        Checkout can report QUOTE_EXPIRED, QUOTE_CONSUMED, IDEMPOTENCY_CONFLICT, INSUFFICIENT_STOCK or UNSUPPORTED_CURRENCY.
+        Cancellation can report VERSION_CONFLICT or ORDER_STATE_CONFLICT.
+      content: *errorContent
+    UnsafeAmount:
+      description: AMOUNT_OUT_OF_RANGE or CATALOG_DATA_INVALID
+      content: *errorContent
+    Unavailable:
+      description: INTAKE_CLOSED or CATALOG_UNAVAILABLE
+      content: *errorContent
+  schemas:
+    Id: { type: string, format: uuid }
+    MoneyMinor: { type: integer, format: int64, minimum: 0, maximum: 9007199254740991 }
+    Version: { type: integer, format: int64, minimum: 0, maximum: 9007199254740991 }
+    QuoteRequest:
+      type: object
+      additionalProperties: false
+      required: [lines]
+      properties:
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: Each book ID must occur once.
+          items:
+            type: object
+            additionalProperties: false
+            required: [bookId, quantity]
+            properties:
+              bookId: { $ref: '#/components/schemas/Id' }
+              quantity: { type: integer, minimum: 1, maximum: 99 }
+    Line:
+      type: object
+      required: [bookId, title, quantity, unitPriceMinor]
+      properties:
+        bookId: { $ref: '#/components/schemas/Id' }
+        title: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        unitPriceMinor: { $ref: '#/components/schemas/MoneyMinor' }
+    Quote:
+      type: object
+      required: [quoteId, expiresAt, lines, totalMinor, currency]
+      properties:
+        quoteId: { $ref: '#/components/schemas/Id' }
+        expiresAt: { type: string, format: date-time }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/Line' }
+        totalMinor: { $ref: '#/components/schemas/MoneyMinor' }
+        currency: { type: string, const: CNY }
+    OrderSummary:
+      type: object
+      required: [orderId, status, totalMinor, currency]
+      properties:
+        orderId: { $ref: '#/components/schemas/Id' }
+        status: { type: string, enum: [PENDING, PLACED, CONFIRMED, SHIPPED, CANCELLED] }
+        totalMinor: { $ref: '#/components/schemas/MoneyMinor' }
+        currency: { type: string, description: New v2 orders use CNY. }
+    OrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/OrderSummary'
+        - type: object
+          required: [version, lines]
+          properties:
+            version: { $ref: '#/components/schemas/Version' }
+            lines:
+              type: array
+              items: { $ref: '#/components/schemas/Line' }
+    Submission:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [submissionId, state]
+          properties:
+            submissionId: { $ref: '#/components/schemas/Id' }
+            state: { type: string, enum: [PROCESSING, RECONCILE_REQUIRED] }
+        - type: object
+          additionalProperties: false
+          required: [submissionId, state, order]
+          properties:
+            submissionId: { $ref: '#/components/schemas/Id' }
+            state: { type: string, const: PLACED }
+            order: { $ref: '#/components/schemas/OrderSummary' }
+        - type: object
+          additionalProperties: false
+          required: [submissionId, state, reason]
+          properties:
+            submissionId: { $ref: '#/components/schemas/Id' }
+            state: { type: string, const: REJECTED }
+            reason: { type: string, enum: [PRICE_CHANGED, INSUFFICIENT_STOCK, BOOK_NOT_FOUND, PLACEMENT_ABORTED] }
+    Error:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum: [INVALID_REQUEST, UNAUTHORIZED, FORBIDDEN, EMAIL_UNVERIFIED, NOT_FOUND, BOOK_NOT_FOUND,
+                 QUOTE_EXPIRED, QUOTE_CONSUMED, IDEMPOTENCY_CONFLICT, INSUFFICIENT_STOCK, UNSUPPORTED_CURRENCY,
+                 AMOUNT_OUT_OF_RANGE, INTAKE_CLOSED, CATALOG_UNAVAILABLE, CATALOG_DATA_INVALID,
+                 VERSION_CONFLICT, ORDER_STATE_CONFLICT]

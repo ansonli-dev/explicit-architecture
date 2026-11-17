@@ -8,6 +8,22 @@
 - REST API (book queries, stock reservation)
 - Kafka events (`StockReserved`, `StockReleased`)
 
+## Integrated demo
+
+The `demo-integrated` profile enables the [Catalog v2 contract](contracts/catalog-v2.yaml)
+and restricts the service to those routes and health checks. Public reads go to
+PostgreSQL. The admin PATCH requires the current book version, and
+`DEMO_V2_ADMIN_WRITES_ENABLED=false` can pause it while reads and checkout remain available.
+The [demo runbook](../demo/README.md) describes the Keycloak issuer, service tokens,
+and Compose setup.
+
+Each checkout writes a reservation decision by submission ID. The transaction locks
+that row first and then the books in UUID order. Retried requests replay the stored
+decision, and release retains a tombstone so a delayed reservation cannot remove
+stock. Catalog reads both cancellation protocols with `shared-events:0.1.1`.
+Protocol 2 uses the stored reservation lines and acknowledges after the database
+commits; a failed release is retried by Kafka.
+
 ---
 
 ## Domain Model
@@ -79,7 +95,8 @@ The database and user are created by `infrastructure/db/init.sql` on the first c
 ```
 src/main/resources/db/migration/
 ├── V0100__catalog_schema.sql               # books, categories, stock tables
-└── V0101__fix_currency_column_type.sql
+├── V0101__fix_currency_column_type.sql
+└── V0102__checkout_reservations.sql       # durable v2 decisions and held lines
 
 # Provided by seedwork (loaded via classpath:db/seedwork):
 ├── V0001__seedwork_outbox_events.sql       # Outbox table (read by Debezium)

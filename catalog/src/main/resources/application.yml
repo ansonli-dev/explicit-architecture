@@ -1,4 +1,10 @@
 spring:
+    # The legacy profile has no HTTP security chain; demo-integrated defines its own bearer chain.
+    autoconfigure:
+        exclude:
+            - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+            - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+            - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
     application:
         name: catalog
     threads:

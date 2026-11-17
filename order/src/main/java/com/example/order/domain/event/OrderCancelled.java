@@ -12,5 +12,5 @@ import java.util.UUID;
 
 /** Emitted when an order is cancelled. Carries item snapshots for event-driven stock release. */
 public record OrderCancelled(UUID eventId, OrderId orderId, CustomerId customerId,
-        String reason, List<OrderItem> items, Instant occurredAt) implements DomainEvent {
+        String reason, List<OrderItem> items, Instant occurredAt, int reservationProtocol) implements DomainEvent {
 }

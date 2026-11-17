@@ -46,6 +46,7 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.26.3")
     testImplementation("org.awaitility:awaitility:4.2.2")
     testImplementation("org.hamcrest:hamcrest:2.2")
+    testImplementation("org.apache.kafka:kafka-clients:3.7.1")
 
     testCompileOnly("org.projectlombok:lombok:1.18.34")
     testAnnotationProcessor("org.projectlombok:lombok:1.18.34")

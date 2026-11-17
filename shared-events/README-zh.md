@@ -100,7 +100,7 @@ plugins {
 }
 
 group = "com.example"
-version = "0.1.0"
+version = "0.1.1"
 
 dependencies {
     // Avro runtime（生成类的基类依赖）
@@ -177,7 +177,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.example:shared-events:0.1.0")  // 跟随版本更新
+    implementation("com.example:shared-events:0.1.1")  // 跟随版本更新
 }
 ```
 

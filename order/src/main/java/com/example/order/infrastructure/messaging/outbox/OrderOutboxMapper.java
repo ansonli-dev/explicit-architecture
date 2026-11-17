@@ -1,5 +1,6 @@
 package com.example.order.infrastructure.messaging.outbox;
 
+import com.example.events.AvroOutboxSerializer;
 import com.example.events.KafkaResourceConstants;
 import com.example.events.v1.OrderCancelled;
 import com.example.events.v1.OrderConfirmed;
@@ -10,10 +11,14 @@ import com.example.seedwork.domain.DomainEvent;
 import com.example.seedwork.infrastructure.outbox.OutboxEntry;
 import com.example.seedwork.infrastructure.outbox.OutboxMapper;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import jakarta.annotation.PreDestroy;
 import org.apache.kafka.common.serialization.Serializer;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -25,12 +30,23 @@ import java.util.Optional;
 public class OrderOutboxMapper implements OutboxMapper {
 
     private final Serializer<Object> avroSerializer;
+    private final boolean demoIntegrated;
 
-    @SuppressWarnings("unchecked")
-    public OrderOutboxMapper(ProducerFactory<String, Object> producerFactory) {
-        var s = new KafkaAvroSerializer();
-        s.configure(producerFactory.getConfigurationProperties(), false);
-        this.avroSerializer = (Serializer<Object>) s;
+    public OrderOutboxMapper(ProducerFactory<String, Object> producerFactory, Environment environment) {
+        demoIntegrated = environment.acceptsProfiles(Profiles.of("demo-integrated"));
+        var properties = producerFactory.getConfigurationProperties();
+        var serializer = demoIntegrated ? AvroOutboxSerializer.preload(properties, Map.of(
+                KafkaResourceConstants.TOPIC_ORDER_PLACED, OrderPlaced.getClassSchema(),
+                KafkaResourceConstants.TOPIC_ORDER_CANCELLED, OrderCancelled.getClassSchema(),
+                KafkaResourceConstants.TOPIC_ORDER_CONFIRMED, OrderConfirmed.getClassSchema(),
+                KafkaResourceConstants.TOPIC_ORDER_SHIPPED, OrderShipped.getClassSchema())) : new KafkaAvroSerializer();
+        serializer.configure(properties, false);
+        this.avroSerializer = serializer;
+    }
+
+    @PreDestroy
+    void close() {
+        avroSerializer.close();
     }
 
     @Override
@@ -41,7 +57,7 @@ public class OrderOutboxMapper implements OutboxMapper {
                         .setEventId(e.eventId().toString())
                         .setOrderId(e.orderId().value().toString())
                         .setCustomerId(e.customerId().value().toString())
-                        .setCustomerEmail(e.customerEmail())
+                        .setCustomerEmail(demoIntegrated ? "" : e.customerEmail())
                         .setItems(e.items().stream()
                                 .map(i -> new OrderItem(
                                         i.bookId().toString(), i.bookTitle(),
@@ -63,6 +79,7 @@ public class OrderOutboxMapper implements OutboxMapper {
                         .setOrderId(e.orderId().value().toString())
                         .setCustomerId(e.customerId().value().toString())
                         .setReason(e.reason())
+                        .setReservationProtocol(e.reservationProtocol())
                         .setItems(e.items().stream()
                                 .map(i -> new OrderItem(
                                         i.bookId().toString(), i.bookTitle(),

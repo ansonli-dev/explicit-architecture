@@ -100,7 +100,7 @@ plugins {
 }
 
 group = "com.example"
-version = "0.1.0"
+version = "0.1.1"
 
 dependencies {
     // Avro runtime (base dependency for generated classes)
@@ -177,7 +177,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.example:shared-events:0.1.0")  // Keep in sync with version bumps
+    implementation("com.example:shared-events:0.1.1")  // Keep in sync with version bumps
 }
 ```
 
