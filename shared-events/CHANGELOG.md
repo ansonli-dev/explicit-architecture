@@ -6,6 +6,12 @@
 
 ---
 
+## [0.1.1] - 2026-11-17
+
+### Changed
+
+- `OrderCancelled` 新增整数 `reservationProtocol`。旧消息按默认值 1 读取，批量预留订单使用 2。
+
 ## [0.1.0] - 2026-03-04
 
 ### Added

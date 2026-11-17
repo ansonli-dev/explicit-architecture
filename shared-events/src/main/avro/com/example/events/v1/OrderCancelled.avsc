@@ -48,6 +48,12 @@
       "name": "occurredAt",
       "type": { "type": "long", "logicalType": "timestamp-millis" },
       "doc": "事件发生时间（UTC）"
+    },
+    {
+      "name": "reservationProtocol",
+      "type": "int",
+      "default": 1,
+      "doc": "库存预留协议，1 为逐条预留，2 为按提交 ID 批量预留"
     }
   ]
 }

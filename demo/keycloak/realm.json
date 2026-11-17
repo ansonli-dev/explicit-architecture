@@ -1,0 +1,109 @@
+{
+  "realm": "bookstore",
+  "enabled": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      {"name": "bookstore-reader"},
+      {"name": "bookstore-admin"},
+      {"name": "bookstore-order-service"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "bookstore-bff",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "clientAuthenticatorType": "client-secret",
+      "secret": "bookstore-bff-local",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:3000/api/auth/oauth2/callback/keycloak"],
+      "attributes": {"pkce.code.challenge.method": "S256"},
+      "protocolMappers": [
+        {
+          "name": "catalog audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {"included.custom.audience": "bookstore-catalog", "access.token.claim": "true"}
+        },
+        {
+          "name": "order audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {"included.custom.audience": "bookstore-order-api", "access.token.claim": "true"}
+        }
+      ]
+    },
+    {
+      "clientId": "bookstore-order",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "clientAuthenticatorType": "client-secret",
+      "secret": "bookstore-order-local",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "checkout audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {"included.custom.audience": "bookstore-catalog-internal", "access.token.claim": "true"}
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "00000000-0000-4000-8000-000000000201",
+      "username": "reader-a",
+      "enabled": true,
+      "firstName": "Reader",
+      "lastName": "A",
+      "email": "reader-a@example.test",
+      "emailVerified": true,
+      "requiredActions": [],
+      "realmRoles": ["bookstore-reader"],
+      "credentials": [{"type": "password", "value": "reader-a-local", "temporary": false}]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000202",
+      "username": "reader-b",
+      "enabled": true,
+      "firstName": "Reader",
+      "lastName": "B",
+      "email": "reader-b@example.test",
+      "emailVerified": true,
+      "requiredActions": [],
+      "realmRoles": ["bookstore-reader"],
+      "credentials": [{"type": "password", "value": "reader-b-local", "temporary": false}]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000203",
+      "username": "admin",
+      "enabled": true,
+      "firstName": "Catalog",
+      "lastName": "Administrator",
+      "email": "admin@example.test",
+      "emailVerified": true,
+      "requiredActions": [],
+      "realmRoles": ["bookstore-admin"],
+      "credentials": [{"type": "password", "value": "admin-local", "temporary": false}]
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000204",
+      "username": "service-account-bookstore-order",
+      "enabled": true,
+      "serviceAccountClientId": "bookstore-order",
+      "realmRoles": ["bookstore-order-service"]
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 package com.example.catalog.infrastructure.repository.jpa;
 
 import com.example.catalog.domain.ports.BookPersistence;
+import com.example.catalog.domain.ports.LockedBookPersistence;
+import com.example.catalog.domain.model.VersionedBook;
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;
 import com.example.catalog.domain.model.Category;
@@ -11,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -20,7 +23,7 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
-class BookPersistenceAdapter implements BookPersistence {
+class BookPersistenceAdapter implements BookPersistence, LockedBookPersistence {
 
     private final BookJpaRepository bookJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
@@ -47,6 +50,24 @@ class BookPersistenceAdapter implements BookPersistence {
         eventPublisher.publishEvent(new BookPersistedEvent(book.getId().value()));
 
         return mapper.toDomain(saved);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<VersionedBook> lock(BookId id) {
+        return bookJpaRepository.lockById(id.value())
+                .map(entity -> new VersionedBook(mapper.toDomain(entity), entity.getVersion()));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public long saveLocked(Book book) {
+        BookJpaEntity entity = bookJpaRepository.findById(book.getId().value()).orElseThrow();
+        mapper.updateEntity(book, entity.getCategory(), entity);
+        BookJpaEntity saved = bookJpaRepository.saveAndFlush(entity);
+        book.clearDomainEvents();
+        eventPublisher.publishEvent(new BookPersistedEvent(book.getId().value()));
+        return saved.getVersion();
     }
 
     /**

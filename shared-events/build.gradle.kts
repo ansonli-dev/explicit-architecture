@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.example"
-version = "0.1.0"
+version = "0.1.1"
 
 java {
     toolchain {
@@ -18,6 +18,12 @@ dependencies {
     api("org.apache.avro:avro:1.12.1")
     // Confluent Kafka Avro serializer (exposed as api so consumers don't need to redeclare)
     api("io.confluent:kafka-avro-serializer:7.6.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 avro {

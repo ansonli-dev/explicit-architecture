@@ -1,0 +1,53 @@
+{
+  "namespace": "com.example.events.v1",
+  "type": "record",
+  "name": "OrderCancelled",
+  "doc": "订单取消时发布；携带订单明细供库存服务释放预留库存",
+  "fields": [
+    {
+      "name": "eventId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "UUID，用于消费者幂等去重"
+    },
+    {
+      "name": "orderId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "订单 ID（UUID）"
+    },
+    {
+      "name": "customerId",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "客户 ID（UUID）"
+    },
+    {
+      "name": "reason",
+      "type": { "type": "string", "avro.java.string": "String" },
+      "doc": "取消原因（如：用户取消、超时未支付、库存不足）"
+    },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderItem",
+          "namespace": "com.example.events.v1",
+          "doc": "订单明细快照，嵌入于 OrderPlaced 和 OrderCancelled 事件",
+          "fields": [
+            { "name": "bookId",         "type": { "type": "string", "avro.java.string": "String" }, "doc": "书籍 ID（UUID）" },
+            { "name": "bookTitle",      "type": { "type": "string", "avro.java.string": "String" }, "doc": "下单时快照的书名" },
+            { "name": "quantity",       "type": "int" },
+            { "name": "unitPriceCents", "type": "long", "doc": "下单时快照的单价（分）" }
+          ]
+        }
+      },
+      "doc": "取消时的订单明细快照，用于释放预留库存",
+      "default": []
+    },
+    {
+      "name": "occurredAt",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "事件发生时间（UTC）"
+    }
+  ]
+}

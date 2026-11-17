@@ -1,0 +1,4 @@
+interface:
+  display_name: "Curate Architecture"
+  short_description: "Curate architecture context and identify specification gaps"
+  default_prompt: "Use $curate-architecture to organize this architecture repository and identify context gaps that would weaken feature specifications."

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:50d4fc068f5dae17a7acf93f4aba61ccb4c106a1863436f1e1831c1a21e9e88c",
+  "claims": [
+    {
+      "id": "claim_d1127ba35c30428388f1aae148c83784",
+      "statement": "Seedwork buses build exact-input-class handler maps from generic handler types, dispatch synchronously, time handler execution, and throw on missing handlers; duplicate keys overwrite.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/bus/SpringCommandBus.java#L32-L78",
+          "version": "repo-lines-v1:sha256:bc7da336d983740f6451cf03d7aa5935dcb9f1e61229cd58abccc98e37c43c11:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1ZWQ2YzFmMWY3NDQ2ZDE1ZDg4ZTFhZTAyYWJiZDcwNzdjMTE4NDk0MDhlMWM3NTc4ZWM5YmZiNTk0NzgwZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwNTAyYWMxYzNhNTlhMzhjZjhmNDcwMmExZDY5ZjE5NjhjOGQ3MGJiODdmMTQ5ODcyMDc2OGE0OTMzNjQ3OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/bus/SpringQueryBus.java#L32-L78",
+          "version": "repo-lines-v1:sha256:373b54bc7f56a7b244b575f9312b68108f36be0256d2584b00aa44cc5c932a43:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlZDg0YjA5MmFmMjAxMmI0OTgzYjZkNGQ3YmI4ZDAxZDE0ODBmNGY0MjM1MjcyOTQyZTJmNTM2MTdmMDVjZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwZWI4ZGZiMzFhNmZmMmEzYzZkOTE0NTI3MmNkMWQ2NmRhZmZlYmJkMjk3YjI0YzRhZTBiNDU4MTFkYzNjMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fe939fcc0d5246839e8bcc8cf01c7268",
+      "statement": "AggregateRoot exposes immutable event snapshots plus explicit clearing, deprecates destructive pulling, and compares aggregates by concrete class and ID.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/domain/AggregateRoot.java#L46-L99",
+          "version": "repo-lines-v1:sha256:065a6edad525b41cd69a556513a947b509203a5bca7fa8076824e33c84529056:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhNWY0NzUzZmQyMGM5MDBiZmFkNjk1ZDNiMGVhMzU0NzJhYjg4MDc2MjgwMDhhYzZiN2E1YzlhNjFkYjEwZjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxYThiYzJhZjgwZDdkMzcxOTFiZGYzNGYwOGEwZWQwYzg1ZjNhNjQ0ZTg2YzhlMGFlODk0YmEzYTY2MGRhYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6481bdedcb9e40f2931c2d385cbeaae6",
+      "statement": "Order persistence attaches peeked domain events to its JPA entity, saves, then clears the aggregate list; the entity bridge exposes and clears events through Spring Data annotations.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/repository/jpa/OrderPersistenceAdapter.java#L23-L61",
+          "version": "repo-lines-v1:sha256:329c6943cff264e946cd33a3bac0b2e9e86eba0df2c733541b17022c88657342:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmNDVmZGYxMDgxMThlOGZiYmJmNmFiZTI0NGMyNGVlMTY3ODExYjlhNGUwMDhjMzZlZTQwZWE0MmUyYjI2Y2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4NmM2YjIwMTk1ZDhmNTU2NWZhYWQ1ODM2Mjg2Y2I2YmZhOTU3OWU3MjQ2OTQ5MzAzMDBjZDBhNTEwNDlmYjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2OTQ2ZTEwMWU1ZTc4ZDkwYTUxMGM2OWYyNjZlZjc2NTQwZDMwOWIxYjgyMjY5NWI1MzE3MmVkMmNhYTAyNTkifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/jpa/AbstractAggregateRootEntity.java#L29-L49",
+          "version": "repo-lines-v1:sha256:9890cbc4f29a6ad0777ee42357a3e9838ccb3b331600c6c27c7ed3e9ea78d679:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkYjYxMjgwMDA3NjE5YjgxY2IyMGZhNTJiNjIxMjY5ZWVmYzM4YjMwYjdiMWI5MmVlNWMwODVjYWZiNGNhZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZDdkZDkwMzVlZDIwOWQ5NzJlNGMxYTQzYjNhMzBlOTg3MDA2MzdkN2E0NzFlMWRhM2IwYmUxZDhmMDA0MzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyYzNhYTczMmI1MmQyM2I3NmZjM2UxZTY2YzRkZDZhZjYwNDZjMzVhZTI5NzBlOGE3NjIyODk5MmVkMzhkMDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2344a1c632d944748f4a9295d4cc231c",
+      "statement": "Outbox auto-configuration scans com.example JPA types, gates the writer on an OutboxMapper, and enables the scheduler only for scheduler strategy or missing strategy.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/outbox/OutboxAutoConfiguration.java#L49-L97",
+          "version": "repo-lines-v1:sha256:8fcd15a50d14906ae17c23ebbc49dd63b091fee5d6fb45e0ba09989bf18f8d71:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OTEzYTdjYmNiOTdiNTk5ZmU0OTEyMjM4ZTVjYWVjM2Y4YjBjNzhlZmIyNWFmNDRhMDU3OWY0ODM5ZDRjNDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkOGFkNDAyZDY1NWUzZWE2ZjM4MmMxY2Y4ZGUzZGE1ZGQwMDI5Y2ZlZmZiYWE5OTZiZjYxNzI1NjA2ZjIwYWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ab3836a608d4453cb2fc5ac2d616b430",
+      "statement": "Kafka idempotency configuration requires a retry adapter, while consumer retry configuration supplying that adapter is conditional on consumer.retry.enabled.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/KafkaIdempotencyAutoConfiguration.java#L8-L21",
+          "version": "repo-lines-v1:sha256:f159f8f7dacb589b265ec9000862346d80edcacc24d364d7837f407effca15cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OTEzYTdjYmNiOTdiNTk5ZmU0OTEyMjM4ZTVjYWVjM2Y4YjBjNzhlZmIyNWFmNDRhMDU3OWY0ODM5ZDRjNDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImViZDAzNzNjOWQwOGM2MjY4YmVkNzg4NTc1OTdhMDAzNzU4NmJlODg5MjA5MmI1Nzc1MDQwY2I2NTg4NmZiNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/ConsumerRetryAutoConfiguration.java#L16-L26",
+          "version": "repo-lines-v1:sha256:575f5bf5b8d184c7d78473c3dea46067f4034c2f39e5250e1e632fb97c474d0a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OTEzYTdjYmNiOTdiNTk5ZmU0OTEyMjM4ZTVjYWVjM2Y4YjBjNzhlZmIyNWFmNDRhMDU3OWY0ODM5ZDRjNDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxNDE5ZWI2Nzg5ZGFkMjAwMTBlYWE5YTQwMzBlY2JiYTRhYjA1NDk3OTY5ZTBmMTIxMTVmN2JiZWRjYzRjOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmODBlMjczOGFjMjcxMGUzZWZhNjA3NWI2MGY3ODVkODZhN2QxZjcwY2Y3ZGQxMDZhNDVkYWYyYTAwOTA0MmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_37e66f049d4c4cbf8b654d1f019e8afe",
+      "statement": "Shared servlet advice maps not-found, domain, and optimistic-lock errors to 404, 422, and 409, provides request-error mappings, and hides unexpected exception details in a fixed 500 response.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/web/GlobalExceptionHandler.java#L205-L235",
+          "version": "repo-lines-v1:sha256:ff0727810d6216a62c6bd35b06bd8d871a08298d4e64a6bc54e82a739b4a23d0:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkODUyN2VkMTZlNTM4NTkwMzdiMjQ2NDliN2EwZTIwMGViZWU4NWEwOGY1Nzg2M2Y5NGZkZTg5NTUwNWY2NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwZDBiNzA4NDFlMWNkZDEzZjM4Zjg5MDc5YjY5YzVlYjg4NmIzZGRlYzU3NzNiNTQ5YTE4N2EzNzI2ZmU2OWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU0NTE5YTRjMWY5ZjYzNWEyYWZkNGQ3NWY4ZDdjNTk4M2UxMTNkYzZjN2JmZTc0NDdjNmQ2MDMyNmI1OWU3OTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJmYWYyMTliOGVhYTVjMTBiZDgxYzVhZWNlM2Q1NjFmMjM1ZTRjZWVjYjA1ZTM2NDE0N2NlYmYzNDQxODgxZTcifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/web/GlobalExceptionHandler.java#L57-L163",
+          "version": "repo-lines-v1:sha256:e9c9c6ad4d5b27f90ae6e1a34a1c5f699666c41a571c1097245754b2142af39a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkYmNlYzQ0OGNjOWE1ZTA5NTU4NGE1ZTkyMjk0N2RkMDM5YTEyNjYyMmQxOTBjNmE1MDg2NGVlYWQ4YjMwZWFkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMDU5NmZlMGQ0ZmExNzIxYWViMzQwZmM5Yjg4YjdjNGFmMDEzM2E3MTc0OTZjYmFkM2E1MTk5OWI5ZjA2ZWJhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiNzdkNGM0N2Q5NzgyOTkwMWFkZTQ1NjNjNTk1NmJiMjJlOTQ0ZTQ0YzA1NDY3YjZkNTA3YzNhMzAwNGVlZDRiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhYWQ5YWY2Mzk4ZWY0NTA4NGJjYzU1MmE3ZGYyZjUyOGEyMDk1ZjFiMWRlNzU1MGM3OTRhMGI1YTJiMTk2YzJjIn0"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

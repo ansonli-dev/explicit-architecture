@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Spec"
+  short_description: "Review specs against governed architecture and service facts"
+  default_prompt: "Use $review-spec to review this developer spec against governed architecture context and verified service facts."

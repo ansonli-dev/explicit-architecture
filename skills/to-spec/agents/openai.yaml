@@ -1,0 +1,4 @@
+interface:
+  display_name: "To Spec"
+  short_description: "Create inside-out specs from governed context and As-Is"
+  default_prompt: "Use $to-spec to create an inside-out feature spec from the read-only central architecture context and verified service As-Is."

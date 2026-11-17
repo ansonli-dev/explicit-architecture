@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Codebase"
+  short_description: "Review code against specs, architecture, and service facts"
+  default_prompt: "Use $review-codebase to review this implementation against its approved spec, read-only architecture context, and verified service facts."

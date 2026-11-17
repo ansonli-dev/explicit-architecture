@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:8248346f962873636a6e11660aaa9503426d3af39e6c89ed188347bb896b8426",
+  "claims": [
+    {
+      "id": "claim_6725408ceea641029393d754c076832f",
+      "statement": "The architecture suite separates central curation, service As-Is, shared-capability As-Is, feature Target authoring, spec review, and implemented business-service review into distinct skills.",
+      "evidence": [
+        {
+          "resource": "repo://skills/curate-architecture/SKILL.md#L31-L50",
+          "version": "repo-lines-v1:sha256:0904d1287f15c75125a981ed11adc936318c5208b425441809c1fc692435ba13:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlMzEzMWMzMzdmNzFhZWQ1NzZkOWUwOGVkMzdhOWMzNzFmNjk5NjM5NDQ2M2I2ZjI2MmMxNzZkOWE1Zjc1NTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0MGQ2MGIzNzE1ODEwZmI1NDBhMWNiMzg2OTI3MTZiMzJkNTZiYjc0NTRkZDFhMmIwMTAyNTFiOTllZGM3MTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxYzNiMWM4MWY4ZTU4MDQxZmJhOTg4YWQ2ZTgwYjE2ZTg5ZDA3NGMwNDc0NmE2MGJhNjJjNDkwMzY3ZGIzNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhNjkzOTNlMTE0MzM4YmI2ZjVlZDUyMjNlMWViODViYzljN2Q0MjUzODY5NmY3ODY1ZmEyYWZjYmZmMmY1YmYifQ"
+        },
+        {
+          "resource": "repo://skills/review-codebase/SKILL.md#L49-L59",
+          "version": "repo-lines-v1:sha256:df1f462b5ac8c0e449f1aa69acdfa53533da4519f9b1235a3dae68733cc6f955:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkNmI5OGUzM2FjMDJkMjJlOWZhOWE5NTIzZThmNzQ2NDA3YTE1M2M1ZDJjN2E4OGFjMDhjMWE2YTc3NzEzOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5MjRiMzQ3NTYzNmU1ZGJiMjlhYTY0NDhjNjc5MjM2MTg5N2E3NTQ5MjFkZWE5M2Y2M2JjZDJlMDExYzYwMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyYmUyZDM0ZGJmY2E0ZDk1OTgyNDQzOTI5ZTk2ZTdkNWYxOTc2NzU0NmU1Y2JjMzI5YWNlMDIxNDM2MTYwNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjMDg4ODFkYzM2OWMxNDI4YjUxOTcyZWJlMWU3ZWUzOGE3ZmU2Nzk1ZTQyYjc1ZWU0ZGZjNzNiNDQ0ZjllOTkifQ"
+        },
+        {
+          "resource": "repo://skills/review-spec/SKILL.md#L10-L18",
+          "version": "repo-lines-v1:sha256:ed045586d497b22a360e2c413bb063846728e95e71a80c3f5826822afcca7476:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTFiZmQ1MzkwNDk0ZGVjMjZmYTkyMzBlMTJhMDNiMWE5YjRkMzY2NDdmM2Y3ZTUzYzA4ZmRlNjRiYmE5ZDFlMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWUwNmFjZmVhZWRjZmRjNDQwZWI1MWZhNTdjNjFmY2QzZDU3OTg5NjVhYmE2OWEwZjQ3ZmY0MjI0Y2NhOTdmOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTYxMzc5ZjlmOWM2NTJjY2YwMmNjOTI3MGNkZDQ3NDI3MjY4ZDU0ZWQwZjg1ZjU4NGJhMDg5ODFjZjRmY2M3YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDA5YmNmMzYwMTdhOWI4YzIzNWExOTRkY2ZmMWJlNTk5ZGU0NDIzYzg0ZTI1ZjEzZDU0MzQ0Y2MxOWZhZjczMiJ9"
+        },
+        {
+          "resource": "repo://skills/sync-as-is/SKILL.md#L10-L32",
+          "version": "repo-lines-v1:sha256:21aabf34b660003c7f0fdf0b804701d042c04a3b4aee13cf799ea2c0eb276d62:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExYmZkNTM5MDQ5NGRlYzI2ZmE5MjMwZTEyYTAzYjFhOWI0ZDM2NjQ3ZjNmN2U1M2MwOGZkZTY0YmJhOWQxZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2ZjljMWY1ZGY1YmRkMTI3NmFjMWY1YjQwYWVhMzI4NDNjOTc0MjI1YTZmYmUwNGEzNjliN2FmM2QyYjMwNWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3NThjNTY4NDg4Y2VlYTUzNmM4MmNmY2I3ZjQxMWQxMDQwYWZiYzc2MGU2Mzc5OTNmY2NkMjBiZTZmYmQ3YzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2NTIwYzU3OTJmZWExZWE5MDI3YjNhODAyYzMyMWVlNDNhN2EwZGVkZjM0Y2U0NzM1MWVkN2Q1MzY2MmE4ZTgifQ"
+        },
+        {
+          "resource": "repo://skills/sync-capability/SKILL.md#L29-L55",
+          "version": "repo-lines-v1:sha256:fb85d4bfc4f637f22b251ed2ce7a4df2ef80f735ae9ba7c4d63e63715ade8147:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExNWEwODk0YjViMmI4NjhkODQ2YTYxNTA0YTkxNDFjMGQ0MDJlY2FiM2M4NzRmZGVmMjEyNjFmZTIxNmJlOTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiYjFiOWQ4MTQwNDI4NzExYjQ4Y2NlYzUyYjkwMTNkYzE5ZDFmOTI1YWI5MDdkY2Q2OTE4N2NmYTgxM2YwN2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhNTBjMWUxMjgyMDcwYjg2Y2IyYjMwNWJiYWYwNzlkNGNkMDdhNTBjNGNjMjNmODc1YmYyMmI0ZWQwNGM5MzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhNjkzOTNlMTE0MzM4YmI2ZjVlZDUyMjNlMWViODViYzljN2Q0MjUzODY5NmY3ODY1ZmEyYWZjYmZmMmY1YmYifQ"
+        },
+        {
+          "resource": "repo://skills/to-spec/SKILL.md#L10-L21",
+          "version": "repo-lines-v1:sha256:fb7b7d8880346a768408fba78473ae59866f6a23a459c0b94c86f6bf702d9826:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExYmZkNTM5MDQ5NGRlYzI2ZmE5MjMwZTEyYTAzYjFhOWI0ZDM2NjQ3ZjNmN2U1M2MwOGZkZTY0YmJhOWQxZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkMzc0ODI5Mzg0NTRjNjg5ZjcwMTRkNjQ4NTYwZDJiZWFlMjNiMDg3YmQ5MzUyMjBiMDk3M2M1Y2M5MmM2NjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2ZmI3YzYzMjI5YjcwZDllYTkyYmM1MDdhYWJkZWFkMzg4NTFlMTU5MTMwOTlhM2Q4MTI2ODhiNmFkOTRjMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwOWJjZjM2MDE3YTliOGMyMzVhMTk0ZGNmZjFiZTU5OWRlNDQyM2M4NGUyNWYxM2Q1NDM0NGNjMTlmYWY3MzIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a4ff6cef4d144762a83f88c1fdb05c72",
+      "statement": "Ref-profile defaults use last verified test commit for service Current and fixed develop SHA for capability Current, with user then canonical repository then suite-default precedence.",
+      "evidence": [
+        {
+          "resource": "repo://skills/_standards/explicit-architecture/baseline-ref-profile.md#L41-L60",
+          "version": "repo-lines-v1:sha256:711d1cdf75baa489c40378bbe36249769e3c4606f569bc1ccd713c5e17a24b3a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxZjEwMzE1NWYxN2NmNGQ2MWU5NGY3NWZhYzZjYjNjNzVmZTQ0OGZmNWE2Yzk1OTgwY2NmYjFmMmUxZTgyZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3MmEzMzhiZmYyNzY5NDU2ZGU5ZTBhYTQwZTYwMjU5ZTM3NjZmM2ZlODYxY2JhODIzOWU2NDkyOTE1ZWVhZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5Y2E2OTVjODliMTQ3MDk5ZGU4ZTZiMmE3NGYwYmI0ZDgyMWZmN2YzZDI2YWVlNDkzNzM3MWYyZWYzYzJlYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2MWU0ZTRkNTRiNDhkMTExNmVkNmZlNzRkOTBlYzJmMWU0ZWY4ODhkYjA2MzBkMzFhOGQ0MzI1MWFlZWZiYWYifQ"
+        },
+        {
+          "resource": "repo://skills/_standards/explicit-architecture/baseline-ref-profile.md#L5-L21",
+          "version": "repo-lines-v1:sha256:062d057b52dfd5ae83b4bbabe5d90b4044d2a30e4ae66fdb6a8e117ff325a2c5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljMzkzZGZlZWJhZjIzYmE4MDlmZTczMDYzYTU4NWRiNGVkOTFiNTliMGIyNjkxZTJhNGM1OWI4ZGVmY2VjYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjMTc4ODQ1NmY0YjA4ZDBjMzc3YjA1NTlkOWUwOGMyN2UyMWZiNDg4N2U0NjdkZDU0YmE1YTc4MDA1ZWM1MmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmMDQyMzdlNDI0YWZjYmYyNzg5YmIwZjdlZjY2YTZiNDFkYWQxZTBiMDU2M2Q0ZWYzNWNlOTYyMmIxNTMzNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0NmZmYmNiNzNlOTg5NTNmZjczM2NhZDRmMWFiZDA5YmRhZjg3YWM2ZGQ3NTEyZmYzMDNhN2IyYWMxNmM5NTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_956be6e64a75442ea6c61e050df069b9",
+      "statement": "Service As-Is promotion requires an existing verified baseline, immutable candidate, approved decisions, and deployment/test/runtime evidence, preserving the prior baseline when critical evidence is absent.",
+      "evidence": [
+        {
+          "resource": "repo://skills/sync-as-is/SKILL.md#L121-L132",
+          "version": "repo-lines-v1:sha256:e905e8d84753eb470781776b2f0f34eb033c1bf966641eec91466abbbdc4334b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiNjFkNWQ3YmI3NjUwNTUwM2Y4NmFkYzk3NWMwZWNmOTA5MjBlMDhkMGE3NDlhNzE0ZTFhOTE1Yjk0OWQ2NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjNzA1MmIzZDYyMzE0ZDUxNzY2ZDU2NzBhNjkxYjVhMzg5ZmQ5MTA5ZjlkY2IyMzQ2N2E4NmI3NjU2ZTNiMzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmZjMzYjdhYzM2Mjg3OGE4NjYwZWI4YjBiOTdmM2JlMmZhYTkzZDk2MWMyYWQzMWE2ODkyODY2M2VhY2FhNjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMTViMzNkZmNkODNhZmRjYTJkOGU3MmNkMjM5M2I0YmMzZGI2ZjliYmJmZGE4NTI0ZDM1M2FiZjU5ZjVkMDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_676015ae5e8d40f7a15b81aadff3abd9",
+      "statement": "to-spec requires candidate rationale, residual risk, fallback, invalidation conditions and verification before inside-out layer design and explicit codebase evolution actions.",
+      "evidence": [
+        {
+          "resource": "repo://skills/to-spec/SKILL.md#L71-L121",
+          "version": "repo-lines-v1:sha256:0d90a096cd8ee41148b9e7e984c9c6ae241538c95b63666a9884804e1895acad:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwNTcwMGQ1Yzk0NGJjYzhiY2JjYTI1MGZhODkyNTJmYjUzYjFmYWExYzgzOWNkOThmNDk1ZTZhMzYwMzkxODIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MDViNWM3ZWFiYjE1Zjc0ZWNmZGI3NTZhYjgwZjgwNDM2N2JiZGUzM2NlODQ2ODI4MjAxOWM2MjJiZDg0ZGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlMTEwNzhjNTNiYzE5YWIxYjliMGZmYzI0N2JkMmY5YmE2N2UxNTcwMzAwOGYyNGRkZDljYzE3Y2JhYTFlNjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4MTRkNWYzZjEyMDc4YzQ2YjkyMTJlNjViM2Y1ZTc4ZDBhMWY1ZDRhZmY4ZjI3Y2Y2OTcxMzg4YTVlMjY1NTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e9594deea8274665964229304e0826fd",
+      "statement": "The package validator supports spec and service-as-is profiles with template or existing layouts, checks placeholders and local file links, and returns failure when errors remain.",
+      "evidence": [
+        {
+          "resource": "repo://skills/_standards/explicit-architecture/scripts/validate_package.py#L101-L127",
+          "version": "repo-lines-v1:sha256:5c074e3ca1d4449b717c22fe35cf5a7082853fc8cb2d306b85e2a6a2e0f9f897:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MjNkNjVkZjVkZmNjNjE1Y2M0MDljYjBmMTRlMzIzMTljNjZlNDkzNjM3M2QxMjA0OWRkNDk5MDlmZjNkNTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0YmUxMGU3ZTU4ZDUzYTgwNWNmYzJkODE0ZDg0MjY3MjRjMDgzMmU2MzM0ZWJjYzA4NWVlMzZkOWQ4Yjk1MDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhMDc4ZjBmMTNmNDE4OWE5ZmRhMDcyMjdkYzAwMTNmOTdjMGYyYmU2OTVlZmE3ZDgzNGVkYjlmMmFiNTMxN2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxZWZjYjE1YWJmNGEyOTc4MGE3MmJmZTdhOTU0NGRhMjQ0MzgxZmE1ZmNlN2UzOWY0YWFlNmQ1ZjVkYWM5YWQifQ"
+        },
+        {
+          "resource": "repo://skills/_standards/explicit-architecture/scripts/validate_package.py#L368-L405",
+          "version": "repo-lines-v1:sha256:fff6d2cc026417a8387e1c49c5df370c6a81eec1c67226c4298c4422d9c88331:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlN2Q4NTY3YmJlYjI0NjQ5MDljMzhmOWY4ZTY3Yjg2MWQxOWYwOTBiZjkzNjJiMjNmNjUwZmU0MTA2Y2FlNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2MjMzYjNmZmVhMzJhMjNkZjUzMDY1MzQzNDhmMmRlZTc3NmE1YTZmNzRmYjUzMzE3NWRkYzUzOWE4ZmU0NjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1NzIyYjhjNGYyODMxYTA4YTZmZjE2OGQxNjUxMTRiNmZkYmFjZjk4NDIxNTM2NjI3NzY5M2JkY2IzYmQwMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkNDEzNDBjYzIzOWExNTljZTliNjAyMmU5ZjYzMjI4MzJlMmVhZDc2Y2FlOWU0NzU0ZDIxMGViOGZiNmQ1ZTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_946945ec27414b768ef20583bc3b966d",
+      "statement": "Spec template validation checks required documents, candidate verdict/selection fields and evolution action tokens; service template validation checks immutable SHA, recognized baseline status and environment.",
+      "evidence": [
+        {
+          "resource": "repo://skills/_standards/explicit-architecture/scripts/validate_package.py#L157-L199",
+          "version": "repo-lines-v1:sha256:3babd0d6970849dbf71e2b2574295b1d9287a45a838b3570a554f1facc6f296f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiNmU3N2I2ZGRhZDA5Y2NiMzJjN2MzNGZhNzBjNzU2MDcyODc4N2FiOWQ2ZDZhYmQxYmNiZWE4OThjMzM3MmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MDg5ODcyODIzZDVlMWUwMTZmNDM3NDU5ZjQ2ZGI3ZjMwODhiMThmYjY2YTUxNzdmMTQ5ZmM5N2YwZTVhNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2MjdjODY4YTE3YTRiOWYzNWE1NGEzZDNlNmE5MmNhOGRhMjhjNTIyN2E0NzdjYmFiNmEwOTE2ZjRlNjA0ODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlOWQ5YjFlNTM2NDAyNTk1YzA3ZTdjMTkzMjE5NGRiZTY5NjU5ZWEzNzU4NThmNzIxNmViM2I3ZmY3ZDEzNjQifQ"
+        },
+        {
+          "resource": "repo://skills/_standards/explicit-architecture/scripts/validate_package.py#L210-L250",
+          "version": "repo-lines-v1:sha256:63ce5098f9f3db8b1065d91bb5b803ae2887b4b17fa2c8c7febf735cbc62f187:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4Y2JkZmZkYzJjNmZhZmM3NTliMWQ2NTZiOTMyMDc1ZmUwMDIxODliZDFjYWUyNWExODgxYTExZDczMDgxODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MDg5ODcyODIzZDVlMWUwMTZmNDM3NDU5ZjQ2ZGI3ZjMwODhiMThmYjY2YTUxNzdmMTQ5ZmM5N2YwZTVhNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwNTJiMWNhZGQyMGMxMTE1MjJiMGM4Y2QxYzNlNjQ4YjY3NGM5YjgyZGIzZjY2MzkyYTA2MjE3ZDY1OWZjMjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ZGRhYjc5NjMwYTJmMzI3NGE3MGEwZTc0Mjk1MGRiODU0NmI1ZWUwZGZkY2NhNjNlNTIzY2FkNjQxN2EwODEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_35847410b7a14f28acb0afc98f91d6d4",
+      "statement": "to-spec retains an explicit semantic completion gate after the package validator, so structural success alone does not approve the design.",
+      "evidence": [
+        {
+          "resource": "repo://skills/to-spec/SKILL.md#L123-L160",
+          "version": "repo-lines-v1:sha256:edb3d5cfbab31a7c846a16ea12c58972139d6ee29defd91de1816fea8974a6f2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4NGU0NjZhNzdhOWMzMjg0NmYxODdmNDRhN2FhYmQzY2ZiOTdmMGQ4MmY4OWZlOTNmMmI4YmFhN2EwMDNmYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MGFmNzA4YjFlY2Q4MzA3MGE4MGViZmIyZmFlY2ZlZDM0YmEzOGY5MTkxNDc0NjQ5YmM4MWZiOGM1NzQxNzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkMmVmMDUyNDA4NzA5NjY1ZDc2MDI5ZTEzN2RlNWM3NWE2ZDhhY2Y5OWVhZDRiZjU0ZmUzYTJiM2M4OWIyYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4OTA3NjFiNTQ2ZWI3MTdmYzJkY2FkMWNkY2Q0NDg5NTRjOTc4NzEzMjNmZGQ0MDNkMGJjMDc0Y2ZiMWNlZmMifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

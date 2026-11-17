@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:b9ea7d2c2854f2df4ed67913d9cd873107c76c3adc7aa54fbd7b6833f77a83cc",
+  "claims": [
+    {
+      "id": "claim_4ecf5048fe9f4252ad1cdbb01858eed3",
+      "statement": "Order migration V0102 migrates line items into orders.items JSONB, drops order_item, and sets replica identity full; the JPA item representation uses snake_case JSON keys.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/repository/jpa/OrderJpaEntity.java#L52-L68",
+          "version": "repo-lines-v1:sha256:f1b017ba84b3dfffe7754737f70c37b356e9e3b7c2420b3ddd1021d90a358368:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkYzU3ZjY4NTFjYmQ3ZGQ3MjRmYjk3NGNiN2YwNTRiZjk5ZjM0NmZkOTM2YjI0MzBkYjNhNjM1ZmQ2ZDVhOTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllYTk2ZDczZjJkZGQ1YzUzMjIxM2FmYTJkODViZTQ3OTQzM2E0YjYyYjA0ZjRjNTZkYWFlNjljYTNmMzQxNWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxYjllMDgwOGE1N2FmMDcwMGIyYTJlZmY5NTY2MTBjM2Y2ZmMyYTdkNTYwYWVlMWU1MzEwMWY4MjRmZmMyNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://order/src/main/resources/db/migration/V0102__orders_items_jsonb.sql#L5-L32",
+          "version": "repo-lines-v1:sha256:48672386fc85eae651eb497eb3434591b5c659d98c3bb423d6949162d9108404:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliZjg5OWRkYjFmYzBmZTViNTA5NjUyMzVmYWFkMTE3Yjg4OTc5NTFhNjkyZDZlNmY2MDU1NmIzMDg4YTUzZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyYmE0NTdmMTUxNWU5NzA0NDZhZGMxMzNiYmQ1NzRjZDg3MjlhMTZjOGY5NjA0MjI5YjlkZGJlMDYzMmYwOTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkNzI3MDUyZWU4M2FmMTgzOGMyZWNjY2VhNDNiYzY3YmUzZGEzY2M2ZTRiM2Q1MTgzNTg3ODI3NGE4N2JmOGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f866cee10e6a4ff2b10dfedb67c0a3a5",
+      "statement": "The orders CDC connector snapshots public.orders initially, uses its own replication slot and publication, unwraps records, and drops deletes/tombstones.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/templates/orders-cdc-connector-job.yaml#L57-L81",
+          "version": "repo-lines-v1:sha256:f9dd0354c9a374aba9eb876522347957500e29ed45656fbcf997645be80814df:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlMDI3NjZjMzU2ZTFhYzU4YjlmMGUzNTgzNjcxZDc4YmVmZDZhNjAyYjk1NDRjMGY4YTYzYWQxODhiZTUyYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1MmFlMGRhNmU4NGQwY2I2ZTExY2EwNTBiMjhkMDI1MDk4OWQ2ZWZiZDc1ZTdlNjdmMDY5MjI1Nzg4ZTZhMDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4ODdiZGUzZjI3ODc2OWE2OGU0ZThlOGIzN2JhY2IxYTYzYzRhNzEzYzg2MWFkOGUxMjViYTRmMzJlOGEwOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyNTAzMzI4YTIwMTllMDA3NzIzOTEwMDhmYzhjNDI4YWM0ZjY3N2MwMmRhNzE1NzUyMzRmMzg4MDNiNTlmZTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fd949769b391427bbcafe833167f95d2",
+      "statement": "The order sink consumes debezium.public.orders, extracts the record id as key, renames order columns, and routes records to the orders index without parsing the items JSON string.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/templates/es-sink-connector-job.yaml#L56-L76",
+          "version": "repo-lines-v1:sha256:ea07cac74f26b0a7352b17b36dd303cf739cf46a9042077bc5eb6cbee36b7fd9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlMDI3NjZjMzU2ZTFhYzU4YjlmMGUzNTgzNjcxZDc4YmVmZDZhNjAyYjk1NDRjMGY4YTYzYWQxODhiZTUyYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlNTViOWEyODIyYmQzOTE5NDg4YzEzZmMzMGMxMjRlNzgwZDczZTBlZTdhZjc4MjU2Y2I0MWFlNjFlMTMxMDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjYjg1OGVkZTI0MjVlZWI1NWVkNTc1ZDJlNjJmZDJlNWVkNWZlYTZjOWNkM2U5M2NhY2QxYTM3ZDFhZThlNDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyNTAzMzI4YTIwMTllMDA3NzIzOTEwMDhmYzhjNDI4YWM0ZjY3N2MwMmRhNzE1NzUyMzRmMzg4MDNiNTlmZTgifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/repository/elasticsearch/OrderElasticDocument.java#L33-L40",
+          "version": "repo-lines-v1:sha256:6df2e321695850fb0da1f4d2d1e1260453cdd8953df87681a4786daf9d12ab25:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzljYmJjNjU0NjlkYjFjYTI4NDJlZmQ5N2RmN2VlMmNlNmNjMTU3MTQ4MmQwMWExOGI3OTBhMTBjN2M1MTBmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODFlNDcxZDY1ZWMxOTgyZGZhOTM3NTIyODA4NGU1MmVjY2FmOTU3OTU4MjhlMGMzNDMxZjEwZTEwNDM5NjRhZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk5YzYxNWU3Y2NmZDZjY2NiNmI2MGEyMDM2NDFjNDhiYmRiMzIwYjZhMWZlNGE3MDI0NzYyOWU2ZTZjZjc1OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGZmYTEwMmQwZWM3ZGU2MTdmNDI4YjQ5N2Q2MGUxOTBmYWViZDUzODU3ODU3MDAyZTIzOTJlMzc4MDliZTUxMSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_6ba50b7088f3481b9d5527595ac53e1b",
+      "statement": "OrderSearchAdapter turns detail exceptions into empty Optional and list exceptions into empty lists; the detail handler alone has PostgreSQL fallback and returns existing Elasticsearch results without a freshness check.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/query/order/GetOrderQueryHandler.java#L23-L33",
+          "version": "repo-lines-v1:sha256:077b9baf211ef0727e479beb22eb08cf4f498d378eac987ed7cdd24eca05ecbb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5Yzg3ZDkyMGEwZjU4Y2Y1MjdiN2NmMjdiMzU1YjRmMmI5OTEyNTU4ZTA5N2Q0OWQ4NmRiYjE3M2RhMGRhNTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1YzllNzllNzNjNTFiYTExMWM1Nzc0ODI5YmViMTc1M2E2MmE4NDc4ZWE5NGUwN2Q2YjAwNzhmNWRkZGUxODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/query/order/ListOrdersQueryHandler.java#L18-L22",
+          "version": "repo-lines-v1:sha256:7960e802f840daac064f5444b01cb9daafb5107d5cfc3e7f098d9f6f35dc9732:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWIwNzQ4OWMyNGI0NTRiMzVlMmQ4MDg2Njc3Yjk3OTZhNzA5ZGRlYzI4MTU3YjE5OTcyNGYzZmQyNDIxYmZjZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjBiNzRmOGYyYmIyMWRjZjg1N2M4MTk2OTQxYzViMjJlNmYwNDUyZDIwNDkzZDE1OGExZjEyODkyZTQ2ZGIzZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/repository/elasticsearch/OrderSearchAdapter.java#L28-L49",
+          "version": "repo-lines-v1:sha256:4b3858457d1916f5505bb3c0122eb921abdadf982623499be3325ddb846eb564:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3ZTA0ZmRiNTU1ZjljZWY4ODQxYTA1ZWExMTIwZTMzMjU2OTk0YzI2ZTA5ZTQ0NmIzOGNiNzAwMTM2NDI4NzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4NmIwYzc2ZjVjOWFlNjUzNDU3MDA3ZmY3NDVhZjg4MWQ5YzkzN2MxYzVmMzhkMjBjMTRkYmY3MGNjZjY0MGYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c15173d77c6e4073a35ceb33c99e5445",
+      "statement": "Blank or invalid items JSON parses as an empty list, which can remain part of a successful Elasticsearch detail result.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/repository/elasticsearch/OrderSearchAdapter.java#L54-L64",
+          "version": "repo-lines-v1:sha256:d8d1763b1e5d0a8093ac08c623b28e53f843dc55771ba35a0e2b55b628222054:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhYzg1NzEwYTJmY2UzNTU1NjU0OGI2MjMxYzYyOGQ5NDRiY2IwODIwZWE1ZWE3NGIxN2M5MmM1NWY0NDNiZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzZWVhYTljOWJmNjc4OGMyZTkxOTRlY2Q1MmM4ZDJiZjUyNmIwOTA4NDY2MDhlMjM1MTg5MzEzZGViN2MxZGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJjMDdlY2VjNzVlM2I2YmRiYmY4ODg3MWUwNjFlMjBkMjZhYWE2YmNiZjNiMzcyZWQ5NWJhYzkwMmUyZTVmYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlOTUyODI5MTcyZjVhZDBlN2M0NTFmYTY2ZmRlYzQ1MjM4NTA3OThmMjc1MzI3Zjc1ZTRlMDY0ZGIwOTdiODEifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/repository/elasticsearch/converter/JsonStringToListConverter.java#L43-L50",
+          "version": "repo-lines-v1:sha256:571ef43fa1128b8ece8203524a96a5439c3801f3a96169bb810519e25f7abdef:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNmVlYzg0ZDc5Nzc2ZTAwNGE0NzdlZjJkYWY4OGNkZjJmMTM0NmMwNjI2ZmVjMGYzY2E0OWVmYzFmYTUzODhhMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmU2ZjNlNTliZjM0OGQwZGQ0YmE5ZTRkZDkyZmRiZGJkMDAzZjAwNzM0OGU5MWIxZTY5NzI3ZmE2YWQ5NGQ1YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_e33fd92ee6994fb7add182f3ef37e7bb",
+      "statement": "The read-model E2E helper calls the fallback-capable order detail route, so item assertions do not identify Elasticsearch as the backend; the multiple-items case creates two separate orders.",
+      "evidence": [
+        {
+          "resource": "repo://e2e/src/test/java/com/example/e2e/BaseE2ETest.java#L76-L83",
+          "version": "repo-lines-v1:sha256:1c9849ec96dac6d1f763931b3b9a35d8adc4aa291c12445497ccfcb28d5a3e61:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzljYmJjNjU0NjlkYjFjYTI4NDJlZmQ5N2RmN2VlMmNlNmNjMTU3MTQ4MmQwMWExOGI3OTBhMTBjN2M1MTBmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzA4NzA3OGNiZjJlYjU2Y2UzYThhYjBmMDEwYjg0YmViODM4NWExNTA1OGZmNGUzYjMyMzdhZWMwYzFhODYxZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTUxZmQ0ZTcxODZiNzMwMDk3YTFjMGZiMjI2OGU0YzgzMjMyMTJhNWMxZTRmZmRmMzdiNzAyMzI2MDU5OWFlNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://e2e/src/test/java/com/example/e2e/OrderReadModelItemsE2ETest.java#L35-L86",
+          "version": "repo-lines-v1:sha256:2356ad765eead80c59f43ebea5c90f2db93ba1e2b2591b267115675095ab0785:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkOTllN2M0OTcxM2MzMzc2Njc3MTI5MWRiY2NjMzc2NGM0OTk1N2U5N2U0NjgyN2U3ODIxMzliM2FiZjk5NDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3ZmY3NjNhYjY4YzI1ZTE2ZDZmOTFkZmI0ZmU2MWQxNzIxYWRkMTExOWIzN2RmYjUzZDFjMzM4MmVjYmJkYjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/query/order/GetOrderQueryHandler.java#L23-L33",
+          "version": "repo-lines-v1:sha256:077b9baf211ef0727e479beb22eb08cf4f498d378eac987ed7cdd24eca05ecbb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5Yzg3ZDkyMGEwZjU4Y2Y1MjdiN2NmMjdiMzU1YjRmMmI5OTEyNTU4ZTA5N2Q0OWQ4NmRiYjE3M2RhMGRhNTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1YzllNzllNzNjNTFiYTExMWM1Nzc0ODI5YmViMTc1M2E2MmE4NDc4ZWE5NGUwN2Q2YjAwNzhmNWRkZGUxODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

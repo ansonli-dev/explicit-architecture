@@ -64,6 +64,13 @@ public class Book extends AggregateRoot<BookId> {
         registerEvent(new StockReleased(UUID.randomUUID(), this.getId().value(), orderId, quantity, Instant.now()));
     }
 
+    public void releaseLegacy(UUID orderId, int quantity, int checkoutQuantity) {
+        if (quantity > stockLevel.reserved() - checkoutQuantity) {
+            throw new IllegalArgumentException("Cannot release more than the legacy reserved stock");
+        }
+        release(orderId, quantity);
+    }
+
     public void restock(int quantity) {
         this.stockLevel = this.stockLevel.restock(quantity);
     }

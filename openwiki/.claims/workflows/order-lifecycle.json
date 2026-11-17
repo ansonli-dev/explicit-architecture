@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:44ae768cf278bdf38227904517cbaba5de171c58863c817f939752a10f7d65f6",
+  "claims": [
+    {
+      "id": "claim_e620ea6f862442aebc2efa79a2ff959a",
+      "statement": "Order placement rejects duplicate book IDs, reads Catalog stock, builds request-supplied item snapshots, prices and validates the order, then reserves stock and saves a PLACED aggregate.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/command/order/PlaceOrderCommandHandler.java#L33-L82",
+          "version": "repo-lines-v1:sha256:70fe7f7fe383a9b8d4ff66f4cc001e874c24f99476489316f4e55b508e100141:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZjk4YmNhODc3NDg4Y2M4MjAyYWZiNTIzYTcyNDA4YjE2ZWE3NzBkZWZmM2RiMjc3NDY1NWE4ODk4NDFmNzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YzJhNmMzODI0MzUwOGM5OWZhM2I2MDhkNWNiMDAzNjlmMmY1YWNjNGFmY2ZkZTU5ZjNiODMzMDBhZjFhOTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwZjc1ZjkyYzE2ZTI1ZTlmMGFmMmRhNGZiYTk2N2RkMDcwZGVjMTkzMzYwYmRlMWEwNzRkYzgyZDYwNDQ3M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkOTUwYTk1YmFhMDgxMGZkMTJmMjIzYWU1ZmFlYTNjOGY4ZjA3YThhMjJjMDhjZWRhZmJiYjk3MzQ2MzdiMmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2ee59707fe1d45b8a5eae584f7fa37ab",
+      "statement": "Placement compensation releases only reservations whose calls returned successfully, logs individual rollback failures, and wraps reserve/place/save failures in IllegalStateException.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/command/order/PlaceOrderCommandHandler.java#L73-L94",
+          "version": "repo-lines-v1:sha256:321f34cb07c236b2e0bda2d7d9a42fa4e960dcb6d33a8b8ac6dfa0982382d042:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5ZjBhOTQ2NTFmNDJjNjkzYjgzN2ZiMWExZmZhN2VhNWQzZDk1YTQ3YjY2YjE0NjRiZTAxOTdkNmQyYzg1NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5ZTlkNzM4YzJjOGVkMGI0OTRmNjMzNzNlOTNlY2QwZGM3NmRkOGI0MGEzOTA5OTA4NjFhOWM4MTJmODg3ZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRmNDkxYjIzNmMwZThiMDAzYTIyOWU0NDJhNmI2MjQzYzdkNTllMThiOTVlNWQzMzc2ZWJmYmI2ZGE1YTlmMzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_00667d6560204e7bacc49f4bc0a67db2",
+      "statement": "Order pricing gives lines of quantity at least five a 10 percent discount, then applies 5 percent to post-bulk totals at least 50000 cents, using integer division.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/domain/service/OrderPricingService.java#L44-L54",
+          "version": "repo-lines-v1:sha256:2cd1f5a890b9ba127dd27077787c4077ca8c0bc69de46f7e8f9b136e0181ac13:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczNGI4NGQ0ZjA3ZDEzODQwMjAwOGViZjQ3MmIxNDYxNjc2MDk5YTIxOTQyYzI2NmI0MTFjNzU2MThiYzc2OWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwMjE5YjVjMmFkMzI4MDgxYzhhNzdhZDFhNTMyOTRkYjc0ZDkxYjk2YzMxY2RiZDUyNzEwZWU1YmUzNTFlZjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwNGYzNmMwMGE1ZGFiNjRmNmIxMjJkODMyYTAxMDk1NTViM2I5M2FjMTkxZTMyMjU4MjIzNzU4MTljMTk0NTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1NGZjMTdjMTg0MDZkM2RhZjQxZjkzY2YxYTAwOWVjY2U1NGYyNDZkNWY1YmI4YWEzNDE5ODY1ZmE3MmQ3NTAifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/domain/service/OrderPricingService.java#L68-L114",
+          "version": "repo-lines-v1:sha256:5d2deed27f0423c181b8a0e972325fd3dc30f1dbaf808c505ef79ecc085297bd:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMGNkODkxYTA1ZjIyYjdkZGU5N2Q3ZTMwMTNiNWVmODJhYTExMTYyYTZiODhjZjI2MTE1NzhiNTExZjY4YmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwOTU3OTMyODcwYWNmNTE4ZTBiZGZlNmU4ZDRlOWY4Nzg4ZjBkM2RjZjhmNGRjMjNmYzM1OThhZDQwYjQzNjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a69e88674e6743bf9e2eca60d1d01855",
+      "statement": "Order creation validates nonempty items, nonblank email, consistent item currencies and sufficient supplied stock; place/confirm/ship require specific prior states and cancel rejects shipped or cancelled states.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/domain/model/Order.java#L100-L173",
+          "version": "repo-lines-v1:sha256:61ee3164944b9ad005458d420cc95dafd46df90d7325d242b11b33b0a5ca7333:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmMzhiODYzNjgzNjc1NDdmYTM0NjJkNTEyNDk3NTYwODU5Mzc0ZGJmYzljMjA4ZTI0ZTU2NTkzZGYzYzBmOGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFiOGYyYmE3YTdlZWI4NDM1ZDcwMDM3ZWYyZjZiNzdhNDVjYzViMWQ5YWVmNmI1NTJlOTdmNzE5NGE4YjNmMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmZGFmOTIzMzM5OWFmMTc0NGIyOWY5ZTVmYTk1MDMwNWI2ZGIzYWQ1OTk1MzdiODA3NjAyZDZiZDc2ZWU2NjkifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/domain/model/Order.java#L70-L85",
+          "version": "repo-lines-v1:sha256:76e734a17a1b50b5c86ce49118248e4ff4546a97ee8ee70b0f79c984d3990b23:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmNmJmYTQ5ZGUyNDhhODhmZWI5M2I3ZTViZmUzNTEyNmZkNGE1ZjZhYWM1ZGUzZTI2NmQyMDQ1NTFlODBmMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY3NDg1OTYxNjcwNGY2ODM0MGZhNGI5NDljYWVmZTcxNmJjMWE5MjdmOGUxZTBmNmJlYTFhZDhmNDdjNWVjNDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxNTc0YmEwYjFjMDNiMTM1Nzc0OGM3NjYyMDc2NzgxYjcxYWRhNTU2ZTA0NzdmOTY1ZWI1ZmExN2ZkZDUwMDYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ea2c89bcb42b485792ee756ff29ff21b",
+      "statement": "Order auto-confirmation is triggered by an AFTER_COMMIT local event listener with a 5000-cent CNY threshold, while eligibility compares status and cents without checking threshold currency.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/domain/model/Order.java#L124-L133",
+          "version": "repo-lines-v1:sha256:f453d3383ea1cb63d805bc51b50e1775d5f3bde17064eb3c6b39452c568e302a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZjg2OWE4MDJlZDQwODMxMzM0MjAyMmM4MTAzMzZiZjc4MGUwMWFlZDU5MzdmNTcyYjQ4Njg2YzFjYWUxY2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3OTM4YmEzMmVjMWMzM2UyNzBkNTFkMGMzZDViZjk2MzQ0MTlkM2U2NDI5ODUxYzI3ZDFiYWZjMzc1OTkxNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkYjExMTNmOThjNzVjMGQ3YzA4M2M3ZDU4OTE4ZGQ4M2JlNTZjOGJiNTA0YmFkYWZmOTYyOTNiNjcwZjdmMWIifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/interfaces/event/OrderPlacedAutoConfirmListener.java#L30-L42",
+          "version": "repo-lines-v1:sha256:389cbdb641770e4075a889f2d8f4d619f9f574c6677603ca75a74910981adbed:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkMzE0MmVmZDI4ZjQwMWU4Njk1NGRjZDVmMzMyZjZhN2FhNzQ4NWE3NzRjNWY4Y2ExNTk5NGNhNTc1YjhlYmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1OGVhNmIxN2Q1ZGExY2FlMzNiNTVhYWFiMjI3MmViMGE5YWNhODIwOTY2YzY4NzRiYmU3ZmRiNmUzODNlMzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhOTA4ZGVlMDY0NDdkOGI5MDI3NzMyNjRhZGJjNjBmZTk2ZmY3NGVjNzEzYzNjNzgxYTkyZDgyYzBlODk5MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_79b1a7c5fcfd4737abd2add9768d3907",
+      "statement": "The auto-confirm handler reloads and saves eligible orders without declaring a new transaction, and the persistence adapter uses ordinary Transactional save.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/command/order/AutoConfirmOrderCommandHandler.java#L18-L36",
+          "version": "repo-lines-v1:sha256:dfaba4d0bc03b761752731a7bae6369e27be2a72328af1f6adf6908ce3508319:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NWMzY2IxMThiYWIwMjI5OGI5MGM1N2U1MWI0NjdlNzBkM2U4YmVlZjM1NGY4NzgyZjVkN2Q0Yzk0ZjBiNTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmYWM2NDhhNmFiZmY3NTE2Y2QxMWVmYjc1MTVkMzgzNmQ4Yzg4ZmRiYTM4OWNjZmMzMDU0N2FhZjgyNTdiZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/repository/jpa/OrderPersistenceAdapter.java#L23-L25",
+          "version": "repo-lines-v1:sha256:1234ef2525bfda291d27e3d0e904612d494f57a0e0f0baac524364a8eeeab76d:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTRmOTUzNjIxNDkzZjlhYTYxMmJiNDBmNzdmN2UwMjM4MGY4ZTU5ZmMwZDZjOWRlMGM5YzBkZThjNmM2NjVjZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDg2YzZiMjAxOTVkOGY1NTY1ZmFhZDU4MzYyODZjYjZiZmE5NTc5ZTcyNDY5NDkzMDMwMGNkMGE1MTA0OWZiMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWFmNDQxMzgxNzI4ZGI3NzNjZDYzY2ZiNDQwNWRjOTMzODMyMDQ3M2I4Mzk1NTAyNmI2NTU5NjVhMGYzMWVjMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0306456f817049baaed4c33e310c8a8f",
+      "statement": "The placement response comes from the originally placed aggregate, while cancellation only mutates and saves order state and relies on events for stock release.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/command/order/CancelOrderCommandHandler.java#L19-L30",
+          "version": "repo-lines-v1:sha256:3306b4f1875e187a4cff24df12719eef298e0f6e4db7a033556d91140bb1a621:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NWMzY2IxMThiYWIwMjI5OGI5MGM1N2U1MWI0NjdlNzBkM2U4YmVlZjM1NGY4NzgyZjVkN2Q0Yzk0ZjBiNTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmYWM2NDhhNmFiZmY3NTE2Y2QxMWVmYjc1MTVkMzgzNmQ4Yzg4ZmRiYTM4OWNjZmMzMDU0N2FhZjgyNTdiZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/command/order/PlaceOrderCommandHandler.java#L81-L110",
+          "version": "repo-lines-v1:sha256:6318d5822b511ddec9744b46fa5e37c5a42fddeea86d3211c204ecf49e558797:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkYjE4YWZjN2FhYjM2YjI0MDEwYWUwYWEzMzJlY2Q4Yzk5ZGU5ZTc1MmU2M2Q3NzM0YWQ0YTVhNzdhOTFhMDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2ODNmM2Y5ZmUzZmM0ZGFkNDE5Zjg0OGM0MDc4ODg2MjllODQ4ZWM3YjBiN2MyMmE5YjZhMDdlODUxZDEzNWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiODliZDE5MGJlZjdkMjVhZTkxOGFmOTQ3NjZkZDBmNjRiMDc2M2E0ZjIyZTgxYTgzODg3NjgyMTI2NTE4YzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a7f20a0ce35046dd8b07ded672f2d8f7",
+      "statement": "The Order command controller exposes placement and cancellation but no manual confirmation or shipping routes.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/interfaces/rest/OrderCommandController.java#L17-L39",
+          "version": "repo-lines-v1:sha256:2603bc7ed18cd450a15db446e95d2724284e86f2a79debcb891f97d5d90f14a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmI1ZjJkZmE2OTM5MDYxOGY2NmFkYjZiNzk2YzM0NjYyMzIxYzc3YjQwZjAzZGFiZTUwYmUyMTg3ZmU3ZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTgyMzNiM2JiNGEyNTczNmFiMzAzZWY3M2NjZGEyYWMyODI3NTQwZDk5N2JjYTA4ZWNkOGQ5MjI3YzdmNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

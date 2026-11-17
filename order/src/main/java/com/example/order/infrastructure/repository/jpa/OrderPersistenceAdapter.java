@@ -1,10 +1,15 @@
 package com.example.order.infrastructure.repository.jpa;
 
+import com.example.order.application.checkout.Checkout;
+import com.example.order.application.checkout.CheckoutProblem;
+import com.example.order.application.port.outbound.MyOrderReadRepository;
 import com.example.order.domain.ports.OrderPersistence;
 import com.example.order.application.port.outbound.OrderReadRepository;
 import com.example.order.application.query.order.OrderDetailResult;
 import com.example.order.application.query.order.OrderItemResult;
+import com.example.order.application.query.order.MyOrders;
 import com.example.order.domain.model.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository {
+class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository, MyOrderReadRepository {
 
     private final OrderJpaRepository orderJpaRepository;
 
@@ -46,6 +51,7 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository {
                     e.setId(order.getId().value());
                     e.setCustomerId(order.getCustomerId().value());
                     e.setCustomerEmail(order.getCustomerEmail());
+                    e.setReservationProtocol(order.getReservationProtocol());
                     e.setStatus(order.getStatus().name());
                     e.setTotalCents(order.getTotalAmount().cents());
                     e.setCurrency(order.getTotalAmount().currency());
@@ -85,6 +91,50 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository {
                 });
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public MyOrders.PageResult listOwned(CustomerId owner, int page, int size) {
+        var slice = orderJpaRepository.findAllByCustomerIdOrderByIdDesc(owner.value(), PageRequest.of(page - 1, size));
+        var orders = slice.stream().map(row -> new MyOrders.SummaryResult(
+                row.getId(), row.getStatus(), safeMinor(row.getTotalCents()), row.getCurrency())).toList();
+        return new MyOrders.PageResult(orders, page, page < 100 && slice.hasNext());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MyOrders.DetailResult findOwned(CustomerId owner, OrderId id) {
+        return orderJpaRepository.findByIdAndCustomerId(id.value(), owner.value())
+                .map(entity -> new MyOrders.DetailResult(entity.getId(), entity.getStatus(), safeMinor(entity.getTotalCents()),
+                        entity.getCurrency(), entity.getVersion(), entity.getItems().stream()
+                                .map(item -> new Checkout.Line(item.bookId(), item.bookTitle(), item.quantity(), safeMinor(item.unitPriceCents())))
+                                .toList()))
+                .orElseThrow(() -> new CheckoutProblem(CheckoutProblem.Code.NOT_FOUND));
+    }
+
+    @Override
+    @Transactional
+    public void cancelOwned(OrderId id, CustomerId owner, String reason, long expectedVersion) {
+        var entity = orderJpaRepository.lockOwnedOrder(id.value(), owner.value())
+                .orElseThrow(() -> new CheckoutProblem(CheckoutProblem.Code.NOT_FOUND));
+        if (entity.getVersion() != expectedVersion) {
+            throw new CheckoutProblem(CheckoutProblem.Code.VERSION_CONFLICT);
+        }
+        var order = toDomain(entity);
+        try {
+            order.cancelByCustomer(reason);
+        } catch (OrderStateException e) {
+            throw new CheckoutProblem(CheckoutProblem.Code.ORDER_STATE_CONFLICT);
+        }
+        save(order);
+    }
+
+    private static long safeMinor(long minor) {
+        if (minor < 0 || minor > Checkout.MAX_MINOR) {
+            throw new CheckoutProblem(CheckoutProblem.Code.AMOUNT_OUT_OF_RANGE);
+        }
+        return minor;
+    }
+
     private Order toDomain(OrderJpaEntity entity) {
         List<OrderItem> items = entity.getItems().stream()
                 .map(i -> new OrderItem(i.id(), i.bookId(), i.bookTitle(),
@@ -102,7 +152,7 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository {
         };
         return Order.reconstitute(OrderId.of(entity.getId()), CustomerId.of(entity.getCustomerId()),
                 entity.getCustomerEmail(), status, items,
-                new Money(entity.getTotalCents(), entity.getCurrency()));
+                new Money(entity.getTotalCents(), entity.getCurrency()), entity.getReservationProtocol());
     }
 
 }

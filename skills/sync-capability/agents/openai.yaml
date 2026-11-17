@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync Capability As-Is"
+  short_description: "Maintain shared capability As-Is from its stable ref"
+  default_prompt: "Use $sync-capability to build, verify, or update this shared capability As-Is from its configured stable Current ref."

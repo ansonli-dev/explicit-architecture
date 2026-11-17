@@ -1,0 +1,25 @@
+spring:
+    datasource:
+        hikari:
+            data-source-properties:
+                "[logServerErrorDetail]": false
+    jackson:
+        deserialization:
+            fail-on-unknown-properties: true
+            accept-float-as-int: false
+            fail-on-trailing-tokens: true
+        mapper:
+            allow-coercion-of-scalars: false
+        parser:
+            strict-duplicate-detection: true
+
+outbox:
+    relay:
+        strategy: scheduler
+
+demo:
+    jwt:
+        issuer: ${DEMO_JWT_ISSUER}
+        jwk-set-uri: ${DEMO_JWT_JWK_SET_URI}
+    checkout:
+        intake-enabled: ${DEMO_V2_INTAKE_ENABLED:true}

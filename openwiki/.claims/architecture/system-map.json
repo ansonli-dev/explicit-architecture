@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:ffa97a7387c0cd18a563e050ef8400ee0cb57e36957a2ef7166f13b501fc90c4",
+  "claims": [
+    {
+      "id": "claim_022fc69686e8401880ed527b283e7333",
+      "statement": "Catalog REST controllers invoke typed inbound use cases directly, while Order commands and Notification list queries dispatch through shared buses.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/interfaces/rest/BookCommandController.java#L24-L58",
+          "version": "repo-lines-v1:sha256:64d827cbd405f948ae30cb9b9093fad9dc628652c8c7dbf7d5bc60a148b29f77:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmI1ZjJkZmE2OTM5MDYxOGY2NmFkYjZiNzk2YzM0NjYyMzIxYzc3YjQwZjAzZGFiZTUwYmUyMTg3ZmU3ZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1OGE3OGVmMzQyMTUwMjM5MTY5NDdkOTkzZTcxZmNhYTQwYzUxZGM5MjUwNTllYzM4M2IxZDc5ODAwODAwNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/interfaces/rest/NotificationController.java#L13-L25",
+          "version": "repo-lines-v1:sha256:701d298c519d5ac41335ab5b39de15a98cdcc3808475835d0eee64837a37d0c5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmI1ZjJkZmE2OTM5MDYxOGY2NmFkYjZiNzk2YzM0NjYyMzIxYzc3YjQwZjAzZGFiZTUwYmUyMTg3ZmU3ZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYTViYTE0OTExZjk5ZDc4NmQ5ZjM1YWYwMDg4NTI1NGEwOTIzZmU2YzE3YzU5MDBiNDA5ZTY1YjY0Njk0YzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTgyMzNiM2JiNGEyNTczNmFiMzAzZWY3M2NjZGEyYWMyODI3NTQwZDk5N2JjYTA4ZWNkOGQ5MjI3YzdmNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/interfaces/rest/OrderCommandController.java#L17-L39",
+          "version": "repo-lines-v1:sha256:2603bc7ed18cd450a15db446e95d2724284e86f2a79debcb891f97d5d90f14a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmI1ZjJkZmE2OTM5MDYxOGY2NmFkYjZiNzk2YzM0NjYyMzIxYzc3YjQwZjAzZGFiZTUwYmUyMTg3ZmU3ZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTgyMzNiM2JiNGEyNTczNmFiMzAzZWY3M2NjZGEyYWMyODI3NTQwZDk5N2JjYTA4ZWNkOGQ5MjI3YzdmNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec5ab1b6c16b4eeaab058dc75ae0ba30",
+      "statement": "Each bookstore service configures a distinct PostgreSQL database; Catalog also configures Redis, while Order configures Elasticsearch.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/resources/application.yml#L7-L22",
+          "version": "repo-lines-v1:sha256:3961645887b826cefaad6f295c5b0b5637c786b814fed37a94b896c8a6254fc5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhYTkzNzA2NTBkZjRhMjczZjg5NGY5NDg3NjY2ODVjNTg0NzJlZDkyMWU2ZmY2NGQ3MGFmYjk5M2FkMGEzMDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjODJmZTdkM2U4OWE2ZjQ2NWRjY2Y5OTk1NTcwZGUxNjIyMmI5MzM4NTNmZGYyYjkyMTllMTAzY2ZkY2UyOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2MjY4ZmViYTQyNmZmZWVhYjc2MWFlNzQyZjBiMDhiODNkNmJlMjYyYWQ0Zjg2ZGU2YjkwM2NjMmUxOTQ3YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNGMyYzhmYmYwZThlODg3NDdkM2ViOTNjNTJmYmMzNTNkYTFkMmQ4MTczMzc5NWEwZjFjZTRjZjc5YWUyNmMifQ"
+        },
+        {
+          "resource": "repo://notification/src/main/resources/application.yml#L9-L20",
+          "version": "repo-lines-v1:sha256:26b673b6748264b2ae655c98f9fdfe7a4a539832289e249231d14c4fe050a00b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhYTkzNzA2NTBkZjRhMjczZjg5NGY5NDg3NjY2ODVjNTg0NzJlZDkyMWU2ZmY2NGQ3MGFmYjk5M2FkMGEzMDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwOWFjYTI1MDU1MWZiMGUyNmI3M2U0Mzg1ZTMxYmU4NzZkNWQyNjZlNWIwZTU1NzNjOTM1Y2VjMDdkYjI0MjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2MjY4ZmViYTQyNmZmZWVhYjc2MWFlNzQyZjBiMDhiODNkNmJlMjYyYWQ0Zjg2ZGU2YjkwM2NjMmUxOTQ3YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3YjE1YTliYTlkYTAzNTZlNzU3MTY3OTY0ZjlhNjU2ZjljMzNiODNlMGU1OTcwZmFhZDhhNmI4ZjYzMzQwMDkifQ"
+        },
+        {
+          "resource": "repo://order/src/main/resources/application.yml#L7-L20",
+          "version": "repo-lines-v1:sha256:a0554537761ba88b7a954bf71bb272c0abbdfb9edab76ed679dcb48e99c2dbe7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhYTkzNzA2NTBkZjRhMjczZjg5NGY5NDg3NjY2ODVjNTg0NzJlZDkyMWU2ZmY2NGQ3MGFmYjk5M2FkMGEzMDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyNThlZWIwMDhkNDVmYWZmY2E5ODAzN2I3MDFhNDdjOTUzNzQzNTE5MTFhYWYyMTZhNTVjNzc2MjM5NTg1Y2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2MjY4ZmViYTQyNmZmZWVhYjc2MWFlNzQyZjBiMDhiODNkNmJlMjYyYWQ0Zjg2ZGU2YjkwM2NjMmUxOTQ3YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzNGMyYzhmYmYwZThlODg3NDdkM2ViOTNjNTJmYmMzNTNkYTFkMmQ4MTczMzc5NWEwZjFjZTRjZjc5YWUyNmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0d0059cd425c4ddd8a1256bf6aee0a51",
+      "statement": "Order placement performs synchronous stock checks and reservations through CatalogClient and attempts compensating releases for successfully reserved items when placement fails.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/command/order/PlaceOrderCommandHandler.java#L46-L94",
+          "version": "repo-lines-v1:sha256:7228ce3035175ef531402f0a32a26956015851b99177ada5a2c523bf89d59b52:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YzZmMjA5ZDgxZTNlZWFiZTQyMmM0YWFlZDU0NTU0MmY5MzI2MWIyZWIyMzk5NjRhNGM3NjI3ZTA3YzExZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE2YzQzMzE3ZGVmNWUyMDU5ZjE2YTNmNzBhY2E2OTkxNDZkMWY4MGM2ZmNkZGI1YzhkOGE5NGNmMWE4MGQ3NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRmNDkxYjIzNmMwZThiMDAzYTIyOWU0NDJhNmI2MjQzYzdkNTllMThiOTVlNWQzMzc2ZWJmYmI2ZGE1YTlmMzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8f6174e46c21404fba06eaab2da2cf43",
+      "statement": "Order detail queries fall back to a PostgreSQL projection on an Elasticsearch miss, whereas order list queries use the search repository alone.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/query/order/GetOrderQueryHandler.java#L23-L33",
+          "version": "repo-lines-v1:sha256:077b9baf211ef0727e479beb22eb08cf4f498d378eac987ed7cdd24eca05ecbb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5Yzg3ZDkyMGEwZjU4Y2Y1MjdiN2NmMjdiMzU1YjRmMmI5OTEyNTU4ZTA5N2Q0OWQ4NmRiYjE3M2RhMGRhNTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1YzllNzllNzNjNTFiYTExMWM1Nzc0ODI5YmViMTc1M2E2MmE4NDc4ZWE5NGUwN2Q2YjAwNzhmNWRkZGUxODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/query/order/ListOrdersQueryHandler.java#L18-L22",
+          "version": "repo-lines-v1:sha256:7960e802f840daac064f5444b01cb9daafb5107d5cfc3e7f098d9f6f35dc9732:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWIwNzQ4OWMyNGI0NTRiMzVlMmQ4MDg2Njc3Yjk3OTZhNzA5ZGRlYzI4MTU3YjE5OTcyNGYzZmQyNDIxYmZjZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjBiNzRmOGYyYmIyMWRjZjg1N2M4MTk2OTQxYzViMjJlNmYwNDUyZDIwNDkzZDE1OGExZjEyODkyZTQ2ZGIzZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_057d450d1a354a9a9e4c31c2b39c0f35",
+      "statement": "The Order component test starts embedded Kafka and containerized Elasticsearch, replaces Catalog with MockWebServer, and does not run the production sink connector.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/test/java/com/example/order/component/OrderComponentTest.java#L157-L175",
+          "version": "repo-lines-v1:sha256:9048e89b650eaf5766f0df3f02d8b927bc7bc758006b5c6af38fb25d56bba6da:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRjY2M1OTRmNGY1MzZlMmNkZDM1NzkyMTM3YjkyMTE1ZDhkYjc0MjUzNjM2YjMyMDdlODgyOGRiNWYzN2ZkZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkNzc3M2MwMjRiMWMzMTM1MzRhZGYwYmIwNTFkMzBmYWI4YzMyYzM3YmIxMmE4MjkxNGE3ZGVhMWY4ZTdhYmUifQ"
+        },
+        {
+          "resource": "repo://order/src/test/java/com/example/order/component/OrderComponentTest.java#L37-L64",
+          "version": "repo-lines-v1:sha256:c2a1eb6681453c4f5d77ff7257e789a1d6cd9c4301c9dcc8ef1cfd77d7aec43d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5ZTAwNGI5MTBkYmJmNzUyYzFjYjRhYjdjNzNhNjIxOTM3MzE5ODI1MWEzOGQ2MmRkY2UwZDEyODY5MGU4NTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MmYzMTMzOTM3ZjU2MThhZTRiYzIzNjU3ZGE4YTA5NmQ0OGFiNmI3MWFkYzAyMTlmY2RiNTVlYWZiZjI4NzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiZjlhN2MwZTVkOTYxYzYxNTI2NDMzZTk1ZmI5MzU5Y2M3YjEwOGQ5NGFlMjA3MDljMWE1OTUwNzJhNjVkMTIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

@@ -18,17 +18,22 @@ import java.util.UUID;
  */
 public class Order extends AggregateRoot<OrderId> {
 
+    private static final int LEGACY_RESERVATION_PROTOCOL = 1;
+    private static final int CHECKOUT_RESERVATION_PROTOCOL = 2;
+
     private final CustomerId customerId;
     private final String customerEmail; // snapshot at place-time
+    private final int reservationProtocol;
     private OrderStatus status;
     private final List<OrderItem> items;
     private final Money totalAmount;
 
     private Order(OrderId id, CustomerId customerId, String customerEmail,
-            OrderStatus status, List<OrderItem> items, Money totalAmount) {
+            OrderStatus status, List<OrderItem> items, Money totalAmount, int reservationProtocol) {
         super(id);
         this.customerId = customerId;
         this.customerEmail = customerEmail;
+        this.reservationProtocol = reservationProtocol;
         this.status = status;
         this.items = Collections.unmodifiableList(items);
         this.totalAmount = totalAmount;
@@ -48,13 +53,23 @@ public class Order extends AggregateRoot<OrderId> {
     /** Creates a new Order with a pre-generated ID (use when the ID must be known before persistence). */
     public static Order create(OrderId id, CustomerId customerId, String customerEmail,
             List<OrderItem> items, Money finalTotal) {
+        return createPending(id, customerId, customerEmail, items, finalTotal, LEGACY_RESERVATION_PROTOCOL);
+    }
+
+    public static Order createWithCheckoutReservation(OrderId id, CustomerId customerId, String customerEmail,
+            List<OrderItem> items, Money finalTotal) {
+        return createPending(id, customerId, customerEmail, items, finalTotal, CHECKOUT_RESERVATION_PROTOCOL);
+    }
+
+    private static Order createPending(OrderId id, CustomerId customerId, String customerEmail,
+            List<OrderItem> items, Money finalTotal, int reservationProtocol) {
         if (customerEmail == null || customerEmail.isBlank())
             throw new IllegalArgumentException("Customer email must not be blank");
         if (items == null || items.isEmpty())
             throw new IllegalArgumentException("Order must have at least one item");
         validateCurrencyConsistency(items);
         return new Order(id, customerId, customerEmail,
-                new OrderStatus.Pending(), List.copyOf(items), finalTotal);
+                new OrderStatus.Pending(), List.copyOf(items), finalTotal, reservationProtocol);
     }
 
     /** Creates a new Order with an auto-generated ID. */
@@ -69,19 +84,14 @@ public class Order extends AggregateRoot<OrderId> {
      */
     public static Order create(OrderId id, CustomerId customerId, String customerEmail,
             List<OrderItem> items, Money finalTotal, Map<UUID, Integer> availableStock) {
-        if (customerEmail == null || customerEmail.isBlank())
-            throw new IllegalArgumentException("Customer email must not be blank");
-        if (items == null || items.isEmpty())
-            throw new IllegalArgumentException("Order must have at least one item");
-        validateCurrencyConsistency(items);
-        for (OrderItem item : items) {
+        Order order = create(id, customerId, customerEmail, items, finalTotal);
+        for (OrderItem item : order.items) {
             int available = availableStock.getOrDefault(item.bookId(), 0);
             if (available < item.quantity()) {
                 throw new InsufficientStockException(item.bookId(), item.quantity(), available);
             }
         }
-        return new Order(id, customerId, customerEmail,
-                new OrderStatus.Pending(), List.copyOf(items), finalTotal);
+        return order;
     }
 
     /** Creates a new Order with an auto-generated ID and stock validation. */
@@ -92,7 +102,12 @@ public class Order extends AggregateRoot<OrderId> {
 
     public static Order reconstitute(OrderId id, CustomerId customerId, String customerEmail,
             OrderStatus status, List<OrderItem> items, Money totalAmount) {
-        return new Order(id, customerId, customerEmail, status, items, totalAmount);
+        return reconstitute(id, customerId, customerEmail, status, items, totalAmount, LEGACY_RESERVATION_PROTOCOL);
+    }
+
+    public static Order reconstitute(OrderId id, CustomerId customerId, String customerEmail,
+            OrderStatus status, List<OrderItem> items, Money totalAmount, int reservationProtocol) {
+        return new Order(id, customerId, customerEmail, status, items, totalAmount, reservationProtocol);
     }
 
     // ─── Domain Behaviour ─────────────────────────────────────────────────────
@@ -149,9 +164,16 @@ public class Order extends AggregateRoot<OrderId> {
         }
         this.status = new OrderStatus.Cancelled(reason);
         OrderCancelled event = new OrderCancelled(UUID.randomUUID(), this.getId(), this.customerId,
-                reason, List.copyOf(this.items), Instant.now());
+                reason, List.copyOf(this.items), Instant.now(), reservationProtocol);
         registerEvent(event);
         return event;
+    }
+
+    public void cancelByCustomer(String reason) {
+        if (!(status instanceof OrderStatus.Placed || status instanceof OrderStatus.Confirmed)) {
+            throw new OrderStateException("Order must be placed or confirmed for customer cancellation");
+        }
+        cancel(reason);
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
@@ -181,6 +203,10 @@ public class Order extends AggregateRoot<OrderId> {
 
     public String getCustomerEmail() {
         return customerEmail;
+    }
+
+    public int getReservationProtocol() {
+        return reservationProtocol;
     }
 
     public OrderStatus getStatus() {

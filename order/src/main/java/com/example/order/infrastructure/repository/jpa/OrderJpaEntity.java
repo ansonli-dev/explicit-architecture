@@ -34,6 +34,9 @@ public class OrderJpaEntity extends AbstractAggregateRootEntity {
     @Column(name = "customer_email", nullable = false)
     private String customerEmail;
 
+    @Column(name = "reservation_protocol", nullable = false)
+    private int reservationProtocol = 1;
+
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 

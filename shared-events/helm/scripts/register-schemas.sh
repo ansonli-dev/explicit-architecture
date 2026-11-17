@@ -32,47 +32,82 @@ wait_for_sr() {
     echo ""
 }
 
-subject_exists() {
-    local code
-    code=$(curl -s -o /dev/null -w "%{http_code}" "$SR_URL/subjects/$1/versions/latest")
-    [ "$code" = "200" ]
+post_schema() {
+    local endpoint=$1 payload=$2
+    shift 2
+    curl -sS -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+        --data "$payload" "$@" "$SR_URL/$endpoint"
+}
+
+schema_id() {
+    jq -er '.id | select(type == "number" and . == floor and . > 0)'
 }
 
 register() {
     local subject=$1 avsc_path=$2
-    if subject_exists "$subject"; then
-        echo "  [SKIP] $subject — already registered"
+    local payload lookup status body error_code compatibility result id verified_id
+    payload=$(jq -ce '{schema: tojson}' "$avsc_path") || return 1
+    lookup=$(post_schema "subjects/$subject" "$payload" -w $'\n%{http_code}') || return 1
+    status=${lookup##*$'\n'}
+    body=${lookup%$'\n'*}
+
+    if [ "$status" = 200 ]; then
+        id=$(schema_id <<< "$body") || return 1
+        echo "  [SKIP] $subject — schema id: $id"
         return 0
     fi
-    local payload result schema_id
-    payload=$(jq -c '{schema: (. | tojson)}' "$avsc_path")
-    result=$(curl -sf -X POST \
-        -H "Content-Type: application/vnd.schemaregistry.v1+json" \
-        -d "$payload" \
-        "$SR_URL/subjects/$subject/versions")
-    schema_id=$(echo "$result" | jq -r '.id')
-    echo "  [REG]  $subject — schema id: $schema_id"
+
+    error_code=$(jq -r '.error_code' <<< "$body") || return 1
+    case "$status:$error_code" in
+        404:40401) ;; # First version of this subject
+        404:40403)
+            compatibility=$(post_schema "compatibility/subjects/$subject/versions/latest?verbose=true" "$payload" -f) || return 1
+            if ! jq -e '.is_compatible == true' <<< "$compatibility" >/dev/null; then
+                echo "  Incompatible schema for $subject: $compatibility" >&2
+                return 1
+            fi
+            ;;
+        *)
+            echo "  Schema lookup failed for $subject (HTTP $status): $body" >&2
+            return 1
+            ;;
+    esac
+
+    result=$(post_schema "subjects/$subject/versions" "$payload" -f) || return 1
+    id=$(schema_id <<< "$result") || return 1
+    lookup=$(post_schema "subjects/$subject" "$payload" -f) || return 1
+    verified_id=$(schema_id <<< "$lookup") || return 1
+    if [ "$verified_id" != "$id" ]; then
+        echo "  Expected schema id $id for $subject, found $verified_id" >&2
+        return 1
+    fi
+    echo "  [REG]  $subject — schema id: $id"
 }
 
+subjects=$(parse_subjects)
+if [ -z "$subjects" ]; then
+    echo "No schemas are configured in $TOPICS_YAML." >&2
+    exit 1
+fi
 wait_for_sr
 
-errors=()
+errors=""
 echo "=== Registering Avro schemas ==="
 while IFS='=' read -r topic avsc_file; do
     subject="${topic}-value"
     if ! register "$subject" "$AVSC_DIR/$avsc_file"; then
         echo "  [ERR]  $subject" >&2
-        errors+=("$subject")
+        errors="$errors $subject"
     fi
-done < <(parse_subjects)
+done <<< "$subjects"
 
 echo ""
 echo "=== Registered subjects ==="
 curl -sf "$SR_URL/subjects" | jq -r '.[]' | sort | sed 's/^/  /'
 
-if [ ${#errors[@]} -gt 0 ]; then
+if [ -n "$errors" ]; then
     echo ""
-    echo "Failed subjects: ${errors[*]}" >&2
+    echo "Failed subjects:$errors" >&2
     exit 1
 fi
 echo "Done."
