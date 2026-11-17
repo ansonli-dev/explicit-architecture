@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:dad4604ffc4e8ecf7773d587fed9339da6329d3ecc88bc97c76147e1565dc7b6",
+  "claims": [
+    {
+      "id": "claim_4ac00d81753d4eb4ab8591b2eb74ac97",
+      "statement": "Service test profiles configure PostgreSQL 16 through Testcontainers JDBC and mock Schema Registry URLs; Order tests select a 500-ms scheduler outbox relay.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/test/resources/application-test.yml#L1-L24",
+          "version": "repo-lines-v1:sha256:ba973f5b1c463bbb95588a983ae4c8b95067653ccfe56352a7e24267c5be3600:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2NkZjRmZDRiNmMxZWNlYWYzNDMxNWRkYjkyZDcxMTFiNTBhNTBjYjc3MTRmYjNiNGQ2NjQxNjBiMjBjNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiNjc1OWViMWRmMjRhYzA2YjEyMTUxYmFjMGE1ZGM1OWU2MTBiYWQ3ZDNhNjA1N2U2YjdjZTFiMjM0NWQzM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkZmE2Y2EzNTM1NmFlYTZiOGIwYzY3NjI4NDc3ZjU4MWJiMWM1MDdhN2YzOTA0ZTczMWMyZTk1YzkxNWMxOGUifQ"
+        },
+        {
+          "resource": "repo://notification/src/test/resources/application-test.yml#L1-L29",
+          "version": "repo-lines-v1:sha256:7205832a489e6f289d6c4bec59edd01da4a0a583e366702f4b6ef30adc1f2fe3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2NkZjRmZDRiNmMxZWNlYWYzNDMxNWRkYjkyZDcxMTFiNTBhNTBjYjc3MTRmYjNiNGQ2NjQxNjBiMjBjNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3NGNlYjgyOWZmNmJkNDU3OGM1MmY3NzBmNzNjMjZhOGNkZDkzZTExOWNhYTZiZmY3NjE4YmQ3YWMwMWMyOGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkZmE2Y2EzNTM1NmFlYTZiOGIwYzY3NjI4NDc3ZjU4MWJiMWM1MDdhN2YzOTA0ZTczMWMyZTk1YzkxNWMxOGUifQ"
+        },
+        {
+          "resource": "repo://order/src/test/resources/application-test.yml#L1-L26",
+          "version": "repo-lines-v1:sha256:c0e63cf2e9ad95a9a7b7cd27a7344eb9a386379d8a64e8ba4c0f6fb83f4ff654:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2NkZjRmZDRiNmMxZWNlYWYzNDMxNWRkYjkyZDcxMTFiNTBhNTBjYjc3MTRmYjNiNGQ2NjQxNjBiMjBjNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiNjc1OWViMWRmMjRhYzA2YjEyMTUxYmFjMGE1ZGM1OWU2MTBiYWQ3ZDNhNjA1N2U2YjdjZTFiMjM0NWQzM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkZmE2Y2EzNTM1NmFlYTZiOGIwYzY3NjI4NDc3ZjU4MWJiMWM1MDdhN2YzOTA0ZTczMWMyZTk1YzkxNWMxOGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9471e385dfab434eb17de29693cd3929",
+      "statement": "Catalog component tests run a random-port application with embedded Kafka and a mocked BookCache, while RedisBookCacheTest uses a Redis 7 Alpine container.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/test/java/com/example/catalog/component/CatalogComponentTest.java#L38-L55",
+          "version": "repo-lines-v1:sha256:c38a6a33ca17184c5803e6a6e43556b48cdc76969a0f344886012d7dd224e7d5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5ZTAwNGI5MTBkYmJmNzUyYzFjYjRhYjdjNzNhNjIxOTM3MzE5ODI1MWEzOGQ2MmRkY2UwZDEyODY5MGU4NTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4Y2IzNGI5M2JiNmNlZGQxZDJiYTY2ZjE1MDhiNTQ4YWIyMDRjYjBiMzQwMzZkYmMyOGRhYWE2NGUyMGJhNmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3NzIxOGZlNzljMjg1M2ZlOGEyMGViYTk1MTk1MGY0MDhhY2FlODc0MWRhYTYwMjZiZjcxZTJkNGExMmFjZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmMzA4MTMyMzM3OGUzMmJjM2JmNzUyNzg1ZmZmZDA3ODVjYmE3NWNjNjFhYTkxODAxYzA3NTQ2NjZjYTZkNzYifQ"
+        },
+        {
+          "resource": "repo://catalog/src/test/java/com/example/catalog/infrastructure/cache/RedisBookCacheTest.java#L21-L34",
+          "version": "repo-lines-v1:sha256:aab6a663787d6a75af9f2876be4a9cd6c605218876f1c12d2e8df421b1aa5467:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjODY0MmE1Y2I1N2YzNGJkOGIxOGIzZDI2YmYzMWRkMjA5MzE4MjE5Y2IyNGMxODhjNTBhNjFlZDkxZTQ1OGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5M2FhZjllYzNhOTUxYWViNzIwZTZkNjZhZjE5MzRmODhkYzc0MTYwNWNiM2UyYWQ5MzQ2YzlmMGMxODljYjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlNjQ1NjU0NDJkZjFmY2M2ZDQ2MGFjMWRjMGVlODU1MzcwNDUwMDQzZWZiYTVhYTVjZTIyNzRiZDI5YjE5YmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_db22f373dc604858b1be4575d3c220f1",
+      "statement": "Notification component tests mock CustomerClient and OutboxMapper, use embedded Kafka, and accept SENT or FAILED for the basic consumed-event test.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/test/java/com/example/notification/component/NotificationComponentTest.java#L39-L54",
+          "version": "repo-lines-v1:sha256:d3cbc401f16ee3891d7287c8b513b7bed353f6a7a6f4eb1c63acc5b6db01be22:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5ZTAwNGI5MTBkYmJmNzUyYzFjYjRhYjdjNzNhNjIxOTM3MzE5ODI1MWEzOGQ2MmRkY2UwZDEyODY5MGU4NTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxOWIwMzY4NWNiZDdjNDhhYTU1YjJiZTQ1MDYzMjZhMGMxNGI1NmEyMGFiMzMxNDUxMzYxMjFkZWJkYmIyZTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFjZTNiZmRlNWU3OGU0NjkwZTEzYWNhMjcyYWViNGExNDMzNmZkZjQwN2Q0NmUyYmYyODA4NjdiNGYzMWRjODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxZWRlNTRmOGRhNmVhNTNiNjY3MGZmMzY2MDIxMzNmMWYzNWRjYzA0OWJiY2IyM2M3NjllNTBhNWZjNjJiMjAifQ"
+        },
+        {
+          "resource": "repo://notification/src/test/java/com/example/notification/component/NotificationComponentTest.java#L97-L119",
+          "version": "repo-lines-v1:sha256:985ef27b11fe135a3d1e8147e0b749e97447cc66e2b37d5b29452c253bac6a59:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0Yjc4ZjdiNmNiOGUzYTg1NDM1OGE3ODAwMmJjNTg3YThmN2M0NGI1MTMxODcyN2FjYzdmZWJkMTUxNDMwN2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxNzkwODA3MjM0M2UzYTE5MmNhMjZhY2I5OWNmMzk1Y2Y1ZDMwOGYzODczZWRhOGZlMmRjMThlODBiNjI4NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f948152ad5f9461c821e7a75841210d5",
+      "statement": "NotificationIntegrationTest.java has no executable test class and points to NotificationComponentTest as its replacement.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/test/java/com/example/notification/integration/NotificationIntegrationTest.java#L1-L3",
+          "version": "repo-lines-v1:sha256:3e451e43945175f19ae5fe26edad11317308ac1f63276adb5e920ad25f2274a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWZhZTU5OGU5NjM1NmJiMDU2NDM4NGVlZWEwNjZkZjYyOTA0ODkwN2Y2OWIwN2E2ZWQ1ZjcyYmY3YmE0MTY3NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWI0ZWViODIwNDRmMjdiYjg2YTJlMDM0N2ZkMmE2YWE4OTg4NTU0MmNmZjM0YzhmZmQ3MjQyZDA2OGU5ZTU1MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_8acb5d0cc4da46bd872393e790497914",
+      "statement": "E2E Gradle base URLs prioritize project properties over environment variables and localhost defaults, and HTTP helpers create data without a cleanup path.",
+      "evidence": [
+        {
+          "resource": "repo://e2e/build.gradle.kts#L17-L35",
+          "version": "repo-lines-v1:sha256:f58b0f898424c53198ef2fec80bd03c8c7974357c8a6d0f4da5c8c30a809d096:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlOTZhZDUyZTM4NTI5ZTNmYTc2YjI2YjVjOGE5MWUwNzE2M2MwOWI5OWMzMzA0MmE2N2QzMzQ3YTBhMjllZGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI4YTNjYTFjMTBjOTczYTkzOTBjMTEwOTQyNWFhZjIwOWZiZDllMjE0NmI0MjZkMjZhODBiOWUxODM0N2JlOGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU4MzJmZTBjNWFjMTJkOGZmYmQ0ODliNzRjYTE4MjdkYWYyZjNhOWNmYWQ0M2JiN2ZmMTVlMzViNTYwMmQ2NTcifQ"
+        },
+        {
+          "resource": "repo://e2e/src/test/java/com/example/e2e/BaseE2ETest.java#L12-L65",
+          "version": "repo-lines-v1:sha256:96fed5868d5a50e3a14cac0bfade6a6c60280752fb530ea11226418027ae73af:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzMGRjNjA2MmJkNjVhZDdjMzQxYWVhYWI0MDEwMTJhYzU0MGU4OWZmNzhkMjYxMDM3YzE4YWIxYzA5N2Y1NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiMzg3MmMxNGUxMjc3ZjNiMjE0MmIwNmEwNGIyMjA1ZTdkMjAzNzlhNzVkODI0MjdhZmEwMTcyN2RkNDM0YmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNmNTU1ODNjZTMyYjYzNzMxMjMxNzg0NmM2ZjEzZTk1NGY5OTRjZjg1NzliOWJjNjRjZDFlMjkyZWIyODUwNzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_19cab22d8c204ae78ede32d9581536ee",
+      "statement": "Cancellation E2E tests assert immediate stock restoration although current cancellation saves the order and relies on event-driven stock release.",
+      "evidence": [
+        {
+          "resource": "repo://e2e/src/test/java/com/example/e2e/OrderCancellationE2ETest.java#L32-L70",
+          "version": "repo-lines-v1:sha256:f0f239e2ea7df2cdf8afffae93d3a3d8c53c03f325cd94a8db590d9dbebac90f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU2ZmE2Y2MwYTE0OWEzMWI2MTFiNmU2ZTUwNWYzMTM0OWI0N2RlOTEyN2U2YjM2NzVmYjAxNGE4YzkwMzA0ZjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNDY1YTVhOTdhNzRhNGUzODdmNjk3MzRmOWZkMWJmNmRlOWVhOWVkNjk0NTA1YTkyZTc3ZmEyMDcxMDFmZDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwYzgwOTZiOWM5MGIyYWFhNDEwMDI0ZjAzODA0NWJmNTVkYzk0NjBkY2EwNTljNDk3ZGNkZTkyYzZlY2Y4YTUifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/application/command/order/CancelOrderCommandHandler.java#L19-L30",
+          "version": "repo-lines-v1:sha256:3306b4f1875e187a4cff24df12719eef298e0f6e4db7a033556d91140bb1a621:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NWMzY2IxMThiYWIwMjI5OGI5MGM1N2U1MWI0NjdlNzBkM2U4YmVlZjM1NGY4NzgyZjVkN2Q0Yzk0ZjBiNTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmYWM2NDhhNmFiZmY3NTE2Y2QxMWVmYjc1MTVkMzgzNmQ4Yzg4ZmRiYTM4OWNjZmMzMDU0N2FhZjgyNTdiZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a969107ad9c84f73be5eb2b6ebbd24ae",
+      "statement": "The E2E insufficient-stock assertion checks HTTP status at least 400 rather than constraining it to the 4xx range.",
+      "evidence": [
+        {
+          "resource": "repo://e2e/src/test/java/com/example/e2e/OrderPlacementE2ETest.java#L57-L79",
+          "version": "repo-lines-v1:sha256:da498d9bf125a9d01775561d2843af128b5a2e3f971d75c16ba7b8d1f82b34d5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhY2Q5MTI4MWQxOTM0YTAyNDliOTY5MzU5ZGUyNjdjYjM3NmY4MmIxMWE2NjJhMThkZmYyZDA4YTllZjVhOWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1MWIyMjk2YWFhNzk3ZGZjZDIzMWMxMjk4YzA0NGY0ZmM0ZGRmYjMwM2U4M2NjYzNhZDhiNGY4MDQzYThhOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

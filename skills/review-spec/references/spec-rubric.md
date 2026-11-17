@@ -42,13 +42,17 @@
 ## Decision Quality Gate
 
 - 是否从业务结果和 design force 开始，而非从类、表或框架 API 开始？
+- 每项非平凡决定是否有完整 Design Contract，并标出会改变选择的 `UNKNOWN`？
 - authority、scope 和 effective point 是否覆盖真实不变量？
 - failure model 是否区分 prevent/detect/recover/tolerate/exclude？
 - semantic、decision、mechanism 和 operational owner 是否分开？
+- 是否生成实质不同的候选，或给出可验证的单候选理由，而非比较不同命名或参数？
+- `SELECTED` 是否通过 authority/scope、failure、standard、dependency、evidence、recovery 和 evolution 硬门禁？
 - 所选机制是否明确引用它能提供的 guarantee 和不能解决的 residual risk？
 - 是否保持标准路径？
 - 是否执行第二入口、并发、崩溃、重复、乱序、未知结果和版本共存等适用反事实测试？
-- 多个可行方案是否按正确性、单一权威、层自治、标准路径、恢复和演进顺序裁决？
+- 多个可行方案是否按共享质量顺序裁决，且没有用加权总分掩盖高优先级缺陷？
+- 是否记录 selected/rejected rationale、fallback、invalidation condition 和 verification evidence？
 - 关键决定是否有 `CTX-* / ASIS-* / CASIS-* / DISC-* / DR-* / MECH-* / GEN-*` 追踪和验证证据？
 
 ## Technology Fit Gate

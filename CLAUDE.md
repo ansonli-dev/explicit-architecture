@@ -432,3 +432,11 @@ helm upgrade --install catalog ./catalog/helm -f catalog/helm/values.yaml
 11. [ ] Write unit tests for handler (mock ports with Mockito)
 12. [ ] Write integration test for persistence adapter (Testcontainers)
 13. [ ] Update OpenAPI spec in `docs/api/`
+
+<!-- OPENWIKI:START -->
+
+## OpenWiki
+
+@AGENTS.md
+
+<!-- OPENWIKI:END -->

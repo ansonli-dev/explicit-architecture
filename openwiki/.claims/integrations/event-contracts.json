@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:0d113242b4cffaa2cb688a2a9acf0e622c829215547cf84f8aa15df01f7d0b20",
+  "claims": [
+    {
+      "id": "claim_b442732827674f8f9abea8af0259cbe1",
+      "statement": "Shared events publishes a Java 21 Avro SDK at version 0.1.0, generates private fields without setters, and exposes Avro and Confluent serializer dependencies.",
+      "evidence": [
+        {
+          "resource": "repo://shared-events/build.gradle.kts#L1-L33",
+          "version": "repo-lines-v1:sha256:31ee55cc4fc8117c264aea28a6bf457d498a622bfcd9934859d4093edb119b6e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MDQwMTAzMTViZGJiMGZlYTBmZDZmZjAyMTRkOGJjOTIxY2UyODM2ZDFjYzZiY2I4ODQ5ZjM1NzZjZjVhNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyNTZlNWZhYmJkNWExOWNmMzk4Yzc0MmZhNWE5ZTUwNzUwYzI5ZDhhYzJmYWUxNDNhNjBjYWU0YmExZjE3Y2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwZmJkNGU1ZDdmOGEyZDY0MGI5OTViNzA1YWYzODA3ZWZmYzExZTI3ZmE2MjNkZjFiNDJmODllNmMxZDZmNzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_18b5bfbd9b214fd7a618f5852ed98790",
+      "statement": "Order and Catalog mappers serialize supported local domain events using configured KafkaAvroSerializer instances and return no entry for unsupported events.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/messaging/outbox/CatalogOutboxMapper.java#L21-L65",
+          "version": "repo-lines-v1:sha256:6150f789e50613abae07adecee5f6bb56ce6d4feb1afc6c915a2cf754caab452:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmExZTlmNDQ5NDlmYTg5YTNiNDJiMDQ5MmRkYmRmZmEyZWI3NjQ4NDhkMzU3NzhjOWZiNTNjMjA3ZWJkYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1Y2RlZjgwODVhZTc0YWI2MzZkNjQ1OWY1YzZkNWZiZmIwZGIyNjRmMWIwZDc1YmFjNTE5YzliM2Y2NzE3YWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxZTRmNzAzOTY0MWU4MTE4ODk5YzdmMTU5N2U5ODM5M2VmYTJiNmRiZmQwYTY1ZGQ5MWIxYTRmYmM1Y2E5ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/messaging/outbox/OrderOutboxMapper.java#L24-L107",
+          "version": "repo-lines-v1:sha256:cc2e97d7ddb6dd0cc8d5433fb791351f8102e1f7f4620a4beef0f33a538285b9:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmExZTlmNDQ5NDlmYTg5YTNiNDJiMDQ5MmRkYmRmZmEyZWI3NjQ4NDhkMzU3NzhjOWZiNTNjMjA3ZWJkYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1Y2RlZjgwODVhZTc0YWI2MzZkNjQ1OWY1YzZkNWZiZmIwZGIyNjRmMWIwZDc1YmFjNTE5YzliM2Y2NzE3YWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxZTRmNzAzOTY0MWU4MTE4ODk5YzdmMTU5N2U5ODM5M2VmYTJiNmRiZmQwYTY1ZGQ5MWIxYTRmYmM1Y2E5ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ad94e249ff37411c891c7bea0e58ad30",
+      "statement": "Notification listens to all four order lifecycle topics; Catalog listens to order cancellation, while the topic catalog additionally declares intended order-related consumers.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/interfaces/messaging/consumer/OrderEventConsumer.java#L28-L31",
+          "version": "repo-lines-v1:sha256:17e63decb381243050336fc61405998ae667170314da669e62f42fd7c0607658:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzQxMmNiYTI0ZWNkMmI5Yzc2MjUwMDA3ZmJkNmIyMjY4MGQ3OWY2OGEwNzc1MmY4ZmM2ZWIyMjdjZmQ0MGUyMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOGU2NDVlNjRhOGI4NzhkY2Q4YzU4MmU0MzhmMWI0MDkxZGIyMDMyMzQ4YWQ1N2IyNmJhY2NiMTI1ZTE3YWFjZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        },
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/interfaces/messaging/consumer/OrderEventConsumer.java#L40-L58",
+          "version": "repo-lines-v1:sha256:9642c46a6cecb684a45df2eb3a67101873ded05295db2a796aa6644f6c065399:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNGJkYTNiYjM5YWUzYTc1Y2ZiNzM5MjU3YTc3OWRjNDZlZTRhYTNiNDU1YTJhZmQ2YzVjY2I3ZTc5YmViYzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg0ZTk2ZmQ4MDk3MTk0MmRhMGM5NTJhYTdhOTY2ZTA3OTcwZjk4Zjg1MmI1MzUxMDQ3MGQ1MGQzYTYxZTVkNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://shared-events/src/main/resources/kafka/topics.yaml#L1-L56",
+          "version": "repo-lines-v1:sha256:1ff698f91f54629ff0b48d8b98d79717d4aaa2f0f7d3f4b7c24aa47b7504d2f0:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0ZDM3MmFmZmI1NDgxMDM5MWMxMjYzNDQ3MWJiNDM2Zjc2NmVmMjkzODQ0MDM2MjFmNGMzMmMyMzRiMGUzMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZjc4ZGFiMWEzMmM1NzFjMTA5ZDAwNzA4NDg1YTU3NjQwOTdhNTYzNzdmYzQ0NzJiYTVkN2NmNzEyNjA5NjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_868726ca0236424881ab35807ba01cbd",
+      "statement": "OrderPlaced carries the customer email and a CNY currency default; OrderCancelled carries item snapshots with an empty-array default, and embedded items omit per-item currency.",
+      "evidence": [
+        {
+          "resource": "repo://shared-events/src/main/avro/com/example/events/v1/OrderCancelled.avsc#L27-L50",
+          "version": "repo-lines-v1:sha256:0f136816c0e9fc55869a278bc94cbf58f2de36524acf3ec2e1d91249a67d0be5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNTUzNGFkYTZmYmE5N2ZlZTNmODg4Njk2NDBkNzUxODI2MjQwM2EzMzQ3NGQ3ODMwM2Y5MmUxYWFjZTZjZWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4NzA4ZDVmNjQyZDY3YWI4MmYzNDA2OGRmMzdiOTEzOTY2ZDQ3Zjc5NzQ2NTVlZjZmOThkN2M0NDQ5MWE0YTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiNDhiMzE3ZTE5ZGQ3NDdjNzhkOTI1YjM2MTdjZjhlMTJiNzFmMTg2NzUyZGNiNWZjZmE5MzdlM2YzNGFlNGYifQ"
+        },
+        {
+          "resource": "repo://shared-events/src/main/avro/com/example/events/v1/OrderPlaced.avsc#L22-L59",
+          "version": "repo-lines-v1:sha256:2925132b9725998c90c1365a8879075574000898a008af8a8b6727d58a68cda1:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNTUzNGFkYTZmYmE5N2ZlZTNmODg4Njk2NDBkNzUxODI2MjQwM2EzMzQ3NGQ3ODMwM2Y5MmUxYWFjZTZjZWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4YTI3MDEzZjNmYTBjOGJiM2ExOGQ3YTczOTFhOWQ1NTRjOTg5N2ZhODdhZjMwOGJkNGNiZTEyZDFiZTAzNDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiNDhiMzE3ZTE5ZGQ3NDdjNzhkOTI1YjM2MTdjZjhlMTJiNzFmMTg2NzUyZGNiNWZjZmE5MzdlM2YzNGFlNGYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6d48952df8024a959341f064f044de37",
+      "statement": "Schema registration uses topic-value subjects and skips already-existing subjects, so rerunning it does not register changed schema versions for those subjects.",
+      "evidence": [
+        {
+          "resource": "repo://shared-events/helm/scripts/register-schemas.sh#L35-L67",
+          "version": "repo-lines-v1:sha256:95f1cb0f7504c199354f931b7b3856026c9e73de7a5fbe4de962a717aa249f05:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzM2FmN2FhODA5OTJiYTQxZDEzY2Y3ZmU0YTEwMWZlMGMwOTBjNWNkNWMzZjIwYTg3YTNkNDQzOTBlMTEzMzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlMjQ4NDJlMzFlZWFlYjRkZjliYTc4MWMwYjQ3MmU4YjY5NzQ2YWNjMjQ3NTNiMTFjMjE3OWVjNWMxMWUzMTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwMzg1MzlmMzY2Y2QwYTc4ODUzNTlkZjY2ZjYwMmExNjczNDdiMmU4ODY3NzQyZmE0ZGJhOWVlNDM0NjFmNGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwMWEyM2U1NGE3MTMyNDYzNzExNDc0ZjcxNGViODZhMTQ5YmZlN2NkNjkzMzkyZjQwNGU2MTljNmQ5MjE3M2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d76618e09ad84e18a639701e8986c98d",
+      "statement": "Topic provisioning uses create-if-not-exists, while ACL provisioning adds topic rights and service-prefix group rights, mapping order-read-model to order.",
+      "evidence": [
+        {
+          "resource": "repo://shared-events/helm/scripts/create-topics.sh#L35-L44",
+          "version": "repo-lines-v1:sha256:962b33e7c51722acba0b1b9f4cbbdb1d8311c83e76d427f759529d1f5c079df3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3MGYyNWYxZjk2OTliYTU2MzE2ZGJjZDMxNGZjZDlkMmZiZTA0NzgxMzk4ODIxYTllM2IwMDIyMzcxMGRkNTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxMTdmYTAwNmJhOTIwODUwMGIyOTMwY2U2OWNiZGU0MzZjNjQ3YWZhOTE3Y2I3Mzk2YTliYzkxMTFhNDZkZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1OGNhN2EwMGJlMTUxYmZkYTZjY2RkNjcxZjI4MjJlYWZmNTFjNzJlNDUyMWFlYmU1ODAwOGE2NTViMzMyZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0OThhMzIyYTQ5MzVlZThmZmFjZjJmNDcxZTYxYmU0MTZkYzI2MjdlODM1OWE2NzZlZmUyZDY2NmI1ZDU4NTAifQ"
+        },
+        {
+          "resource": "repo://shared-events/helm/scripts/manage-acls.sh#L26-L33",
+          "version": "repo-lines-v1:sha256:14ace0d1d9dd64fc6ce390f9939b3e2003e42ef1b9bb53ec8b8216068f7b2312:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjUwODFkMGY3MmIyOTQ2NzU0MzhkYjQ4MDZjOTc2ODZiMjYxYWY0MDM1MzBmNjQ5Y2Q5ZTUwZDljOTk3YTBlYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzc0MDg4ZWNmN2JkZGQ0YjczOGNjMmFlY2Q1YWYyNGQ2YmVlNDlhMmJhNGUzNDA1NzZmMzJhYzk3MjUzYjJjZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzk4MjRhOTk1MDk0NmU2ODQwYTMzYmNmYjFmMjM5MTNlYzg1NzU4YzIwMTQyNDdhOTMwMDk2ZDMxNmQxODM4NCJ9"
+        },
+        {
+          "resource": "repo://shared-events/helm/scripts/manage-acls.sh#L54-L86",
+          "version": "repo-lines-v1:sha256:9273e1e9ddfdc1587ae1e0a9d66054b7d2e4bc1c9d0f5bee96186df87fb3e71b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkNGY1MzEwNTA2YWFhOTFjNzY1MDA1OTQxYzE1ZDRkNmE0NWI5ZTFiNDkxNTQzZjAwNTM1MzFmMWE2ZTg0ZTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxMTdmYTAwNmJhOTIwODUwMGIyOTMwY2U2OWNiZGU0MzZjNjQ3YWZhOTE3Y2I3Mzk2YTliYzkxMTFhNDZkZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxNTcwNGI1NzI2NGEzMjM3Y2RmYTVmM2ZjMTI2YTg3ZjMyOTk5ZWE3NDkyZDI5MmFkYzZhM2QzMjRiYTQ0N2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4Y2JkY2QwM2NkZTA5NjNhYzE1MzE5M2IwNDY0ODYxM2MxMTgzZmZkOTdlZmIxNWQ2ZjM3YWE1NjUxZjUyMWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0982be9ff43c4d0e92c62e66b60fc0e9",
+      "statement": "Order producer configuration disables automatic schema registration.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/resources/application.yml#L21-L37",
+          "version": "repo-lines-v1:sha256:1207ed0609776bf9d727c2fee8a11af317e60b1ae895dbd441339eab5241cf16:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyMjc0ZTkyNTFhNTI2ZTIwMzFhODYyOGNmZDVjZDM0ZjdmMDk5MzY1Mzc3M2IyMGM3NjAyMGVmN2Q5NmMxYjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjZjhlNGFkM2E5ZjNhN2Q1NTBlOTU0YTlkY2ZmNmZlMzIyNTBhYzUxMGJmZjUxYzUzZDMwNzI3YmY2MWFiN2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyZmYyZjNlNzVlNTYxN2VlODUzYTc2N2ExYmFkZjFjZjgwYTU5NzViZjliNDJhNmU1NDJkYmQ2YmZlYmE0NTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1OTQzOGU3ZDRjODU3NTBkNmQxM2E2NzdkOTk4NWM4M2UyYTQzODk3MTQzNTBmODJiYmUzYWU1NDU0OTU4NjQifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

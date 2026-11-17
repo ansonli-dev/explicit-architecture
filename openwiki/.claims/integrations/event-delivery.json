@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:70f52b67c42cedae3d7f18390cfc4dc750d957942c0fac65a6eec4a9f6e1cd8f",
+  "claims": [
+    {
+      "id": "claim_5c7be74653f6496689a4a4260f15e52a",
+      "statement": "Mapped domain events are written to a unique-event-ID outbox before the aggregate transaction commits, with the aggregate ID used as message key.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/outbox/OutboxWriteListener.java#L20-L29",
+          "version": "repo-lines-v1:sha256:fffa6366b13c4d07b1a57d575eab3874847c956eb1ebd452d0e1054b3a53cd34:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjYzEyMDMzZGI3MzIyODBjMGYwYmQ3YjM0NTNlOTBkZWRiMDkxNGU2NGM0YWRhNDE5YjY5ZGZiYWM4MTBhYzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YzEzNTkwNjY1NjMyM2QxYzVlYTQxNjU0ZWU2NmFmYjU4NWFjZGNmYWVhY2ExMjFkNWUzMGJmMTkzZWVkZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2ZTM3N2M5YmU1MDE1YjE4YTM0YzJkMDhjYzE5NTFmZjlkNzRiOGVkMzliNzVkMzc3ZTFkNDVlYjA0YTc3M2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/resources/db/seedwork/V0001__seedwork_outbox_events.sql#L5-L17",
+          "version": "repo-lines-v1:sha256:7a93928b3e5fae4339591090e452283f9829f8ba48c28f26b31ade796c25c395:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhY2FkM2I5ZjI5OWYyYTE5MDdjYjcwM2QwNzE3MDBiZTZhZjIzMjQ1NGJmYzhiODMxYjJmMzY1YWY2Njg4NzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5OTY3ZWMxZWQzODM2ZjhlYjE3YWZmMTcyYjViZmVmN2RlNjA0ODVhNDM5YzZjYTExYzU5MWUxNzU1NzM5YWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1M2U4MDRhYzQ0NmRiODk4ZTQ1ZDk5NmNlMzM3MmNmNmE4ODJkYTEwY2I3NDcwZmU1OWQ4ZGNiODU3YzkzMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhZDdjMjI0MzFmY2I0NDEyMGQ3NzY4YWJiMTk0N2UyNjY4YTE5MDhlMmI0OWFlOTNlNmY0ODM1ZDdiMzI0ODgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_efd0495c49a54737871017168e84e468",
+      "statement": "The scheduler relay loads all unpublished rows ordered by creation time without a claim lock, waits for each Kafka send, and marks successful rows published inside its transaction.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/outbox/KafkaOutboxEventPublisher.java#L23-L24",
+          "version": "repo-lines-v1:sha256:6e515e5a49d610d184052643af207d817e8a46ef1616bd186f846b01e602a9e0:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTUwZDczOWE5Mjc3Mjk2N2UyMWQxMjhlMjdhNjJhZTc0ZDEzOWNmNjRlNjU3ZjMzZjRlOGVlYTY0OTc1ZTE1NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjVhMTg2Nzc3OTY4ZTNhYzIyZTgzZGNiOTQ5N2Q5OTEwY2UzYThlZGI0ZjdjOGJjOGI2MDcxMzY3YThhNTMwZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjA4MmU4YzRiNDQzODFlZDkzODgwYjY5ZjdjNDk5M2JlNWVjMzUzNmM0NWQ0NTI4ZGI4MGI2ODE4MzYxNjU5MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/outbox/OutboxJpaRepository.java#L14-L21",
+          "version": "repo-lines-v1:sha256:6ddd0131583fae0ac64ed30e8c92c8ba0f5a689094be1e1362df783147b942d8:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2U0NTVhMTllYTU4NDBkZTAxZTJjNTk1YmFhZGI4NmE0NWFmZTc5Yjk0MmExMjhiODVkNGE0MzQzNjljNWNiMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWQ4NWNkMWNkMzE0Mjc4NzZiZjA3MWI3ZTBmODRmNTRlODM5ODU0OGRhZDVhYmEyYmQ3YzliNGM5OThkZTY4NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDEwYmRjZDYyZDIwNjJmZDMwNWI5ZjhiMTg5N2RjYjViMmEzZTI2NzE2Y2U5ODI3ZmMzNWQ4NzAzNjA1NDI1YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTQzYTNjMjM0OTEzYzYyZTE3YjZjOWY4MmM4ZDFjYjk5Yzg4OTVjY2JlYzM3MmE5MzU2YjgwZDNhY2Y2ODNlMSJ9"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/outbox/OutboxRelayScheduler.java#L24-L42",
+          "version": "repo-lines-v1:sha256:36904fd829ecfafa47022b081cceb9b1caef65f94ebc220151ae48d7949b9a1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExNzBkNjllZGE4YmYzMjlkZjAyM2JkMjNkNDFmZjYzZDQ3MzE1YTZlNzhjYTUzMGY2YTNkNmYyYmEyNjkwMGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUyNDExYzkzNDEzYzI2YTk4MGRlMzk4OGJlMDc0NGY3OTE5ZDU1MGYyMjFiODQ3MWYyN2ZlMTM4YjE0NmVmMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5929c68e4d1e4ea581a96c85e3287a22",
+      "statement": "Order selects Debezium outbox delivery; its connector tails public.outbox_event with topic routing and byte-array conversion, snapshot never, and heartbeat interval zero.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/templates/debezium-connector-job.yaml#L56-L81",
+          "version": "repo-lines-v1:sha256:7792a84806f6e14aa43890744774abfec3cace1b1e3c4b3fa11db1d726fe6b69:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlMDI3NjZjMzU2ZTFhYzU4YjlmMGUzNTgzNjcxZDc4YmVmZDZhNjAyYjk1NDRjMGY4YTYzYWQxODhiZTUyYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ODgyMTAyNDY3ZTYxMmMyYjEwYTJkMGJlNmZiNTEwMjg0YTc3NDY1MjA4MDE2YTg5NjMxZTcyOWIzOGVjMmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MmZjNWQ2ZmQ0Y2I4NGZjODUzNjY4N2Q3YmE1MGQzNjU4YTQxMTRmZDY5YzliYWZmZjgyMzAyYWExMzBlMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3N2QxMTUxOTU1YTlkMjhhOTM0OGM0ZTg0ZGVhYzIwMTlmODBiNjMyMTFhNzhkYzY1ZjI0ZDBiYmIzMDYzZmQifQ"
+        },
+        {
+          "resource": "repo://order/src/main/resources/application.yml#L50-L52",
+          "version": "repo-lines-v1:sha256:9625dd249ed108239cfcbbfde6042c86a249d17cf8d02b1a2492fa2f8a05f55f:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTEwMTk0ZDk1ODdhMTE1ODkyOTZhZmRhOGMwNTRmYjA3NWEzMzQ5OGYxMDkyMDA3NjJmYzZjYWI4ZDVlMTVlOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjgxZmYxNjEzNmQ2ODZkN2ZlZTAxMDA4ZjYwM2RmMmIxNjQ0MmJlOGYzYjgzM2Q4NDczYmNkNWU1ZGVmNWI0MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODFhNGVjNGY2MzBhM2Y2YWQ3ODEzM2FhM2RiMTJiNmEzNjc1NGFiZWZhZGZkYmJmZjI0ZTEyMzkxYTM3OGFiOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDFkNzcxZWZlMjAxZTRiOGU3ZTg4ZjA1MTA0ZTJjNjk5ZmZiNTQ1ZjZjZmQ3ZjFjNjVmMzU2MjkzNjlkMWQxMCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_222c1584106844809080175b3d532ac7",
+      "statement": "KafkaMessageProcessor deduplicates by event ID, marks successful handling in a transaction, and schedules success acknowledgment after commit.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/KafkaMessageProcessor.java#L120-L126",
+          "version": "repo-lines-v1:sha256:faec11b8c3a481f64e304e139af11326f778e749e5e640b5480c2351d1e2f1dd:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWI3NWFmOGFhNjMzMWEyMDlmMTE1MGVhZDc2YzEwOWVmNDFjOWM1NzlmODYwOTU5MGIxZDA4MzNlZGE1YTRkYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTljMTM1OTA2NjU2MzIzZDFjNWVhNDE2NTRlZTY2YWZiNTg1YWNkY2ZhZWFjYTEyMWQ1ZTMwYmYxOTNlZWRkNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmZiNDI4YTQ3MDI4Zjc5OGU0MTBmMThmOGUxOTNjZDBhNGNmYzI4MzAwM2U1MDUwZDdjYzMzN2Q2ZmFkOTk3OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDQ2YzNkYzZmYWViMDllNzBlZWRhNGNlNjM3ZmE2OGQzNTc2ODlmOTFlNjUxMzQzZjgyM2Q5OTE4ZWMzZmRjOSJ9"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/KafkaMessageProcessor.java#L63-L91",
+          "version": "repo-lines-v1:sha256:7e2d60b0812de0884b8d927473eeea9eb1590efa797cbfd8949c7af950de6c25:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmNjM5YzNiNzg0YWI1MmUwYTM1ZTQ5YWIzNDA3YzlmYjJlZThjY2JiZGEzYzg2Zjg1MGFhYmMwMmUxOTFhOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRmOTFkYjBiN2EzMGI0YWU3MTY1NzEyM2ZhNTk5NTg2ODAyNWEzZDM0NjFhYWNjZDQwMWU5MGFkMzRkNWU0ODgifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/resources/db/seedwork/V0002__seedwork_processed_events.sql#L5-L8",
+          "version": "repo-lines-v1:sha256:35e536a32a591aecb5f03f12de55f651c105bf58dce75a4b86c4f3c5eef10edd:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTIzYTcwOGU4MjJiYmQzOGZiNTY1M2UyMWNhMGEyNTdmMjYxMjY3ZDExMTU3ZGNmYWY1YmM3MzljOTkxNGE2ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDk5NjdlYzFlZDM4MzZmOGViMTdhZmYxNzJiNWJmZWY3ZGU2MDQ4NWE0MzljNmNhMTFjNTkxZTE3NTU3MzlhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODFmYmRhMzI4ODAwZGEyNDEyNGVkMzBiZTVjMDMyODhkOWU4NmIzYTVmOTExYjY2ZjgwMDQwNjRhN2Q5OGFiZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_4716fcc380644d9fbae776864961b887",
+      "statement": "Consumer failure handling acknowledges even when retry persistence errors are swallowed, and initial retries store consumer group unknown with raw Avro binary.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/KafkaMessageProcessor.java#L129-L154",
+          "version": "repo-lines-v1:sha256:f505adba9a60d0ec179409e4ddbc29595ad70f6de5b66b556f519bd7546603da:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiMDk0NjU3MTc4MjdmNzI2YTYxODkxOTdiODU3NDI0YWM5MGZhMzM0MjQ4ZjM4YjBlY2EzOWQ4ODg3NDNhYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyY2MwZDQ0ZGRlMzkxMDE4YTQ1OWMwNmIwOTBlZWVjOGRmNTA0MTg4Mjk3MzIwMmQwYTc2NWZjOTM1NjRjYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/KafkaMessageProcessor.java#L76-L90",
+          "version": "repo-lines-v1:sha256:e9bd23f5787d02c0794075f8cd2a391de80e7f01cf62d77a1947a8381bfacc92:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2YTYzNmQyZmIwNTY0NGRjNDRhYjIyMzQzZDI4NTkwOTBiNGU0ZjI5Yjk2MjBiZTgzYzExYjRiYTJlMDU1YTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzMzhmZDI4MWYxMDY0NzIxODQzZDM0ZjA3OGNjYzJjNGNjNjk4M2U1YzgyYmQ4MmJlZjk5MjYxZWQwNmNmMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_40444001f0ad4f27b164a7b983ce60dc",
+      "statement": "Retry processing advances due rows' claim timestamps in a short transaction, then decodes and dispatches each claimed row in a separate REQUIRES_NEW transaction.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/RetryEntryProcessor.java#L162-L166",
+          "version": "repo-lines-v1:sha256:6bb69ec3d70b583ab261ef771f96a3bc458592444e91fd077668a65847c2258b:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTlhOGUzMjEzYzQyZjAxMDgzODQyMDM2OWEwNWJmZjVkZmVkMjRiNjE2ZDQ3ZWM0YjExNjAyMWFjYTk2MDE5YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWE3ZDhlNzE3OGQ4MDZmMTIzNWVlMWQ1MzE2NmU4ZjYzMTA3YTQ1OWRiYTg5MGQwZTliNDRiZjQxZGQ3NWJmYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzgwMmI2M2ZlOTIxNzk5NzRmNDEzYzYzOWY5NmE0N2U0MGY2YWI5OWZmNDAzMzJlZDBhMWZmZGExYjBmYTgzNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/RetryEntryProcessor.java#L81-L121",
+          "version": "repo-lines-v1:sha256:63b35df0d2c1d4d956d03cea56b509a2f8e59c662f5d547e6240c52a3612e1ad:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzNzhjODAxNDk2NDk1Y2ExMThlN2I1YzdkYWEyMDFkM2EwMWExMDU1MGJlY2MwZDJhMjE2ZmFjOTE5ZTczNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhNzYyNDE4OTY4ZjAzOGQyN2ZjNGQyYzkwZDIxNDhkMjk3N2YyYjg3MDRhMTk3OWM5NDIxMThlNzhhNGJlOTkifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/RetryScheduler.java#L29-L37",
+          "version": "repo-lines-v1:sha256:1d849f218439126d1417605b6929870c2c0e476ada28ed5db4dde248be3c17e4:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWU1MTc1MjUzMTZlY2IxNDU5NGUxM2JiYTY3NGQ0NmQwYzNmMTQ2M2I1MTFlMzVmZDYwNDYwMmU1M2ZjNzA1NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDIwNWZlZDAyNTBjYjUyNjQ4NWEyZDZjNWY4OTA2YzUyODkxYWYxN2M3ZGZkNTIzZjg1OTAxYTk5MjkzMGZkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_54b7c59e981e4077adee42a63be7ff90",
+      "statement": "The retry query excludes rows at maxAttempts, while dead-letter handling requires the incremented attempt count to exceed maxAttempts, so the ordinary repeated-failure path stops before dead-lettering.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/ConsumerRetryEventJpaRepository.java#L21-L34",
+          "version": "repo-lines-v1:sha256:6e53b4b8e5d08b67293beaec9a9264d1671366a0a66162e9ab69a76f47dea980:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExZTMwN2ZiMTc2NzU3ZDU5NWZkYmI3OTdiNjVlNTI5OTI2ODI0NDEyOWY2NDUzYjA0ZTIyODlkNTU0ZTg3YTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiNjZjMzI1NTAwMzJiOGVkOTIzYTk3YTFkYTBiM2IzYzBlZGY5NDA3ZDYyZDU4YTFlMTNmNzZmZjIwZjYxNzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmNzA4ODgyNGVjYzc5OWYwMzhhYWU0ZTU3MDQ0YjdhNjRjYmZjM2U4YTIxYzI1MTAyZmEwZmJmY2I4NGE3NjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4NWFjMjc1OGVjZWE0MmQyYzMxOGZmOWNmYjc3MzlkM2EwNWY1NWVjNzliNGU1N2JkZTQ1M2NiNGEzNzc1MWEifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/RetryEntryProcessor.java#L124-L147",
+          "version": "repo-lines-v1:sha256:08e43ae682b1ff2453eec8f212bbdb4a02b5813692f24bc8836f67338f3e68cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1OTczNmVlMmI0OTNjMTVhYmQzNzg0MWIyMjI4ZGY2N2VhMWIzOTRiYzYwZjRiNmRlNDI0M2VlZGJhNDgxYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0YzA1NTNlN2NhYWYzZWI3NTk0YTk0NWNiYWI4MzQ2Y2FjZWE0NmI0MTU5MGY5YzAxYzY3OTMzMzZiNGU2MjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_46cff21a35e542a59c948c8075167b9d",
+      "statement": "The dead-letter event is published within processEntry rather than an after-commit callback, and scheduler iteration has no per-entry exception catch.",
+      "evidence": [
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/RetryEntryProcessor.java#L124-L147",
+          "version": "repo-lines-v1:sha256:08e43ae682b1ff2453eec8f212bbdb4a02b5813692f24bc8836f67338f3e68cf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1OTczNmVlMmI0OTNjMTVhYmQzNzg0MWIyMjI4ZGY2N2VhMWIzOTRiYzYwZjRiNmRlNDI0M2VlZGJhNDgxYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0YzA1NTNlN2NhYWYzZWI3NTk0YTk0NWNiYWI4MzQ2Y2FjZWE0NmI0MTU5MGY5YzAxYzY3OTMzMzZiNGU2MjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/retry/RetryScheduler.java#L29-L37",
+          "version": "repo-lines-v1:sha256:1d849f218439126d1417605b6929870c2c0e476ada28ed5db4dde248be3c17e4:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWU1MTc1MjUzMTZlY2IxNDU5NGUxM2JiYTY3NGQ0NmQwYzNmMTQ2M2I1MTFlMzVmZDYwNDYwMmU1M2ZjNzA1NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDIwNWZlZDAyNTBjYjUyNjQ4NWEyZDZjNWY4OTA2YzUyODkxYWYxN2M3ZGZkNTIzZjg1OTAxYTk5MjkzMGZkZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

@@ -79,17 +79,18 @@ Artifact Budget 是控制复杂度的工具，不是事后文件清单。
 
 ## Decision Analysis
 
-为每个会影响边界、一致性、可靠性、外部状态或公共能力的决定：
+在写分层 Target 前完整执行共享 `decision-framework.md` 的“方案形成与裁决回路”。对每个会改变边界、权威、状态机、保障、公共能力、外部合同或高代价演进的 decision：
 
-1. 按 DR-01 写出不带实现的目标。
-2. 按 DR-02 分类 Design Forces。
-3. 按 DR-03 确认 authority、scope 和 effective point。
-4. 按 DR-04 建立 failure model。
-5. 按 DR-05 分配 semantic/decision/mechanism/operational owner。
-6. 从 MECH 机制族选择组合，不从技术名词直接开始。
-7. 执行 standard-path、counterfactual 和 deletion tests。
-8. 执行 GEN 公共能力判断。
-9. 定义演进和验证证据。
+1. 使用 DR-01 至 DR-05 写 Design Contract，不先创建产物。
+2. 生成在责任、机制、有效时点或演进上实质不同的候选。
+3. 先用 authority/scope/failure/standard-path/evidence 门禁淘汰无效方案。
+4. 对存活候选按设计质量优先级比较，不使用简单加权总分。
+5. 按 design force 触发 MECH 机制族或 GEN 公共能力判断，不默认加载两者。
+6. 通过 standard-path、failure-boundary、counterfactual、evolution 和 deletion attacks。
+7. 在正确性成立后删除重复状态、判断和产物。
+8. 记录 selected/rejected rationale、residual risk、fallback、invalidation condition 和 verification evidence。
+
+将候选与裁决写入 `00-context.md` 的 `Candidate Solutions and Selection`，让后续分层文档只表达选中方案及 handoff，不重新发明决定。
 
 只有影响边界或高代价的决定需要完整 ADR；其他决定可以在 Context Decision Matrix 中压缩记录。
 

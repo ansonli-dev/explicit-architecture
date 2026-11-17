@@ -3,104 +3,108 @@ name: sync-as-is
 description: Build, reconstruct, verify, and promote a layered As-Is architecture baseline for a deployable business service from repository, schema, configuration, contract, deployment, and runtime evidence while treating central architecture and shared-capability owner repositories as read-only inputs. Use when asked to document the current service, inventory its actual shared-capability adoption, recover brownfield service architecture, compare maintained service As-Is with implementation/runtime, prepare an As-Is delta from configured development or feature refs, or promote a verified candidate commit; do not use for shared library/SDK capability baselines, central architecture curation, future feature design, or code-quality review.
 ---
 
-# 同步业务服务 As-Is 架构资产
+# 同步业务服务 As-Is
 
-维护“可部署业务服务现在真实如何运行”的可验证资产。Service As-Is 绑定 immutable commit、environment 和 evidence；不把公共能力 Owner 契约、Target、计划或未经验证的实现写成当前事实。
+维护“特定环境和 immutable commit 上真实如何运行”的可验证事实资产。记录实际结构和偏差，不把 Current 美化成 Target。
 
-## 标准读取路由
+## Hard Gates
 
-开始前完整读取最小工作集：
+始终满足：
 
-- `../_standards/explicit-architecture/as-is-consumption-contract.md`：Feature Delivery Skill 的 Baseline、Delta 和写入契约；
-- `../_standards/explicit-architecture/baseline-ref-profile.md`：解析实际 verification/development/feature ref role；
-- `references/as-is-lifecycle.md`：Baseline、Delta、漂移和提升；
-- `references/as-is-playbook.md`：四种 mode、Git 取证和更新门禁。
-
-根据实际证据范围再完整读取：
-
-| Trigger | Read |
-|---|---|
-| 服务消费公共能力 | `../_standards/explicit-architecture/capability-as-is-consumption-contract.md`、`references/evidence-discovery.md` |
-| 中央 Architecture Context 可见或需要治理候选 | `../_standards/explicit-architecture/architecture-context-contract.md` |
-| 共享能力 fit/gap 或外部 contract/process evidence | `../_standards/explicit-architecture/discovery-gates.md`、`references/evidence-discovery.md` |
-| 盘点会影响后续 Target 的有效 stack/version/environment | `references/technology-inventory.md` |
-| 复杂可靠性机制 | `../_standards/explicit-architecture/mechanism-selection.md`，只描述实际 guarantee |
-| Shared Capability 或 Shared Kernel 分类 | `../_standards/explicit-architecture/capability-generalization.md`，只分类 Current |
-| 输出精确共享规则 ID | `../_standards/explicit-architecture/rule-index.md` |
-
-未触发的标准不要预加载。触发后必须完整读取对应文件；不要读取 Target 核心、产物、技术选择或演进标准来反向整理现实。
-
-需要判断偏差时只把仓库已批准的 Target 标准作为被引用的 authority。
-
-## 工作边界
-
-开始时执行仓库角色门禁：
-
-- 当前 scope 必须是可部署业务服务、bounded context 或其运行组成；
-- 共享库、内部 SDK、Starter、Framework Module 和中央 Architecture Context 不在本 Skill 范围内；
-- 混合仓库只扫描明确的业务服务 scope，不把共享发布单元并入服务分层模板。
-
-本 skill：
-
-- 创建、重建、验证和更新分层 As-Is；
-- 按适用性读取中央 Architecture、Standards、Patterns、Landscape 和 ADR；
-- 建立服务的 Shared Capability Consumption Snapshot 和 External Integration Dossier；
-- 比较 As-Is 与 code/schema/config/contract/runtime；
-- 生成 development、feature 或 verification/candidate ref 的 As-Is Delta；
-- 在测试验证通过后提升新的 Canonical As-Is。
-
-本 skill 不：
-
-- 设计待开发功能；
-- 生成 Feature Spec 或 implementation plan；
-- 审批 Spec；
-- 判断代码方案是否优雅或符合 Target；
-- 修改生产代码；
-- 创建、移动、整理或修改中央架构仓库的文档；
-- 创建、修订或提升公共能力 Owner 的 Capability As-Is；
-- 用未经批准的实现覆盖 As-Is。
-
-## 中央 Architecture Context
-
-中央仓库可见时：
-
-1. 固定 repository identity、immutable commit/version 和 index version；
-2. 先读索引，根据当前服务、能力、协议和环境选择 `ACTIVE` 资料；
-3. 将 `ARCHITECTURE / STANDARD / ADR` 作为适用的 Target authority；
-4. 将 `PATTERN` 作为参考，不用它反向美化 Current；
-5. 将 `LANDSCAPE / CATALOG` 作为 owner 和证据入口；
-6. 精确能力契约回到 Capability As-Is，实际采用版本和配置回到服务 As-Is。
-
-本 Skill 对中央仓库始终只读。发现缺失、冲突、过期、适用范围不清或中央摘要与自然 owner 不一致时，输出 `Architecture Governance Candidate`，不顺带修文档。
+1. 只处理可部署业务服务、bounded context 或其运行组成；共享库、SDK、Starter、Framework Module 和中央架构仓库不在范围内。
+2. 只描述 Current、Delta 和已验证提升；不设计未来功能，不评价实现优雅度，不生成 Spec 或 implementation plan。
+3. 对中央 Architecture Context 和 Capability Owner 仓库始终只读；只链接权威契约，不复制或修改其事实资产。
+4. Canonical Service As-Is 必须绑定 Ref Profile、resolved verification ref/full SHA、environment、verification status、evidence timestamp 和 supersedes。
+5. 不把 branch name、working tree、development/feature ref 或未验证 candidate 当作 Canonical Current。
+6. 区分 `CONFIRMED / INFERRED / UNKNOWN`；代码形状不能单独证明外部合同、运行环境或公共能力 guarantee。
+7. 只有用户明确要求写入且对应 Mode 门禁通过时，才创建、更新或提升 As-Is；否则只报告事实和 Delta。
+8. 不修改生产代码、schema、配置或中央治理文档。发现设计问题只分类事实关系，并交给对应 owner。
 
 ## Mode
 
-开始时选择一个且仅一个：
+选择一个且仅一个：
 
-### `GREENFIELD_BOOTSTRAP`
+| Mode | Use | Write rule |
+|---|---|---|
+| `GREENFIELD_BOOTSTRAP` | 新系统尚无可信 Baseline | 记录已存在事实；未实现内容标记 `NOT_IMPLEMENTED` |
+| `BROWNFIELD_RECONSTRUCT` | 既有服务缺少或不可信 As-Is | 从固定证据恢复 Current，不进行理想化重构 |
+| `BASELINE_VERIFY` | 比较维护中的 As-Is 与绑定证据 | 默认只读；用户要求且 `AS_IS_STALE` 证据充分时才更新 |
+| `POST_DELIVERY_PROMOTE` | 将已测试 candidate 提升为新 Canonical Baseline | 缺 approved decision、部署/测试或生效证据时 `BLOCKED` |
 
-建立初始事实资产：
+不要在同一次运行中重建未知 previous state 并宣称完成 Promotion。
 
-- system landscape 和 ownership；
-- 服务已采用的 platform/shared capabilities；
-- technology/runtime constraints；
-- external contract/process；
-- 尚不存在的业务实现明确标记 `NOT_IMPLEMENTED`。
+## Context Profiles
 
-### `BROWNFIELD_RECONSTRUCT`
+先选择最小 profile，只在进入对应操作前完整读取：
 
-As-Is 不存在或不可信时，从实际证据恢复：
+| Profile | Trigger | Read |
+|---|---|---|
+| `CORE` | 任何 Service As-Is 操作 | `../_standards/explicit-architecture/as-is-consumption-contract.md`、`../_standards/explicit-architecture/baseline-ref-profile.md` |
+| `EVIDENCE_OPERATION` | Bootstrap、Reconstruct 或 Verify | `references/as-is-playbook.md` |
+| `LIFECYCLE_WRITE` | 生成 Candidate Delta、更新 Baseline 或 Promote | `references/as-is-lifecycle.md` |
+| `SHARED_CAPABILITY` | 服务消费公共能力 | `../_standards/explicit-architecture/capability-as-is-consumption-contract.md`、`references/evidence-discovery.md` |
+| `GOVERNED_CONTEXT` | 中央 Architecture Context 可见或需要治理候选 | `../_standards/explicit-architecture/architecture-context-contract.md` |
+| `DISCOVERY` | 共享能力 fit/gap 或外部 contract/process evidence | `../_standards/explicit-architecture/discovery-gates.md`、`references/evidence-discovery.md` |
+| `TECH_INVENTORY` | 盘点会影响后续 Target 的有效 stack/version/environment | `references/technology-inventory.md` |
+| `RELIABILITY` | 描述复杂一致性、投递、幂等、重试或恢复 guarantee | `../_standards/explicit-architecture/mechanism-selection.md`，只记录实际承诺 |
+| `GENERALIZATION` | 分类 Shared Capability 或 Shared Kernel | `../_standards/explicit-architecture/capability-generalization.md`，只分类 Current |
+| `RULE_IDS` | 输出精确规则 ID | `../_standards/explicit-architecture/rule-index.md` |
 
-- actual dependency 和 runtime path；
-- layered artifact；
-- consumed capability/integration；
-- confidence、unknown 和 known deviation。
+不要读取 Target 产物、技术选择或演进标准来反向整理现实。
 
-不把现状整理成理想架构。
+## Ref Views
 
-### `BASELINE_VERIFY`
+先按 `baseline-ref-profile.md` 解析仓库实际角色，再固定 full SHA。默认 Profile 表达：
 
-As-Is 已维护时，比较绑定 Baseline 与实际证据：
+```text
+Canonical As-Is       = last VERIFIED verification-ref@sha
+Pending Develop Delta = verified baseline → development-ref@sha
+Feature Delta         = actual merge-base → feature@sha
+Test Candidate Delta  = verified baseline → unverified candidate@sha
+```
+
+优先使用 `git show`、`git diff`、`git merge-base` 或独立临时 worktree 读取其他 ref。不要为扫描切换、合并、rebase、reset 或改写用户当前分支；不要自动 fetch 或假设 remote 已同步。
+
+## Workflow
+
+### 1. 固定 Scope 与 Evidence Refs
+
+记录 Mode、service/system scope、repository、Ref Profile source、resolved refs/full SHA、merge-base、environment、status、evidence timestamp、允许写入路径和 unavailable evidence。
+
+无法解析所需 commit 或 verification state 时 `BLOCKED`。共同上级目录不等于同一个 Git repository；逐个读取 repository rules 和 ref。
+
+### 2. 建立 Evidence Map
+
+按风险读取：
+
+- repository instructions、build/module/dependency graph；
+- code、schema、migration、constraint 和 tests；
+- deployment configuration、runtime topology、observability 和 operational procedure；
+- approved Spec/ADR 和 verification evidence；
+- 中央 index、适用 document IDs、authority 和 applicability；
+- Capability As-Is owner baseline、服务 resolved version/configuration/extension；
+- external contract/schema/process、callback/query/recovery 和 environment 差异。
+
+对每项事实记录最窄充分证据、commit/environment 和 confidence。未找到不等于不存在；缺少权威证据时标记 `EVIDENCE_GAP`。
+
+### 3. 生成或核验分层 Current
+
+按实际 vertical slice 追踪：
+
+```text
+input
+  → boundary mapping
+  → use-case orchestration
+  → business decision
+  → persistence/outbound mechanism
+  → result/effect
+```
+
+记录 Landscape、Consumed Shared Capabilities、Domain、Application、Interfaces、Infrastructure、Runtime、Integration 和 traceability。只创建有证据的层；若职责实际放错位置，如实记录位置和已知偏差，不改写成理想结构。
+
+### 4. 比较并分类 Delta
+
+比较 Existing As-Is、bound code/runtime、approved Spec/ADR 和 verification evidence，只使用：
 
 - `NO_DRIFT`
 - `IMPLEMENTATION_DRIFT`
@@ -110,179 +114,67 @@ As-Is 已维护时，比较绑定 Baseline 与实际证据：
 - `ENVIRONMENT_DRIFT`
 - `EVIDENCE_GAP`
 
-只在用户要求更新且证据门禁通过时修订 As-Is；否则输出 Drift Report。
+对每项差异记录 baseline fact、observed fact、approved intent、classification、affected layer/capability/contract、evidence 和 action owner。当前代码存在不能自动判定 `AS_IS_STALE`。
 
-### `POST_DELIVERY_PROMOTE`
+中央上下文缺失、冲突、过期或适用性不明时输出 `Architecture Governance Candidate`，不要把差异直接裁决为实现错误。
 
-将 resolved verification/candidate ref 上测试通过的 SHA 提升为新 Canonical As-Is；默认 Profile 对应 `test@sha`。必须同时有：
+### 5. 写入或 Promote
 
-- 上一 `VERIFIED` Baseline；
-- 新 verification/candidate-ref commit；
-- approved Spec/ADR；
-- code/schema/config/contract evidence；
-- candidate verification evidence；
-- environment identity。
+写入前确认：
 
-缺任一关键证据则 `BLOCKED`。
-
-## Branch Profile
-
-先按 `baseline-ref-profile.md` 解析实际 ref role。默认使用：
-
-```text
-Canonical As-Is      = last VERIFIED verification-ref@sha
-Pending Develop Delta = verified baseline → development-ref@sha
-Feature Delta         = actual merge-base → feature@sha
-Test Candidate Delta  = verified baseline → unverified verification/candidate-ref@sha
-```
-
-所有 ref 固定为 SHA。读取其他分支时优先使用 `git show`、`git diff`、`git merge-base` 或独立 worktree；不要为了扫描切换、合并或改写用户当前分支。
-
-当前仓库分支名与默认 Profile 不同时，读取 canonical repository workflow 或用户显式 Profile。记录 `profile_id`、source、resolved ref 和 full SHA；Profile 只改变 ref 映射，不放宽验证或提升门禁。
-
-需要创建独立 As-Is 工作分支时，从 resolved verified Baseline SHA 派生；除非用户明确要求，不自动创建、切换或合并分支。
-
-## 工作流
-
-### 1. 固定 Scope 与 Evidence Ref
-
-记录：
-
-- mode；
-- system/module/integration scope；
-- baseline branch、commit、environment、status；
-- development/feature/verification candidate SHA；
-- merge-base；
-- evidence timestamp；
-- unavailable evidence。
-
-分支名存在但 commit 或验证状态未知时，不声称已固定 Baseline。
-
-### 2. 建立 Evidence Map
-
-按需读取：
-
-- repository instructions、canonical standards、ADR 和已批准 Spec；
-- 中央 Architecture Context 的 index、适用文档 ID、commit/version 和 authority；
-- code、build、resolved dependency 和 module graph；
-- schema、migration、data constraint；
-- application/deployment configuration；
-- contract/schema/registry 和 external process；
-- runtime topology、observability 和 operational procedure；
-- tests、DC/test verification evidence；
-- Capability As-Is 的权威入口；
-- 当前服务的 resolved capability version、配置和本地扩展。
-
-区分 `CONFIRMED / INFERRED / UNKNOWN`。代码只能证明实现形状，不能单独证明外部合同或运行环境。
-
-### 3. 生成分层 As-Is
-
-使用 `assets/as-is-template/`：
-
-- `00-baseline.md`
-- `01-landscape.md`
-- `02-shared-capabilities.md`
-- `systems/system/01-domain.md`
-- `systems/system/02-application.md`
-- `systems/system/03-interfaces.md`
-- `systems/system/04-infrastructure.md`
-- `systems/system/05-runtime.md`
-- `integrations/external-system.md`
-- `traceability.md`
-
-只创建适用文档，替换 `system` 和 `external-system`。`02-shared-capabilities.md` 只记录当前服务的采用事实并链接 Capability As-Is，不重建 Owner 契约。每项事实包含 evidence、ref、environment 和 confidence。
-
-### 4. 比较并分类 Delta
-
-对每个差异记录：
-
-- baseline fact；
-- observed fact；
-- approved intent；
-- classification；
-- affected layer/capability/contract；
-- evidence；
-- action owner。
-
-本 Skill 只确定哪种事实关系成立：
-
-- `AS_IS_STALE` 可更新资产；
-- `APPROVED_CHANGE` 等待验证和提升；
-- `IMPLEMENTATION_DRIFT` 只报告为实现或批准设计不一致，不在本 Skill 中评价或修复；
-- `EVIDENCE_GAP` 不猜测。
-
-中央上下文可能过期或不适用时，不把差异直接分类为实现错误；输出 `Architecture Governance Candidate`，不修改中央仓库。
-
-### 5. 写入或提升
-
-创建/更新前确认：
-
-- 用户要求写入 As-Is；
-- 目标目录符合仓库规范；
-- 没有覆盖其他 baseline/environment；
+- 用户明确要求修改 As-Is；
+- 目标目录符合仓库规范且不会覆盖其他 Baseline/environment；
+- 所有事实来自已固定 ref 和声明 environment；
+- Manifest、traceability、supersedes 和 Transition 删除条件同步更新；
 - Canonical 更新满足 `ASIS-05`；
-- 过渡项有 owner 和删除条件；
-- Manifest 中使用 full SHA；
-- 新 Baseline 链接 superseded Baseline。
+- Promotion 具备 previous `VERIFIED` Baseline、immutable candidate、approved Spec/ADR、部署/测试、schema/config/contract 和 runtime evidence。
 
-不得因为 development ref 的 DC 通过直接更新 Canonical As-Is。DC 通过只生成 Candidate Delta；resolved candidate 验证通过后才提升。
+任何关键 Promotion 证据缺失时保留上一 Canonical Baseline，并返回 `BLOCKED`。
 
-## 产出位置
+## Package Contract
 
-优先遵守仓库已有 As-Is 目录。没有约定时使用：
+优先遵守仓库已有 canonical As-Is 结构。没有约定时使用 `assets/as-is-template/`：
 
 ```text
 docs/architecture/as-is/
 ├── 00-baseline.md
 ├── 01-landscape.md
-├── 02-shared-capabilities.md
-├── systems/{system}/
-├── integrations/{external-system}.md
+├── 02-shared-capabilities.md      # when applicable
+├── systems/{system}/             # only evidenced layers
+├── integrations/{external}.md    # when applicable
 └── traceability.md
 ```
 
-不要覆盖其他 environment 或 Baseline；不要创建空层。
+替换全部 placeholder，不创建空层，不覆盖其他 environment。`02-shared-capabilities.md` 只记录服务采用事实并链接 Capability As-Is，不重建 owner contract。
 
-## 输出
+使用默认结构时运行：
 
-按 mode 输出：
+```bash
+python3 "<skills-root>/_standards/explicit-architecture/scripts/validate_package.py" \
+  --profile service-as-is --layout template "<as-is-root>"
+```
 
-### Bootstrap / Reconstruct
+使用既有 canonical 结构时改用 `--layout existing`。任何 `[ERROR]` 都禁止声明完成或 Promotion；逐项处理或输出 `BLOCKED`。解释仍保留的 `[WARN]`。
 
-- `Baseline status`
-- `Created scope`
-- `Evidence coverage`
-- `Unknowns`
-- `Known deviations`
+## Semantic Completion Gate
 
-### Verify
+在 validator 通过后再确认：
 
-- findings 按 drift classification 分组；
-- `Verdict: IN_SYNC | DRIFT_FOUND | EVIDENCE_INCOMPLETE | BLOCKED`；
-- 未经要求不修改文件。
+- Baseline、Candidate、Pending Develop Delta 和 Feature Delta 没有混淆；
+- 重要事实均有 ref/environment、evidence 和 confidence；
+- As-Is 如实记录 Current 和 deviation，没有 Target-only artifact；
+- consumed capability 的 owner baseline 与服务实际采用事实已分离；
+- external contract/process 与本地实现证据没有混为一体；
+- Transition 有 owner、删除条件和期限；
+- Promotion 有可定位的部署与测试证据；
+- 中央 Architecture Context 保持只读，治理候选已单列。
 
-### Promote
+## Result
 
-- old/new Baseline ID 和 SHA；
-- promoted layers/capabilities/contracts；
-- remaining transitions/gaps；
-- verification evidence；
-- `Promotion: COMPLETED | BLOCKED`。
+按 Mode 返回：
 
-## 输出契约
+- Bootstrap/Reconstruct：`Baseline status`、created scope、evidence coverage、unknowns 和 known deviations；
+- Verify：`Verdict: IN_SYNC | DRIFT_FOUND | EVIDENCE_INCOMPLETE | BLOCKED` 和分类 findings；
+- Promote：old/new Baseline ID 与 SHA、promoted scope、remaining transitions、verification evidence 和 `Promotion: COMPLETED | BLOCKED`。
 
-### Service Baseline Package
-
-- Baseline ID、Ref Profile、resolved verification ref/full SHA、environment 和 verification status；
-- relevant layered facts、capability adoption 和 integrations；
-- Pending Develop/Feature Delta；
-- approved/pending decisions；
-- evidence、confidence 和 gaps。
-
-### Gap and Candidate
-
-- `BASELINE_GAP`
-- `As-Is Delta Candidate`
-- `Architecture Governance Candidate`
-
-这些字段是其他产物可消费的稳定接口；本 Skill 不规定后续使用流程。
+同时返回稳定接口：`Service Baseline Package`、`BASELINE_GAP`、`As-Is Delta Candidate` 和 `Architecture Governance Candidate`。本 Skill 不执行这些候选的后续治理或实现工作。

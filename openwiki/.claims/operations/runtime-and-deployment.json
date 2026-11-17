@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:2e9ca6f4b452e26fbde5266a847dcf646e01fb923055dbe2132495cb149dd555",
+  "claims": [
+    {
+      "id": "claim_263bec171ccf4c14be6bf324f9593a13",
+      "statement": "The independent Order build uses Java 21 with preview flags, versioned seedwork/shared-events dependencies, and a Jib container based on a docker:// Java 21 image; settings resolve local and external Maven artifacts.",
+      "evidence": [
+        {
+          "resource": "repo://order/build.gradle.kts#L1-L35",
+          "version": "repo-lines-v1:sha256:7399c7457e1c78c02b0c5ffc16a97d0c952c61edc65ab002ad6a39ba12c834a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MDQwMTAzMTViZGJiMGZlYTBmZDZmZjAyMTRkOGJjOTIxY2UyODM2ZDFjYzZiY2I4ODQ5ZjM1NzZjZjVhNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhMzcxNzVkNWRjNTE1NmRhNjVkNWFkZjQzZTI2YzhjYTdhMDUyMmJlNDI4NWMxMTk3ODgxYTFlNDNjNGRjNDIifQ"
+        },
+        {
+          "resource": "repo://order/build.gradle.kts#L50-L106",
+          "version": "repo-lines-v1:sha256:9caa836bc189ed8d56e0f12130b0be04c721a7796bc8fec9d348db16b83225cd:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViOWVlMDQ4Zjg4YTQ1MjJjZWMwZDM1MmFjYzNiZTI3NWI5ZmVhODRjMjkzNDNlYmU4OGJiNmQxMThhMTE4ZjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFjYjNjODQ3NjM2NDA0MmYzNGE5MTQ1ZDc4YjhkYzc4OTkxMGUxOWE1NDc2Y2IzYWNjZTkzNDQzYjI1OTE1NDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkOTQ4YzM4YTk4ZDBlZDNhNDQ0MTg5NjJhNTNlYzY5NGMzYzI1M2RlNDZkZDY4NzI3ODI3OGFjYTI2NDUwM2YifQ"
+        },
+        {
+          "resource": "repo://order/settings.gradle.kts#L8-L29",
+          "version": "repo-lines-v1:sha256:2844e14c7952b59b3cca464fe0bc96785371c1fa0e4e7b8df1b597d8ec9edbf9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmNDlmMmJhZDY3MGQ0M2VkN2Y0MjQ2MGE5OWM3NjA1NDZiODM3ZjFiYWU2NGEzZTUzNWE4M2E1NzM3MDUzMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwY2NjN2M3ZGNkZjg5ZDBiMTU4Yzg5ODc2NjhlOTRiMzdkZWY5MzhiZjZlZGExMGQ2OTgxNmRkYzE4YWUwZTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0bb34d8bcc7f49ad9dc6a681a55985ef",
+      "statement": "Service application configs enable virtual threads, disable open-in-view, validate JPA schemas, and include shared and service Flyway migrations.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/resources/application.yml#L1-L18",
+          "version": "repo-lines-v1:sha256:9128960b604858f0d90ba8de96373b6fd24b1868774c97fe98e83db292b57d00:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2NkZjRmZDRiNmMxZWNlYWYzNDMxNWRkYjkyZDcxMTFiNTBhNTBjYjc3MTRmYjNiNGQ2NjQxNjBiMjBjNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwOWFjYTI1MDU1MWZiMGUyNmI3M2U0Mzg1ZTMxYmU4NzZkNWQyNjZlNWIwZTU1NzNjOTM1Y2VjMDdkYjI0MjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwOGRlNmExOGRjNGVlZjYxZDM5NzQ0MWNlYjA4ZDkxMWI1NjY4NTdiM2U4ZjY5YTg1YTVhM2QzYTk3MjIzOWYifQ"
+        },
+        {
+          "resource": "repo://notification/src/main/resources/application.yml#L1-L20",
+          "version": "repo-lines-v1:sha256:387ba47d8e04eacc42621932f0d285e52e4fa919d1f65ddc24817f2f4df29b2f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2NkZjRmZDRiNmMxZWNlYWYzNDMxNWRkYjkyZDcxMTFiNTBhNTBjYjc3MTRmYjNiNGQ2NjQxNjBiMjBjNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwOWFjYTI1MDU1MWZiMGUyNmI3M2U0Mzg1ZTMxYmU4NzZkNWQyNjZlNWIwZTU1NzNjOTM1Y2VjMDdkYjI0MjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3YjE1YTliYTlkYTAzNTZlNzU3MTY3OTY0ZjlhNjU2ZjljMzNiODNlMGU1OTcwZmFhZDhhNmI4ZjYzMzQwMDkifQ"
+        },
+        {
+          "resource": "repo://order/src/main/resources/application.yml#L1-L18",
+          "version": "repo-lines-v1:sha256:b2034569d9037195d1369a0ed8f176014fc554c6e7ec76824e4e980a557bb9a2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2NkZjRmZDRiNmMxZWNlYWYzNDMxNWRkYjkyZDcxMTFiNTBhNTBjYjc3MTRmYjNiNGQ2NjQxNjBiMjBjNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwOWFjYTI1MDU1MWZiMGUyNmI3M2U0Mzg1ZTMxYmU4NzZkNWQyNjZlNWIwZTU1NzNjOTM1Y2VjMDdkYjI0MjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlZmE3ZTAyYzAyMzJjMzllZDU2ZGYwNDExN2YwNTgzMzE3Yjc2Zjg0OWI4ZWU1MmZlYmFiNWNlMWVlNzM4YjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fb38d6cae608484b8fc401c6d0d84cca",
+      "statement": "The Order Catalog HTTP proxy reads services.catalog.base-url, backed by CATALOG_URL, rather than the separate catalog.service.url setting.",
+      "evidence": [
+        {
+          "resource": "repo://order/src/main/java/com/example/order/infrastructure/client/CatalogClientConfig.java#L13-L21",
+          "version": "repo-lines-v1:sha256:aee82d4f632a0705ec6ef0949acccaa9e29a4e758b96766c2ca17ca9cf7ce5a2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzVlNTkwNjljM2YzODc3MTllZmVkMjU2YzZjNGJmMjE5Y2NjNGY2ZTRiNDFhYmZkNDQ3NjFkNDU0OTIxNGQwOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzliN2RhMWVkYWE4YzdjNjIxOWQwNDU5NTVmMjFkOGJiYWViMGUzNWI4MGEzNTlkYjU2ZDIwZTFhYTNkNWJiMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWIzMGQxNDc4M2VmM2Y5NzQ1MDdlMzUwMzRhMDU3YmFkNDU5YzcyNjNhYzI5NjljMTc1ODg5OTA5ZGVkOGFiYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://order/src/main/resources/application.yml#L42-L48",
+          "version": "repo-lines-v1:sha256:09901c85f8d281f1648a5e9456cfcc7c3758216b8c407adf5b424ed779c0a6ad:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzY0ODE2ODhhNjdmODEzOGJjYTI3M2MyMzYzYjA3MmFkNjgyZTc0NTVhZDIyNTYwMjA3ZTQ5Y2VhYzA3MGQxMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDdmMTZiODBiMzVhNDY4M2EyNzIwYzlhN2E0NDNjOWJiMjJkNjk5NjBkNDZjOTk5YzVmYjg4Y2M0Y2NhYzY0MiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODVmMGE2YmZiYzliMjgwOWJmZjAyYzQ1MDVjYWRmNGRlNDE5YjBjYzQ5ZDE0ZTExZTZlOTMxMTk4YTVhZDY4OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTY0MThjYjgxNmQxZDRhNzYwYTFmMTc5YTA4ZDNkZjc1YjdlOTM4MWYxMzIzODA1Zjg4M2E5NzVkYTk5NzExMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_f65d344433ef45d5a1978a73d07a9bba",
+      "statement": "Order's Helm deployment injects ConfigMap and Secret data, has configuration checksum annotations and actuator probes, and explicitly disables OTel Java-agent injection.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/templates/deployment.yaml#L18-L59",
+          "version": "repo-lines-v1:sha256:a961b1b6ceebb2d225bfc404ec3097843b0fb9a01bfe8f2eaecb1ca0a2b93f00:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3YzNiMDFkYzBiNWUxZTMxMDc3MTU3MGRiMGVhOGY0ZjQ5M2Q0OWZkOWU4NDk5YjczMGU3M2RiZTRjZmQwZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkZjQ2ZGRlMjY5YzE3NTA2NmJiMzJlMDJkZTllMjJlOWQ3OWFkYTY4ODExYTcyYmI5NTdkZDllNDlkZTNjZWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4YThkMWE4OGU2M2RiZTM5ZmJiN2QxYTNmYTZmNjhmMjA2MWU0NTViNGYzYWRmYjQ4NDA2OTlhZWQ1ZTVjZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlOTdhNGJlN2MxMTg1NDVhYzM0MmYxNWI0ZjkwNDYxMGI0YTBkNTI4N2QzMTc3OWRhMDY2M2Y2ZjVjMzNmNmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f33815f32d694f2589b7e41701586a22",
+      "statement": "Order Helm defaults use a local latest image with Never pull policy and an enabled one-to-five-replica CPU HPA.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/values.yaml#L8-L29",
+          "version": "repo-lines-v1:sha256:bb8d73482e36206e9bc1991d0a45fdad67fa463793d58cd1ee30d371141dd77a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4YzNmNjlhOTk4NDMzNzZjYzY3YTQ2ZDRkZTMwNDQ5ZGQzYmQzNzQyNTc0NGViNGRlYTVlNTg0ODIyY2UwNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkODY0MzMzOGZlOWIyM2EwYTRiMzA3MzZmZDI5YTM3ODUzYWFmMThkNjNhMzg5ZDhmZjRlOGY3YzQ1NWYzZWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFiZjlkMTE0MGNmMGEzNTk0YzI3YTIxMTQ5NjcwMTllZTMwNjdjNjhlODM0OWQ3NTE5M2YzMTk2MDExYzJlZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczZDI1ZmNjZTNkMGM2NTliNzUzOTJjYWM0MjBkNTIyMDMyOTM1MDQxNTcwOWNjOTRiNDlhNjI4Zjk1YjhkYmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_388ffb753eb943468f162786d1417dd2",
+      "statement": "Order's Istio route distinguishes POST/DELETE from other order-prefix traffic; PUT cancellation follows the latter five-second route.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/templates/virtual-service.yaml#L13-L47",
+          "version": "repo-lines-v1:sha256:891898294cb2df0b837cd3d2e9b4fa3aeff47138d163c22efe10d174bde14487:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNzQ4MjQ5Y2JiOWE1ZjhhNmIyYjNmMmU4Mzk3YTA5NThhNGYxY2QzOTc4MTY3YmYwNTA3MTFjNzJiYzRiZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmZDA4MTJhYTY3OTY5YzE3NzQ0YzhjNDAwNjk5ZDQ4ODc3MTZlMTJiNjNiZjFhNjI1OGQwNGNjYTNjMzM3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzOWMyMWIxZjg2MDk2MDM5MzhjNmY2YWRmOGY5NzM0ZDQ5NDYyMTVjYmQ0NDRmODJmOGE5MmQzMmE1OWE4MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://order/src/main/java/com/example/order/interfaces/rest/OrderCommandController.java#L35-L38",
+          "version": "repo-lines-v1:sha256:e76873236a6607a014dc531df90ea00717bd2121b8be115f0c265cdebd5eda85:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjFiNzNlNjdkNjQyOTlkZWUzMjNhMTc5YjdmYmM5YTgxNGQ5NGZlNTdmMzEyODE5NzYwYjVkNTk3YmQ0NTY5YSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODE5MDE5M2I2ZmMwNDdkNjRkYTkyZjgzMDE0N2MyOTFlNmY1OWJlZDRlMjRlOGI2Y2VhZTM3ZmQzM2IxY2UzMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzVhM2NkZjJhMDA1OTc5MzY5OWQ3OTNjYTNmYmZiMDg2MWU4MjNlMWIyZTVmYWFiMDFmODM0NTEwOTdmNzc4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_cc91f001e917463d99d332b2ae662a78",
+      "statement": "Order's monitoring NetworkPolicy ingress permits port 8080, while application YAML configures port 8082 and no separate management port.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/templates/networkpolicy.yaml#L23-L30",
+          "version": "repo-lines-v1:sha256:0da3d6a8fc26c2ceef5aebc38155e67eb5bb1c94e0669118effa37247f83fd84:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDQ2NTQ4YjU4OTRhNzFiNjRlNjcwNjczZjkzNjlmYzdiMzQ3NGEyMTMyZjk2MTMzNDZiNDNhYTM3ZDJiZmY2NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDJjMGM0MGEwYzA3ZTA4NmYwNTMyOTkxZGRlZTJhZGQ2ZWM1N2NmNDcwYmEwMWFiOTc2M2I0ZTQzOTdiNzRhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmIwY2Q2ZTJlNzg3YzI5MjFhNmNjNjFiN2Q1ZDRiZjZkM2RiM2ZiNjJmYjk0MzczZmQ3OWY0MjU2ZjUzNTA3ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjExYjA3Y2E1YWJhNTE3MWI4OTlmYjk3MTg5ODc5NmFmYTUzNjgxNGYwMTkwN2RkNDdhZWE3ZTJkOGVlOWViNCJ9"
+        },
+        {
+          "resource": "repo://order/src/main/resources/application.yml#L39-L40",
+          "version": "repo-lines-v1:sha256:6d2637bbeb9da219748d71a267b8311f1415b39585c08d2389727bb1a3256def:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2Y3YWMxZjc5MTljZGY4Y2U2YTg1ZTU1NGRjZWI5MzI1NzkwYTYzY2Y3MzA3ZTM2ODA3NmM5ZjMwOWZkOWM0ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2IzNThjNTQ3YTc0MDFjMzgxNzY1YzBmODI0OTZmNGU4YzJmODZmYzQzYTRiZTYwMjQwYzZjOGFlZmE5YzBhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWYxYjcwZWVjODBiYTkzNTY0ZWQ3MWU2ZmRjOTA5ZThhY2U1NGNiOTk3MWU3ZTBjZGViMmI4YjBmY2FmNzc4NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDMyOTQxNTc0MWU1MTdmZTQwYWYyMGJhYWQ0OGMzMjQ1ODIxNWVjZDVlM2JiYzExZGYxZmU0N2VlNjM4N2YxMCJ9"
+        },
+        {
+          "resource": "repo://order/src/main/resources/application.yml#L54-L62",
+          "version": "repo-lines-v1:sha256:77cd76470a7a48ed67dc05ffb55026a8f879e0be8c96e474d40a894bbfd6a2c2:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTQ5MGRmYjgxZWFkZTE2YWE4MmRhNmNiMDQ2MmE2MDU4NTE1MDUzZjFjOWQ0YzNmMmNmNmIyMTk3Nzg4MzYwNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTljMjQ3ZjI4Mjg5ZGUxYzQ2MTNlYjZiYjU3NWI0MzdiZGQzZmExNTBkMWVlNzljZTdlZmRiYjNkNGY1MWM2OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGYzODliNGFlZTQ5MjIwMDkzZWYwZmUzNDZmMjZmOTY0Mjc3M2VhZDY2MmRjYzQ4Y2ZiNzkyNjA3ZGMyZDVmNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGNmZWE4MjZjZWZlMzJkMTBjNDIxMzJkYjBhNWE1Y2Q2NDZlMTYxM2E1Mzg3ZDljZDUyZWYzZjdhZjVkMDhmZCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_febbc6318d8745c9a00a26d677c35d59",
+      "statement": "Order connector Helm hooks are ordered outbox, orders CDC, and sink by weights 5, 6, and 7.",
+      "evidence": [
+        {
+          "resource": "repo://order/helm/templates/debezium-connector-job.yaml#L12-L15",
+          "version": "repo-lines-v1:sha256:a3dbbfcd0d83ef9e6330f3caaa6b2d39be7743cf79975b38ab8f1fbbf03d4140:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FkMjAxZmIyZDY3NDM2YzEwMTQ2ZGE2YjBiM2IyZWU0N2EzZTQxZDA2YmUyMjM3MjhiNTViMDhmOGNiNjI3MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjc2MjA2OGQwNzQ5Y2FjNTc2ZTg4Y2NmYWZjZmQ4YTY0OWY3MDUxM2I4MWFiOTlmMzgxNWE0N2VlYjlhOTViOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmMxZDZiYTJjMGRkMmM5M2RkMjNhYzRkZmY2MDk3M2E5ZTAyMzRhNDBiMmY3MWYxMDAxODRmZTNjZmNlYjhjYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjk2NGI3NWU2NWE1YTY3YzljNDdmOWMxOTE1Y2E3MjYyZTc0NTBmZjgzYjExNzVjNWZlNTMzNjRhMDk0NjQ4MiJ9"
+        },
+        {
+          "resource": "repo://order/helm/templates/es-sink-connector-job.yaml#L23-L26",
+          "version": "repo-lines-v1:sha256:49da70a551721f0493872636b4648df0263b640da304a8e17d85068cf979cfa9:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FkMjAxZmIyZDY3NDM2YzEwMTQ2ZGE2YjBiM2IyZWU0N2EzZTQxZDA2YmUyMjM3MjhiNTViMDhmOGNiNjI3MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjc2MjA2OGQwNzQ5Y2FjNTc2ZTg4Y2NmYWZjZmQ4YTY0OWY3MDUxM2I4MWFiOTlmMzgxNWE0N2VlYjlhOTViOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGEzY2Y3ZjVmMDMzNWI1ZDEzNTUxMDA5Mzk3MTk2ZTNjNTk4ODliNTk2OTdmZDk1MzFjNmY1MGI5OWZiNzFjNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjk2NGI3NWU2NWE1YTY3YzljNDdmOWMxOTE1Y2E3MjYyZTc0NTBmZjgzYjExNzVjNWZlNTMzNjRhMDk0NjQ4MiJ9"
+        },
+        {
+          "resource": "repo://order/helm/templates/orders-cdc-connector-job.yaml#L17-L20",
+          "version": "repo-lines-v1:sha256:b7df7b07b175adb0275ccecd02257d33df620fe8aa3a437a6eeccece2b330dd3:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FkMjAxZmIyZDY3NDM2YzEwMTQ2ZGE2YjBiM2IyZWU0N2EzZTQxZDA2YmUyMjM3MjhiNTViMDhmOGNiNjI3MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjc2MjA2OGQwNzQ5Y2FjNTc2ZTg4Y2NmYWZjZmQ4YTY0OWY3MDUxM2I4MWFiOTlmMzgxNWE0N2VlYjlhOTViOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzAxMGY4ZmZhNTExYjU1NmU3YmI3ZTMyOTZjMzg3YTcxMDBhNTNjMmVlOWNiNTM0ODdiOTkxZDkxYzcwNDk0MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjk2NGI3NWU2NWE1YTY3YzljNDdmOWMxOTE1Y2E3MjYyZTc0NTBmZjgzYjExNzVjNWZlNTMzNjRhMDk0NjQ4MiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

@@ -11,6 +11,7 @@
 - [DR-03 确定权威、范围和时点](#dr-03-确定权威范围和时点)
 - [DR-04 建立失败模型](#dr-04-建立失败模型)
 - [DR-05 分配语义、决策和机制](#dr-05-分配语义决策和机制)
+- [方案形成与裁决回路](#方案形成与裁决回路)
 - [DR-06 按保障选择机制](#dr-06-按保障选择机制)
 - [DR-07 标准路径测试](#dr-07-标准路径测试)
 - [DR-08 反事实测试](#dr-08-反事实测试)
@@ -171,6 +172,24 @@ Need and business outcome
 
 每层只记录自己的责任，使用 handoff 连接，不复制实现。
 
+## 方案形成与裁决回路
+
+`to-spec` 必须用本节形成方案，`review-spec` 必须用本节复核方案。只对会改变边界、权威、状态机、保障、公共能力、外部合同或高代价演进的非平凡决定完整执行；不要给简单、可逆的局部选择制造假仪式。
+
+1. **建立 Decision Contract**：记录 Need、invariant/outcome、authority、scope/effective point、failure model、design forces、Current evidence、evolution constraints 和 required evidence。改变关键设计的未知必须显式标记。
+2. **生成实质候选**：候选至少在 responsibility placement、mechanism family、effective point、state/artifact impact 或 evolution path 上有实质差异。可行时加入“保持 Current / 最小变化”基准；只有一个候选可行时记录标准、物理约束或证据充分的排除理由，不制造只改类名或参数的假选项。
+3. **执行硬淘汰**：候选出现以下任一情况即 `REJECTED`；关键证据未知则 `BLOCKED`，不得进入低优先级比较：
+   - authority、scope 或 effective point 小于 required guarantee；
+   - 关键 failure 未被 prevent/detect/recover/tolerate/exclude；
+   - 违反 mandatory Standard、approved decision、依赖方向或自然 owner；
+   - 依赖未验证的合同、版本、环境、移动 ref、隐藏顺序、flush、内存状态或单实例；
+   - 产生第二事实源、污染内层、无法观察恢复，或高风险变化不可迁移回滚。
+4. **有序裁决**：对存活候选使用本文件的[设计质量裁决顺序](#设计质量裁决顺序)，逐项记录关键差异和证据，不计算会掩盖高优先级缺陷的加权总分。高优先级存在 `UNKNOWN` 时不得选中。
+5. **攻击并简化**：对暂选方案执行 DR-07、DR-08、DR-09、DR-11 和 DR-12。失败时回到 Contract 或候选集；通过正确性门禁后，才删除重复状态、判断、机制和无独立职责的产物。
+6. **记录裁决**：保留所有候选的 `SELECTED / REJECTED / BLOCKED`、理由和证据，并记录 selected mechanism、residual risk、fallback、invalidation condition 与 verification。后续分层设计只展开选中方案，不重新发明决定。
+
+生产者应证明“为何选择”；审查者应根据同一 Contract 独立重放硬门禁和相关攻击，而不是只确认文档中存在一张比较表。
+
 ## DR-06 按保障选择机制
 
 **MUST** 从所需保障反推机制族，不从框架 API 或既有类名正推设计。
@@ -184,7 +203,7 @@ Need and business outcome
 5. 哪种机制在该范围内具有原子性或持久性？
 6. 机制失败后是否可观察和恢复？
 
-读取 `mechanism-selection.md` 选择机制族，再读取 `technology-selection.md`，根据相关 Service/Capability Current 中的有效 stack、发布范围和精确版本选择具体实现。多个 failure force 通常需要组合机制；例如可靠投递不自动等于幂等消费，重试也不自动等于可恢复。
+决定涉及一致性、并发、事务、异步副作用、重试、外部交互、长流程或技术派生状态时，读取 `mechanism-selection.md` 选择机制族；需要选择具体实现时再读取 `technology-selection.md`，根据相关 Service/Capability Current 中的有效 stack、发布范围和精确版本裁决。多个 failure force 通常需要组合机制；例如可靠投递不自动等于幂等消费，重试也不自动等于可恢复。
 
 ## DR-07 标准路径测试
 
@@ -311,6 +330,7 @@ Need and business outcome
 | Discovery evidence | 共享能力 Baseline；适用时包含外部 contract/process/readiness |
 | Technology decision | 有效 stack、版本证据、实现与 fallback |
 | Rejected alternatives | 因何不覆盖 force，而非“个人偏好” |
+| Residual / fallback / invalidation | 剩余风险、降级或回退路径、重新裁决条件 |
 | Standard-path result | 是否需要特殊顺序 |
 | Capability outcome | reuse/configure/compose/extend/replace/new/local/kernel |
 | Evolution | compatibility、rollback、removal |

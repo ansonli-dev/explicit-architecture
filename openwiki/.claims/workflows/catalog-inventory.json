@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:99169938d9b2d0e528402df36dc9dc16eb7dcec7731bd3c9b69ad0a491529b23",
+  "claims": [
+    {
+      "id": "claim_e5a9d827b250435fabd8f6f27c91324d",
+      "statement": "Catalog routes invoke typed inbound use cases directly, including HTTP reserve and release routes, and its stock query reads persistence rather than the detail cache.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/application/query/book/GetStockQueryHandler.java#L17-L21",
+          "version": "repo-lines-v1:sha256:7be3acb6ec7476c7e93994f513efb9d1fd44ab9c7f39369ccecee7b5b0e3d157:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2IxMGJlYjUzYWU1NWZkYzg3MDNiYWE1YzM2OWJkZmJiN2I3OWVhNDg3NDY5NmVkY2M1YWFjZGYzNzhjYmY3NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjg4YWVlZGExMmJmZTI0ZWRkZDY3NjU2NjQ3NjU4NmQ0ODc5ZWQzZDBiMTZmZDlmOTBkZTQ4ZDZmYzZhMDFlMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/interfaces/rest/BookCommandController.java#L24-L58",
+          "version": "repo-lines-v1:sha256:64d827cbd405f948ae30cb9b9093fad9dc628652c8c7dbf7d5bc60a148b29f77:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmI1ZjJkZmE2OTM5MDYxOGY2NmFkYjZiNzk2YzM0NjYyMzIxYzc3YjQwZjAzZGFiZTUwYmUyMTg3ZmU3ZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1OGE3OGVmMzQyMTUwMjM5MTY5NDdkOTkzZTcxZmNhYTQwYzUxZGM5MjUwNTllYzM4M2IxZDc5ODAwODAwNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/interfaces/rest/BookQueryController.java#L19-L45",
+          "version": "repo-lines-v1:sha256:022681760903875b297f4e8219a7ced2cfaf64a16455125482dd0a5f6253a155:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmI1ZjJkZmE2OTM5MDYxOGY2NmFkYjZiNzk2YzM0NjYyMzIxYzc3YjQwZjAzZGFiZTUwYmUyMTg3ZmU3ZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTgyMzNiM2JiNGEyNTczNmFiMzAzZWY3M2NjZGEyYWMyODI3NTQwZDk5N2JjYTA4ZWNkOGQ5MjI3YzdmNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d85eb98c9e684c82b799a2e15bfaaf75",
+      "statement": "StockLevel enforces nonnegative total/reserved with reserved at most total; reserve increments reserved, release rejects quantities exceeding reserved, and restock increments total.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/domain/model/StockLevel.java#L9-L55",
+          "version": "repo-lines-v1:sha256:b7b61f4e1e89d1b7ecbe8efd9098c64d40a5e93e7adca6bc31c4402198793276:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyNGY0YzU5ZjFkNTkwMDQ0YTNlMTU0MDk0ZGNhOTAyMmQxMGM4MmZhODc3YTllNTE5YzAyNzU5YjhhOWUyNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwNWY0ZWYzODllZTg4NmUwZTc3MWU5OTA1YjgwZDI5ZWEyM2YzMjkxNDdjMWFjYWUwYTY4Y2QwMjQ2Zjg5YzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://catalog/src/test/java/com/example/catalog/domain/model/StockLevelTest.java#L157-L201",
+          "version": "repo-lines-v1:sha256:46a0374011c80f1c2bf72ec431b1fe13334bff7f3ae0de72febe463d7e77fd7a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwMjhiNjcxNjNhNTE5NDZmYTc5ZmVmZmMzM2JmNjVlYTY4YjMwYTZhNzUwOTViY2RhMjRlZWMwZmRiMTk5YjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhOTQ2NDBlYzBmY2RjZGNkY2ViMTFjMzM1OTZjMzg5Y2JlZjQ1NGQ2NTliN2QzZmJiNDc5MjFiZjE5Yjc2YWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c67327251a094628b8feaa8b0aec0588",
+      "statement": "Book reserve/release use orderId only in emitted events and persist aggregate stock counts, not per-order reservation identities, so repeated operations are not order-ID deduplicated.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/domain/model/Book.java#L19-L33",
+          "version": "repo-lines-v1:sha256:2ad9e189892fee45a5a1ad0d3779492d01895b929f5e8bad217cc6cb72a676b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2MTc0YzI4NTJjYzY1ZTEwZTAxYWJjNThjODQzMjRkMThhMDEyZmRiMmFjZDA4MWIyNGRlOTE5NDZjMzExOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjYTRiM2QwOThjY2M3ZWE4ZmFkMGQwMzU0OWEzYmY1MmQ3Mzg1NzIwYjkxNzA5NzQ4ODdhZDE2OWRlZmM2ZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZlYTljY2ZkMmZmNTQ0NGRmNzRkZTE4ZWI0NGMzY2QxOGM5MGE2ZmJlOWYzMDI4MGQ4NjU0NWFhNmEzN2Q4ZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1MWIxMzk4NWI4NzAxZWZkNzZiYTliYTA5NmViODU0ZGRkNjExOTBkMzNhNmM0ZDZlZjY3OWQ5MzAwZjgwY2UifQ"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/domain/model/Book.java#L57-L65",
+          "version": "repo-lines-v1:sha256:541beddbd3af9a32dfcf3ee220e6a7378381b012863ea3a434cab8c6839c4bc8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2FiODkwNDFiNWQwZDk5NmJmODg2NGU5M2M0NDE5NTA5MjM0NmVlZTZjNjlkZWEwZjE3NWJiMWRkYTRhN2QyMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2MxODIxOTQxNDdjMTZmN2E2N2EwZDhlYTVkYTU1Mjc2ZDQ5YzM4YmNhZTAzYmQ1MjdiMjJhYTQ3NTczYzkxNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTM3ZTFlNTRhZjQzYjI5ZmFjMjgyNWYzOWNkZmE2OTA3YWFkYmQ4NjEyYzkzNWE3YWU0Y2QzZGRhYTQ2NzYxNyJ9"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/repository/jpa/BookJpaEntity.java#L42-L50",
+          "version": "repo-lines-v1:sha256:6193682c6fb551cfbf127154500e80dda3f717661265c7d8a326d2545b0d7b3c:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmY5NTU1ZjI4NGExMmIxNmI2ZGQ0MzdjZmZlMTc3MGY5NzEyZjZiZGZkMmJiMzAwNzNkOGQ3ZjdkZDc1YTFkMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTU4NzE1YTY0NTZkMmNkYmY3MjJkMGUxNDUzZTQ4MGM2YzlkNWNiMGU2Zjc2YjhiMjNmOTlhOWNkNmYyMmI5ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWUzMDQ0NmZjZDEzNzQ2ZjVlNzkzNDNmZGUwN2I2ODRlODM3NjlhMzdiM2QyOTlmYWY5NDNmMzI5M2QzYjJiYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_51ba4357439546acb18874038dbca999",
+      "statement": "Catalog save runs transactionally, maps attached events, clears them after repository save, and publishes a technical BookPersistedEvent.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/repository/jpa/BookEntityMapper.java#L43-L57",
+          "version": "repo-lines-v1:sha256:743434db792b836a22f13808040cb86ccdfd2177ab1f2f2566539e7244527e95:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5MGFjMTczYThkMGNkZjZkNGM0NjZmZjNmODkxZmJkOTUxM2JkMWI0YTI3MDgwNDhlNzQ3MGJmNzE2OThhY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0NDMyNGI1ZmQ4ZThkN2ZhNGQwYjk4MDlhMGZiZWJiNDViZDAxOTgxMGFiNWFiMDM4Y2EzN2U0Y2E5OTY4NTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1YmI0ODQ0ZjUxMzUwNzIyZGM1MjZmZjY4NmMzYmY1ODkxNjllZWI5ODhlNjU5NTVmMjJmOTk4MTg0YzYyNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxYTEzZmQzNTFkMDBmZGNmN2I5Y2FjMTViZDI2MDliMDk5NDUwYzViOGM4ZTQ0MjcwNjA1ZmJiNWRhOWI2YzQifQ"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/repository/jpa/BookPersistenceAdapter.java#L31-L49",
+          "version": "repo-lines-v1:sha256:1d6ddc81fe10d6b66a7982a82f9f923cea31495a54b915367a1987f359b8ea64:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyNjJiYzVjNDQ3ZDI2MTk1M2M0ZmJkMDIyNTA0MThiZTVhM2VhYTg4MmM2OWM0OTAzYzA4NWUzNTVjYjI3M2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNjFlNzcwY2QwNmM1OTEzNjgyMWIyOTg4YTk4MWEwNjQ5M2FjOTQ4MWVlN2QxNzk5ZmYxM2Y2M2MwZDliODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8701ab60b1924015b00b1d5c78d17166",
+      "statement": "Catalog detail reads use cache-aside with a five-minute Redis TTL; after-commit invalidation catches failures, whereas Redis get/put methods do not catch them.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/application/query/book/GetBookQueryHandler.java#L19-L30",
+          "version": "repo-lines-v1:sha256:6d6e2c564f87273b0434c09c6ed71501cdf10524e017f80f0bd19f939524f6bd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YzEzNTkwNjY1NjMyM2QxYzVlYTQxNjU0ZWU2NmFmYjU4NWFjZGNmYWVhY2ExMjFkNWUzMGJmMTkzZWVkZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5YzFjNDczNmI0ODJhMmVmNmE2NTQ2YThhOTA1ZmZmYzY3M2JhYjVkNDhkNmQzMjY2YmQwOGFiMDQ5NTFhOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/cache/BookCacheInvalidationListener.java#L23-L30",
+          "version": "repo-lines-v1:sha256:a0126d589384809415a5619d20b00d25baac7363e5d6768385ab35da125617a3:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNlNGEzODgxZGIyNTVhMjQ0MzE3MTI5YjVkYzZiNDA4OGVjMGY2ZGVjYjZhODRmMDJmODQ0ZDBiMjlkZGY1ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTA3MGU1NDRmMDE5ZWZhZjBkMzMxZTI1ZGNlNTc2Zjk5ZjA5NDQwODQwOTBhZjdmODY3NzViMTBiMjFkMjQ2NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/cache/RedisBookCache.java#L23-L46",
+          "version": "repo-lines-v1:sha256:7a36c60a5cc2186fffa325088b92f5413a403263ac0b16ac7c91735716bb83c3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkYzg1NDQ1NTVmOThjZGVjM2JmNDYyNGE0ZmRkNDNiMTY0ZDdlYmYzMjkxNGE4MGFiNWY4MjJlMDQ5MTJlMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3NjdmYTljNjJiNjk4YzRmMjE4MzVlN2Y5Y2E2NTc1MGNlZWRkZDI5NzBlYTZmZWI5NjBhNjVkM2NkN2QxNTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjNThmY2FhMTU2MjFhZjhiY2E5NTZmYmQ2YjE3MjJhNTRkMjU1OWI2MGYzOTc4MjQ2ODUwN2RhOWNiYzkyZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2MGU3NWQyMmFiY2M4YzVkOTA2NWVkY2I1OTVhNGM5ODNiN2RjMzAwYjY0NmNkNGYwYTJiNDA1NDFiYjA4ZjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_31ed4569c4d54e609e6596fda28109fa",
+      "statement": "Catalog cancellation consumption skips nonpositive item quantities and catches individual release exceptions instead of propagating them to the generic retry processor.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/interfaces/messaging/consumer/OrderCancelledHandler.java#L39-L60",
+          "version": "repo-lines-v1:sha256:25d523105b3da666563d63cbe1b677cfab34062fd002681a7d959153c216208c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzMDkzNjQxMDg1MTY4ODA5MDQ2ZGNkYzI2MTNlMzlhYzdiMjgyYzFmNGZmNTg3ZDBmY2M0NDdkODc5OWViMjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ba0edc55df7b4c70bda9fbff736016eb",
+      "statement": "Catalog REST stock handlers load and save separately, while save reloads the JPA entity and the domain Book carries no version token, limiting what the JPA version annotation proves about stale read-modify-save operations.",
+      "evidence": [
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/application/command/book/ReserveStockCommandHandler.java#L17-L23",
+          "version": "repo-lines-v1:sha256:e64ee4327dd56567d75e933794cd964954753597ef13d425ebf94676d6462376:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWY4MTVmZDRjZmM1Yzk4MGRiYzgzMjU5YzFjMjg5NTlhYjZkZjA2OGQ3MmNiZDZmZDJkN2VjMzRhNDM1Mzk4YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjg4YWVlZGExMmJmZTI0ZWRkZDY3NjU2NjQ3NjU4NmQ0ODc5ZWQzZDBiMTZmZDlmOTBkZTQ4ZDZmYzZhMDFlMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/domain/model/Book.java#L17-L33",
+          "version": "repo-lines-v1:sha256:49c927434aba2cf884dcb64ec31fab12ca6924cffa5034b03e20554486047cb6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzNWZlOWQzZmE2OTMxMTRlOGUxNTVlNmE4OGMwZTQwMzZkYzI5ZWIwMzVmMzRiMDdiY2QzNzBhNzg1ZGQwZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjYTRiM2QwOThjY2M3ZWE4ZmFkMGQwMzU0OWEzYmY1MmQ3Mzg1NzIwYjkxNzA5NzQ4ODdhZDE2OWRlZmM2ZjAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5MDIzNzg3ZGIxNWM1N2EwZjkwZTViMDBmNmFjZmUzNjliNjc5MWE4NjU5OGY1OWU0NzU2Njg3NzEwODYwZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ1MWIxMzk4NWI4NzAxZWZkNzZiYTliYTA5NmViODU0ZGRkNjExOTBkMzNhNmM0ZDZlZjY3OWQ5MzAwZjgwY2UifQ"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/repository/jpa/BookJpaEntity.java#L48-L50",
+          "version": "repo-lines-v1:sha256:2dc109193558a2b663d8dcd6a378a16a80aeab327001dbb64381adde65b4850f:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNmE0ZGM2YjkzZGVkNDczZTlhOWRiYTIxOWMyY2Q5Mjk3MjczMmE3ODlhZTA0YWJjM2QyMjJmZTk5ZDU1NDJkNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTU4NzE1YTY0NTZkMmNkYmY3MjJkMGUxNDUzZTQ4MGM2YzlkNWNiMGU2Zjc2YjhiMjNmOTlhOWNkNmYyMmI5ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2I3MTc5MDM2NTZmNjA3ZWE3NjdlMThmYjQ5YjkxZjc3MDkzYTNmZTg5N2M1NmY3MDZlODIzOTE3ZGZhYTUxZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        },
+        {
+          "resource": "repo://catalog/src/main/java/com/example/catalog/infrastructure/repository/jpa/BookPersistenceAdapter.java#L31-L49",
+          "version": "repo-lines-v1:sha256:1d6ddc81fe10d6b66a7982a82f9f923cea31495a54b915367a1987f359b8ea64:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyNjJiYzVjNDQ3ZDI2MTk1M2M0ZmJkMDIyNTA0MThiZTVhM2VhYTg4MmM2OWM0OTAzYzA4NWUzNTVjYjI3M2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNjFlNzcwY2QwNmM1OTEzNjgyMWIyOTg4YTk4MWEwNjQ5M2FjOTQ4MWVlN2QxNzk5ZmYxM2Y2M2MwZDliODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}

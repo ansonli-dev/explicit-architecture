@@ -88,17 +88,27 @@ sequenceDiagram
 |---|---|---|---|---|
 | {{FACT}} | {{OWNER}} | {{MEANING}} | {{RULE}} | {{RECOVERY}} |
 
-## Semantics, Decision and Guarantee
+## Semantics, Responsibility and Guarantee
 
-| Rule | Semantic owner | Decision location | Final guarantee | Effective point | Scope |
-|---|---|---|---|---|---|
-| {{RULE_ID}} | {{OWNER}} | {{DECISION}} | {{GUARANTEE}} | {{POINT}} | {{SCOPE}} |
+| Rule | Semantic owner | Decision owner | Mechanism owner | Operational owner | Final guarantee | Scope / effective point |
+|---|---|---|---|---|---|---|
+| {{RULE_ID}} | {{SEMANTIC_OWNER}} | {{DECISION_OWNER}} | {{MECHANISM_OWNER}} | {{OPERATIONAL_OWNER}} | {{GUARANTEE}} | {{SCOPE_EFFECTIVE_POINT}} |
 
 ## Design Forces and Failure Model
 
 | Decision ID | Design forces | Authority / scope / point | Failure | Treatment | Rule reference |
 |---|---|---|---|---|---|
 | {{DECISION_ID}} | {{FORCES}} | {{AUTHORITY_SCOPE_POINT}} | {{FAILURE}} | {{PREVENT_DETECT_RECOVER_TOLERATE_EXCLUDE}} | {{ASIS_CASIS_DISC_DR_MECH_GEN_TECH_ID}} |
+
+## Candidate Solutions and Selection
+
+| Decision ID | Candidate: owner + mechanism + evolution | Hard gate | Ordered quality comparison | Evidence / unknown | Verdict / rationale |
+|---|---|---|---|---|---|
+| {{DECISION_ID}} | {{CANDIDATE}} | `{{PASS_REJECT_BLOCKED}}` | {{CORRECTNESS_AUTHORITY_STANDARD_PATH_SIMPLICITY_RECOVERY_EVOLUTION_REUSE_COST}} | {{EVIDENCE_UNKNOWN}} | `{{SELECTED_REJECTED_BLOCKED}}` — {{RATIONALE}} |
+
+| Decision ID | Selected mechanism | Residual risk | Fallback | Invalidation condition | Verification |
+|---|---|---|---|---|---|
+| {{DECISION_ID}} | {{SELECTED_MECHANISM}} | {{RESIDUAL_RISK}} | {{FALLBACK}} | {{INVALIDATION_CONDITION}} | {{VERIFICATION_EVIDENCE}} |
 
 ## Current Example vs Target
 

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:b258a2d758135d0d0a39cad52feff03c12722990e96e58d0e8e6e945736782b7",
+  "claims": [
+    {
+      "id": "claim_0d142932c80843db9b0427741c12079c",
+      "statement": "Notification consumes placed, cancelled, confirmed and shipped order events through KafkaMessageProcessor and typed handlers.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/interfaces/messaging/consumer/OrderEventConsumer.java#L40-L58",
+          "version": "repo-lines-v1:sha256:9642c46a6cecb684a45df2eb3a67101873ded05295db2a796aa6644f6c065399:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkNGJkYTNiYjM5YWUzYTc1Y2ZiNzM5MjU3YTc3OWRjNDZlZTRhYTNiNDU1YTJhZmQ2YzVjY2I3ZTc5YmViYzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg0ZTk2ZmQ4MDk3MTk0MmRhMGM5NTJhYTdhOTY2ZTA3OTcwZjk4Zjg1MmI1MzUxMDQ3MGQ1MGQzYTYxZTVkNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1a94d6d474dd412d8b10bfba86d07a6b",
+      "statement": "The placement notification handler dispatches customer ID and payload without the event email snapshot; the send handler resolves the recipient through CustomerClient.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/application/command/notification/SendNotificationCommandHandler.java#L22-L44",
+          "version": "repo-lines-v1:sha256:03613e765f32264f0b6e3cd61a7bcd35f7666284050d897f4c9873f8184f2161:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwNTcyYzdlZWEyMzE5OTRmOGM3MzlkNGI5MzIwMjQyYWY0MmU0ZWI5YzczYmJmYzk0OGY5ZjIyNzdhZWUyMjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MTU1MDNmMDViMzE2NTk1ZjE4ODdjNGE5MzA5MTkzZWRlZmZmZmJiYWY0ZTA3ZGY3Zjk5NGE2MjcwNmNiYmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwMTJhYWNmY2ZiMTUzZjc2MjUzNGZiMmY2NDI5ZjM0MGQ4YzIyOTM3Mjg0OTMwNzZmNjk3MDEzOGJkYTNlYzQifQ"
+        },
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/interfaces/messaging/consumer/OrderPlacedHandler.java#L35-L43",
+          "version": "repo-lines-v1:sha256:4694028fd219f1a9882074a8481caf463b04b2b7490ccad25d574f2f0f6577cc:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTE2OThiYmJlMDYxNTIxM2UzYzdlNjZlMmQxNTYwMjgzMTZhYWFiYmRmYTRhZTA3MWFmMmZkNWFkODBkYzg5OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTMwOTM2NDEwODUxNjg4MDkwNDZkY2RjMjYxM2UzOWFjN2IyODJjMWY0ZmY1ODdkMGZjYzQ0N2Q4Nzk5ZWIyMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_6dde565fadc24fa1af39c5e0418039f0",
+      "statement": "Notification sending saves a failed record without sending when lookup is empty, otherwise saves PENDING, calls the sender, and saves SENT or caught-error FAILED.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/application/command/notification/SendNotificationCommandHandler.java#L24-L59",
+          "version": "repo-lines-v1:sha256:339427b7b1c792a141a24d5d6fec76884e107280afb0bf0e8e02b2f7f7f1d0b9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3YmFhOTViN2UxZWM1MGZiZDkxOGIwYzg1ZjRhZTRlOWNiNzNkMzdiNTBhMjk4Nzg5MDYyZTgzN2UyMTgxMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NWMzY2IxMThiYWIwMjI5OGI5MGM1N2U1MWI0NjdlNzBkM2U4YmVlZjM1NGY4NzgyZjVkN2Q0Yzk0ZjBiNTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5N2MyMjA2ODU4ZTE4OTYzODFlYzIzNmYzNjg4MmNkZmYxNjExZjZlMjc4MzcxNTE2MGNmYzg4MTY2ODI5M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f8f1f68457de43d39f99e464a5859fd4",
+      "statement": "The Kafka notification path invokes the command synchronously inside KafkaMessageProcessor's transaction, so ordinary transactional persistence saves participate in that transaction rather than guaranteeing independent pre/post-send commits.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/infrastructure/repository/jpa/NotificationPersistenceAdapter.java#L25-L32",
+          "version": "repo-lines-v1:sha256:714f66fad7246766b32b859cf6991be725e04ab073d383eebf34a31949b00d63:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGIwZDNhNzU5N2I1ZjU2Nzc4ZGFlNTY4ZGNkYWNlYTU4YTg5NDdkMjViMzlmOGNmZjQ0MTlmMWYxMzRhMzgyZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDdlYjEzMjdkY2NkZDAxZWM3MjEzMzg1ZmQ1NDlhZjNjZjM1ODNiYzdlYjgzMjc4MzE2ZGYxNGVkOTExNDQ0YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzY5NDZlMTAxZTVlNzhkOTBhNTEwYzY5ZjI2NmVmNzY1NDBkMzA5YjFiODIyNjk1YjUzMTcyZWQyY2FhMDI1OSJ9"
+        },
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/interfaces/messaging/consumer/OrderPlacedHandler.java#L35-L43",
+          "version": "repo-lines-v1:sha256:4694028fd219f1a9882074a8481caf463b04b2b7490ccad25d574f2f0f6577cc:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTE2OThiYmJlMDYxNTIxM2UzYzdlNjZlMmQxNTYwMjgzMTZhYWFiYmRmYTRhZTA3MWFmMmZkNWFkODBkYzg5OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTMwOTM2NDEwODUxNjg4MDkwNDZkY2RjMjYxM2UzOWFjN2IyODJjMWY0ZmY1ODdkMGZjYzQ0N2Q4Nzk5ZWIyMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/bus/SpringCommandBus.java#L49-L65",
+          "version": "repo-lines-v1:sha256:77d0ffb3a34cf7a3939ad0a19e07ed5d8a00c56bec5b9ed68be0d15e1367db76:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlOTVmOTA0MTY1NDg3MGYzZjI0MWQzZTZhYzBiYjg1YTEzODkwY2ExYTdmNzEzOGI4ZGY1MDdhNWI3Mzc4MDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllNjA0MjM3MWFhZGVmNDcwMzQzYmQ0NmRiYzNjYmYyNTEzZDgwMzliNzBlM2U3MGY2NzVlOTIyOTRmMzNjZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdlYThhMThhZmVjOTEyZjY4MzhkYzM2NzRlYzQyMDI4YjYwMGQ5ODQxN2Q1ZDAyYTg3NDE2NThlYWYzZTk2YTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1OGIzNGJiMzg0MzE3MDhiMTU3ZWU1ZGEyNmE0Zjk3NjcxNWMwNmVjMjQyOTVhYzVhNTA5MjFhOWFhNGI5MzEifQ"
+        },
+        {
+          "resource": "repo://seedwork/src/main/java/com/example/seedwork/infrastructure/kafka/KafkaMessageProcessor.java#L63-L85",
+          "version": "repo-lines-v1:sha256:dea734ec9e8ff010c925f4146d318a95f4c349e2b62fead4cecbe0692a5ff167:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlNmViMzlmNjAyYjg5ZDdiMjYyOTg0MjhiODdmNDAxMWJmZmZmYjJkY2E3MGE4MDI0MTIyNTJjN2ZiNGNkZTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmNjM5YzNiNzg0YWI1MmUwYTM1ZTQ5YWIzNDA3YzlmYjJlZThjY2JiZGEzYzg2Zjg1MGFhYmMwMmUxOTFhOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1MTNkOTYxNTE0MDMxNzgxZmIwMWM3ZjU2MmFhMGI5ZmU5MTQyYzE0MTMwNjNkZWQ2NzQyNjcyNWI0MWJlYmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c5857d4c7c0948b1970ed26d8a978757",
+      "statement": "StubCustomerClient is active under stub and derives an example.com address from customer ID; LogEmailAdapter is conditional on log-only and logs simulated delivery.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/infrastructure/client/customer/StubCustomerClient.java#L19-L30",
+          "version": "repo-lines-v1:sha256:551872bbd6eaf5a104cdbe1189091f256f93a705e1baebe910a4ecc506bbe6c6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmExZTlmNDQ5NDlmYTg5YTNiNDJiMDQ5MmRkYmRmZmEyZWI3NjQ4NDhkMzU3NzhjOWZiNTNjMjA3ZWJkYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2MDIzZGE0ZDgzMDU5YjZkNGQyMzE1YmU3MTIzNDA4MDAzMmNhNGI4NzQ5YmU3ZmI3MTJmYWUzOGRkYjJlNzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA0YTRlOTA5M2EwY2NlNzI3OGM4NTdhYWMxM2QxMmNjM2IxN2E0MjYyN2YwZTI3YTI2MmUyYzNkN2NjODEwNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/infrastructure/client/email/LogEmailAdapter.java#L14-L32",
+          "version": "repo-lines-v1:sha256:4d49f62de65d08db53334bf385232aeba4abbae376ec6346fa77cfbce994c092:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYThjMTE2MGViMGE5NTFkOWQxYzkzYmUxYmM0NTRiYjM0ZmY5NTM5NjNkMTNlMTdkZmE4OGM1NDMwZDBhMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhZmIyOWNkZDM2ZTRkOTVjNjg2MGVlMzFjN2EyMzg5MzE0MzI1NmU4ODQwODQ2MzUxNzAyYzdjYjZhZmQyYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhMjZiMzRmYzFjZjk3MDFkOTIwYWNkNGE1YzI2YTk3OGZkN2RhY2QyNjc2MTc2NDk3YTdkMWYyNzlmOTk0YzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://notification/src/main/resources/application.yml#L1-L3",
+          "version": "repo-lines-v1:sha256:abc4191eda92a841eda14068e8b6948aae2076fd44d0c743a2aa12b27bf6c937:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWIzY2RmNGZkNGI2YzFlY2VhZjM0MzE1ZGRiOTJkNzExMWI1MGE1MGNiNzcxNGZiM2I0ZDY2NDE2MGIyMGM0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmRlMGNjY2NhNDI0NDA1ZDk5NDg1NWMwMDVjYTA3MTk3NjFhODZkY2I3ODc1MDhmMDViMTczNzk4MmRhODRjYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjc4YTc1ZjY0NWY4MWZlM2RlNWY3MTA3NzNmMzM2MTA0NGIyOTg0YmY3YjAxOTcwOTZhMTM3ZTc1Yjg1YjAzMCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_39d6a53345944dfaafdc7f3f6aaa6a5e",
+      "statement": "Notification list queries load domain objects through NotificationRepository and map summary fields after QueryBus dispatch from the REST controller.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/application/query/notification/ListNotificationsQueryHandler.java#L16-L23",
+          "version": "repo-lines-v1:sha256:985927cccaad19c9767e8a8c06bc4cb5ec1766de30769a5f9f15c5b64a1ef77c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTgyOTg2MTNiOTcxZmViODA5YjY4NmFlODU2NDk3M2M3OWY0Mzc0NTNjYTA5NTFlZmIwYTQ1OGQ5NzA2ZDUzZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWE0YTRlMzZmZjUwN2I5NDgzY2EwYTU2ZDQ1ODE3NWY3YTUwMDI1NGE1ZmMxZmMyNjkwZWY2NzUzMmZjYjA3OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzc5NGQwMmE4MTIxOTQ0ZDE3NmQyNjVlOWJiOWNjNTlmNmFiODkwYmNhZGY4YWVmZGViZGJiYjRmMmVhODQ0NCJ9"
+        },
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/infrastructure/repository/jpa/NotificationPersistenceAdapter.java#L35-L39",
+          "version": "repo-lines-v1:sha256:94bfd760b9c638c69ababeb0dd220e36c555a7fb08d0beb466050700b8ed186a:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWRjMmIzMTFhYmU4NzU3MmU4YTdjYzBkOTk2YTY1ODQ0MDc2ZTUyMzJkMjFiN2E4NTQ3NWY5YjQwNTViNzQ5MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjkwNjNkODMxMGY5YTllNGE2ODdkZjcyYThlOWZiNjNjZmNkOWFiM2RkOWJkZDJiMzE2MjNmOTg2MjczZDZjNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGEzM2Q0Njg3ZTRlYzA0YzViYzJlOGEwMDQwMzg2NjU2NDkyMDgzODBjOTA1N2E4YzJhYTQ4NzI2MmE0NTQ2ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWQ1MzUxN2Q3ZWRiNGQ3MjZjOTRiMDYxYzllZDI0ZTI2NzM1NTRkMGJiMjc2NzM0OTQ5MWE2ZjlmYjFmODk0MyJ9"
+        },
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/interfaces/rest/NotificationController.java#L13-L25",
+          "version": "repo-lines-v1:sha256:701d298c519d5ac41335ab5b39de15a98cdcc3808475835d0eee64837a37d0c5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmI1ZjJkZmE2OTM5MDYxOGY2NmFkYjZiNzk2YzM0NjYyMzIxYzc3YjQwZjAzZGFiZTUwYmUyMTg3ZmU3ZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjYTViYTE0OTExZjk5ZDc4NmQ5ZjM1YWYwMDg4NTI1NGEwOTIzZmU2YzE3YzU5MDBiNDA5ZTY1YjY0Njk0YzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MTgyMzNiM2JiNGEyNTczNmFiMzAzZWY3M2NjZGEyYWMyODI3NTQwZDk5N2JjYTA4ZWNkOGQ5MjI3YzdmNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_adad7ea125a5435dab1702cfaa8aa82a",
+      "statement": "Cancellation notification reasons are truncated at 500 Unicode code points and HTML-escaped.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/interfaces/messaging/consumer/OrderCancelledHandler.java#L35-L58",
+          "version": "repo-lines-v1:sha256:500daf4e9ee16ea496bbc882bd2cb13c4a7c690f4a23bf569cabf99597784bbf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkZjZkMjM2NGY2OWQwNjE3OGIxZTJlM2Y3MzYxN2RjNzdmZTEzNzAxMDY1YmZlNWQxMTM4ODllMjUxZTc3ZTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzMDkzNjQxMDg1MTY4ODA5MDQ2ZGNkYzI2MTNlMzlhYzdiMjgyYzFmNGZmNTg3ZDBmY2M0NDdkODc5OWViMjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0aaef933b5b74a50adc43505e3bca258",
+      "statement": "Notification markSent and markFailed assign status and emit local domain events without guarding prior state.",
+      "evidence": [
+        {
+          "resource": "repo://notification/src/main/java/com/example/notification/domain/model/Notification.java#L46-L54",
+          "version": "repo-lines-v1:sha256:988c07347ebd29cf932fd7dce31af94a3decc92ce9e4d36a1a51977192777ae3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDUwODgyZGIzNTQwMzA5NjExZTU4OGNiZmMwMzE1YTQyNzQyM2QyZWQ2ZTNiZDcxNTQ4OWVmM2Y0MDA4ZjExMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTIxNzM0MjM3NmU2MGRjNTBhYTg0ZDcwNTg4MGMzZjkxZTNkOGQxZTZlZmVkNWQzZTRmZjI4YzdhNmRhM2JjYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDQ3YzA3ZDcxNDIxNDIwZWI2NjEwNTczNDljNzM2ZDBmN2IwM2M2ZWQ2NWViZDVlMTFkY2M0NDliMGNkZmY4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTU4NmExZmY4OGVjNGNmOTFkYjY1NTU1YWVkNDZmOWM0MzRiMjliNzY0MTYxMjQwZmE4N2QwZDQxZjlmNmM0MiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-16T08:14:48.980Z"
+  }
+}
