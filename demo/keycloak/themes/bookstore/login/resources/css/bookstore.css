@@ -1,0 +1,160 @@
+:root {
+  --bookstore-bg: #f6f6f9;
+  --bookstore-surface: #fff;
+  --bookstore-ink: #242435;
+  --bookstore-muted: #555669;
+  --bookstore-primary: #424aa9;
+  --bookstore-primary-hover: #343b8e;
+  --bookstore-primary-ink: #fff;
+  --bookstore-line: #dddde8;
+  --bookstore-input: #77798d;
+  --pf-v5-global--FontFamily--text: Inter, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --pf-v5-global--FontFamily--heading: var(--pf-v5-global--FontFamily--text);
+}
+
+:root.pf-v5-theme-dark {
+  --bookstore-bg: #111216;
+  --bookstore-surface: #191b23;
+  --bookstore-ink: #f0f0f7;
+  --bookstore-muted: #b4b5c6;
+  --bookstore-primary: #adb5ff;
+  --bookstore-primary-hover: #c5caff;
+  --bookstore-primary-ink: #191b3a;
+  --bookstore-line: #313347;
+  --bookstore-input: #72758e;
+}
+
+#keycloak-bg {
+  background: var(--bookstore-bg);
+  color: var(--bookstore-ink);
+}
+
+.pf-v5-c-login {
+  background: none;
+  display: block;
+  min-height: 100vh;
+}
+
+.pf-v5-c-login__container {
+  display: block;
+  width: min(100%, 30rem);
+  padding-inline: 1rem;
+  padding-block: clamp(1.25rem, 6vh, 4rem);
+  margin-inline: auto;
+}
+
+.pf-v5-c-login__header {
+  padding: 0 0 1.25rem;
+  margin: 0;
+}
+
+#kc-header-wrapper {
+  color: var(--bookstore-ink) !important;
+  font-size: 1.375rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  text-transform: none;
+}
+
+.pf-v5-c-login__main {
+  background: var(--bookstore-surface);
+  color: var(--bookstore-ink);
+  border: 1px solid var(--bookstore-line);
+  border-radius: 1rem;
+  box-shadow: 0 12px 36px #1716330d;
+}
+
+.pf-v5-c-login__main-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  border-top: 0;
+  padding-block: 1.75rem 0.75rem;
+  gap: 0.5rem 0.75rem;
+}
+
+#kc-page-title {
+  color: var(--bookstore-ink);
+  font-size: clamp(1.375rem, 4.5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.pf-v5-c-login__main-header,
+.pf-v5-c-login__main-body {
+  padding-inline: clamp(1rem, 5vw, 2rem);
+}
+
+.pf-v5-c-login__main-body {
+  padding-block: 0 1rem;
+}
+
+.pf-v5-c-login__main-body .pf-v5-c-form {
+  row-gap: 1rem;
+}
+
+.pf-v5-c-login__main-body .pf-v5-c-form-control,
+.pf-v5-c-login__main-body .pf-v5-c-form-control input {
+  font-size: 1rem;
+  min-height: 2.75rem;
+}
+
+.pf-v5-c-login__main-body .pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--bookstore-surface);
+}
+
+.pf-v5-c-login__main-body .pf-v5-c-form-control:not(.pf-m-error)::before {
+  border: 1px solid var(--bookstore-input);
+}
+
+.pf-v5-c-login__main .pf-v5-c-button {
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.pf-v5-c-login__main .pf-v5-c-button.pf-m-primary:not(:disabled) {
+  background: var(--bookstore-primary);
+  color: var(--bookstore-primary-ink);
+  font-weight: 650;
+}
+
+.pf-v5-c-login__main .pf-v5-c-button.pf-m-primary:hover:not(:disabled) {
+  background: var(--bookstore-primary-hover);
+}
+
+.pf-v5-c-login__main a:not(.pf-m-primary) {
+  color: var(--bookstore-primary);
+  text-underline-offset: 0.18em;
+}
+
+.pf-v5-c-login__main :is(a, button, input, select):focus-visible {
+  outline: 2px solid var(--bookstore-primary);
+  outline-offset: 2px;
+}
+
+#kc-registration {
+  color: var(--bookstore-muted);
+  text-align: center;
+}
+
+#kc-info.pf-v5-c-login__main-footer-band {
+  margin-block-start: 1rem;
+}
+
+#kc-registration a,
+.bookstore-back,
+.pf-v5-c-form__helper-text a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  font-weight: 650;
+}
+
+.bookstore-back {
+  width: 100%;
+  justify-content: center;
+  font-size: 0.875rem;
+}

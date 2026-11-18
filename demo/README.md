@@ -11,7 +11,7 @@ docker compose -f demo/compose.yaml config --quiet
 docker compose -f demo/compose.yaml up -d --wait
 ```
 
-Compose starts PostgreSQL for each bounded context, Elasticsearch, Keycloak, Kafka, and Schema Registry. One-shot jobs create topics and register exact schemas before Catalog starts. Catalog runs Flyway before its health check passes, then the seed job runs. Order starts with the scheduler relay.
+Compose starts PostgreSQL for each bounded context, Elasticsearch, Keycloak, the Mailpit test inbox, Kafka, and Schema Registry. One-shot jobs create topics and register exact schemas before Catalog starts. Catalog runs Flyway before its health check passes, then the seed job runs. Order starts with the scheduler relay.
 
 Run the seed again with the one-shot job.
 
@@ -26,20 +26,22 @@ docker run --rm --network bookstore-demo_default curlimages/curl:8.11.1 \
   -fsS http://catalog:8081/api/v1/books/00000000-0000-4000-8000-00000000010d
 ```
 
-Rebuild the affected jar and recreate its container after Java changes. Use `docker compose -f demo/compose.yaml down` to stop the stack and keep the PostgreSQL, Kafka, and search volumes.
+Rebuild the affected jar and recreate its container after Java changes. Use `docker compose -f demo/compose.yaml down` to stop the stack and keep its volumes, including registered accounts in `keycloak-data`.
 
 ## Frontend handoff
 
 The optional [frontend overlay](compose.frontend.yaml) builds the release BFF from a `react-reference-architecture` checkout using the [Catalog v1](../catalog/contracts/catalog-v1.yaml) and [Order v1](../order/contracts/order-v1.yaml) contracts. A sibling checkout is the default. Set `BOOKSTORE_FRONTEND_DIR` to an absolute path to use another checkout. The overlay starts the BFF's own PostgreSQL database and initializes its session and cart tables. The browser reaches the frontend and Keycloak through loopback. Java HTTP, database, Kafka, and Registry traffic stays on Docker's project network.
 
-After building the Java jars described above, run from the Java repository root with ports 3000 and 8180 free. Choose a fresh Compose project name for each browser verification run because the scenarios buy from the seeded inventory.
+After building the Java jars described above, run from the Java repository root with ports 3000, 8180, and 8025 free. Choose a fresh Compose project name for each browser verification run because the scenarios buy from the seeded inventory.
 
 ```bash
 docker compose -p bookstore-browser -f demo/compose.yaml -f demo/compose.frontend.yaml config --quiet
 docker compose -p bookstore-browser -f demo/compose.yaml -f demo/compose.frontend.yaml up -d --wait --build
 ```
 
-Open [the book catalog](http://localhost:3000/en/books) and sign in with one of the reader accounts below. Use the exact `localhost` hostname registered for the Keycloak callback.
+Open [the book catalog](http://localhost:3000/en/books) and select **Sign in**. The bookstore's Keycloak page accepts an email address or username and offers **Create account** and **Forgot password?**. Use a test address for registration and open verification or password reset links from the [local inbox](http://localhost:8025). New accounts get the reader role. After signing in, you return to the page where you started. Use **My account** to view orders or sign out. Use the exact `localhost` hostname registered for the Keycloak callback.
+
+Keycloak imports the realm on first startup. For an existing realm, mount the [bookstore theme](keycloak/themes/bookstore), set its **Login theme** to `bookstore`, enable **Forgot password**, and set the `bookstore-bff` client's **Home URL** to `http://localhost:3000` so **Back to bookstore** opens the catalog.
 
 | Setting | Value |
 | --- | --- |
@@ -72,7 +74,7 @@ pnpm exec playwright install chromium
 pnpm test:e2e:java
 ```
 
-Chromium signs in through Keycloak, shops the live Catalog, and verifies a placed order after a quote refresh and an Orders reload. A second case drops the browser response after the real submission is accepted and checks that retrying the same quote creates one order and reserves stock once. Two independent reader sessions then compete for the single-copy fixture, check the losing reader's cart, and verify that private resources return 404 to the other reader. The race cancels its winning order, waits for inventory to return, and clears the losing test cart.
+Chromium registers a reader, verifies their email, checks out, and checks that their cart and orders are hidden after sign-out and restored on sign-in. Other cases verify quote and order reloads, retry a dropped submission response, and race two reader sessions for the single-copy fixture while checking resource ownership. The race cancels its winning order, waits for inventory to return, and clears the losing test cart.
 
 From the Java repository root, stop the browser stack after verification.
 
