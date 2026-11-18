@@ -1,0 +1,73 @@
+name: Backend PR CI
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  java-tests:
+    name: Java tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Testcontainers 1.20.1 needs this for Docker Engine 29.
+      JAVA_TOOL_OPTIONS: -Dapi.version=1.44
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            */*.gradle.kts
+            */gradle/libs.versions.toml
+            */gradle/wrapper/gradle-wrapper.properties
+      - name: Build and publish seedwork
+        working-directory: seedwork
+        run: ./gradlew --no-daemon test publishToMavenLocal
+      - name: Test and publish shared events
+        working-directory: shared-events
+        run: ./gradlew --no-daemon test publishToMavenLocal
+      - name: Test Catalog
+        working-directory: catalog
+        run: ./gradlew --no-daemon test
+      - name: Test Order
+        working-directory: order
+        run: ./gradlew --no-daemon test
+      - name: Test Notification
+        working-directory: notification
+        run: ./gradlew --no-daemon test
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: java-test-results
+          path: '*/build/test-results/test/*.xml'
+          if-no-files-found: ignore
+
+  compose-config:
+    name: Compose configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: Validate the demo and frontend overlay
+        run: |
+          docker compose -f demo/compose.yaml --profile verify config --quiet
+          docker compose -f demo/compose.yaml -f demo/compose.frontend.yaml config --quiet
+
+  keycloak-import:
+    name: Keycloak first import
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: Smoke test a fresh realm
+        run: bash demo/verify/keycloak-import.sh

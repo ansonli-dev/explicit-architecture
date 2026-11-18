@@ -84,6 +84,8 @@ docker compose -p bookstore-browser -f demo/compose.yaml -f demo/compose.fronten
 
 ## Verification
 
+The [backend PR workflow](../.github/workflows/backend-ci.yml) runs the Java module tests, validates the base Compose file and frontend overlay, and checks a fresh Keycloak realm. Run `bash demo/verify/keycloak-import.sh` with Docker Compose v2.24.4 or later, curl, and jq to repeat the import check. It uses its own data volume and a Docker-assigned host port.
+
 Run the existing Catalog and Order test suites separately from their module directories with `./gradlew test`. Their integration tests require Docker for Testcontainers. Use a fresh Compose project for the private-network verification, with any other stack on port 8180 stopped. The runner authenticates against Keycloak using Code + PKCE and exercises the real Java, PostgreSQL, and Kafka services. It stores synthetic checkout IDs in a project volume to carry the same submission across the Order restart.
 
 ```bash
