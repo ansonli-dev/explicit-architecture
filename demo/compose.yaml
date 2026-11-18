@@ -182,11 +182,11 @@ services:
 
   catalog-seed:
     image: postgres:16-alpine
-    command: ["psql", "-h", "catalog-db", "-U", "bookstore", "-d", "catalog", "-v", "ON_ERROR_STOP=1", "-f", "/seed/catalog.sql"]
+    command: ["psql", "-h", "catalog-db", "-U", "bookstore", "-d", "catalog", "-v", "ON_ERROR_STOP=1", "-f", "/seed/catalog.sql", "-f", "/seed/catalog-presentation.sql"]
     environment:
       PGPASSWORD: bookstore
     volumes:
-      - ./seed/catalog.sql:/seed/catalog.sql:ro
+      - ./seed:/seed:ro
     depends_on:
       catalog:
         condition: service_healthy
@@ -235,8 +235,12 @@ services:
       DEMO_OIDC_BASE_URL: http://keycloak:8080/realms/bookstore
       DEMO_KAFKA_BOOTSTRAP: kafka:9092
       DEMO_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      DEMO_CATALOG_JDBC_URL: jdbc:postgresql://catalog-db:5432/catalog
+      DEMO_ORDER_JDBC_URL: jdbc:postgresql://order-db:5432/order
+      DEMO_VERIFY_CAPTURE_RESPONSES: ${DEMO_VERIFY_CAPTURE_RESPONSES:-false}
       DEMO_VERIFY_INTAKE_CLOSED: ${DEMO_VERIFY_INTAKE_CLOSED:-false}
       DEMO_VERIFY_CRASH_RECOVERY: ${DEMO_VERIFY_CRASH_RECOVERY:-false}
+      DEMO_VERIFY_RECONCILE: ${DEMO_VERIFY_RECONCILE:-off}
     volumes:
       - ../e2e:/repo/e2e
       - verify-gradle:/gradle

@@ -1,0 +1,56 @@
+services:
+  frontend-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: frontend
+      POSTGRES_USER: bookstore
+      POSTGRES_PASSWORD: bookstore
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U bookstore -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - frontend-data:/var/lib/postgresql/data
+      - type: bind
+        source: ${BOOKSTORE_FRONTEND_DIR:-../../react-reference-architecture}/database/auth.sql
+        target: /docker-entrypoint-initdb.d/01-auth.sql
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BOOKSTORE_FRONTEND_DIR:-../../react-reference-architecture}/database/cart.sql
+        target: /docker-entrypoint-initdb.d/02-cart.sql
+        read_only: true
+        bind:
+          create_host_path: false
+
+  frontend:
+    build:
+      context: ${BOOKSTORE_FRONTEND_DIR:-../../react-reference-architecture}
+    environment:
+      APP_ORIGIN: http://localhost:3000
+      JAVA_CONTRACT: v2-integrated
+      JAVA_CATALOG_BASE_URL: http://catalog:8081
+      JAVA_ORDER_BASE_URL: http://order:8082
+      CATALOG_CATEGORIES_JSON: '["Architecture","Engineering"]'
+      OIDC_ISSUER: http://localhost:8180/realms/bookstore
+      OIDC_INTERNAL_BASE_URL: http://keycloak:8080/realms/bookstore
+      OIDC_CLIENT_ID: bookstore-bff
+      OIDC_CLIENT_SECRET: bookstore-bff-local
+      AUTH_DATABASE_URL: postgres://bookstore:bookstore@frontend-db:5432/frontend
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/ready').then(response => process.exit(response.ok ? 0 : 1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      frontend-db:
+        condition: service_healthy
+      order:
+        condition: service_healthy
+
+volumes:
+  frontend-data:

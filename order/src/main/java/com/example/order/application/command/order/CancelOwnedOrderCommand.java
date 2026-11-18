@@ -10,19 +10,18 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 public record CancelOwnedOrderCommand(CustomerId owner, OrderId orderId, String reason, long expectedVersion)
-        implements Command<Void> {
+        implements Command<OrderPersistence.CancellationResult> {
 
     @Service
     @Profile("demo-integrated")
-    record Handler(OrderPersistence orders) implements CommandHandler<CancelOwnedOrderCommand, Void> {
+    record Handler(OrderPersistence orders) implements CommandHandler<CancelOwnedOrderCommand, OrderPersistence.CancellationResult> {
         @Override
-        public Void handle(CancelOwnedOrderCommand command) {
+        public OrderPersistence.CancellationResult handle(CancelOwnedOrderCommand command) {
             String reason = command.reason().strip();
             if (reason.isEmpty() || reason.length() > 200) {
                 throw new CheckoutProblem(CheckoutProblem.Code.INVALID_REQUEST);
             }
-            orders.cancelOwned(command.orderId(), command.owner(), reason, command.expectedVersion());
-            return null;
+            return orders.cancelOwned(command.orderId(), command.owner(), reason, command.expectedVersion());
         }
     }
 }

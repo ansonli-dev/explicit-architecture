@@ -9,6 +9,7 @@ import com.example.catalog.application.query.book.ListCategoriesQuery;
 import com.example.catalog.interfaces.rest.security.DemoCatalogProperties;
 import com.example.seedwork.application.bus.CommandBus;
 import com.example.seedwork.application.bus.QueryBus;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -44,13 +45,13 @@ class BookV2Controller {
                         @RequestParam(defaultValue = "1") @Min(1) @Max(100) int page,
                         @RequestParam(defaultValue = "12") @Min(1) @Max(100) int size) {
         var result = queries.dispatch(new ListBooksV2Query(term(category, 80), term(q, 64), page, size));
-        return new BooksResponse(result.books().stream().map(BookResponse::from).toList(),
+        return new BooksResponse(result.books().stream().map(book -> BookResponse.from(book, false)).toList(),
                 result.page(), result.hasNext());
     }
 
     @GetMapping("/books/{bookId}")
     BookResponse book(@PathVariable UUID bookId) {
-        return BookResponse.from(queries.dispatch(new GetBookV2Query(bookId)));
+        return BookResponse.from(queries.dispatch(new GetBookV2Query(bookId)), true);
     }
 
     @GetMapping("/categories")
@@ -86,15 +87,16 @@ class BookV2Controller {
         return term;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     record BookResponse(UUID id, String title, String author, String category, long priceMinor,
-                        String currency, int stock) {
+                        String currency, int stock, String coverUrl, String description) {
         BookResponse {
             CatalogDataException.checkPrice(priceMinor, currency);
         }
 
-        static BookResponse from(BookV2Result book) {
+        static BookResponse from(BookV2Result book, boolean includeDescription) {
             return new BookResponse(book.id(), book.title(), book.author(), book.category(), book.priceMinor(),
-                    book.currency(), book.stock());
+                    book.currency(), book.stock(), book.coverUrl(), includeDescription ? book.description() : null);
         }
     }
 

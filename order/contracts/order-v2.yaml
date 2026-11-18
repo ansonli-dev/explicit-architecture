@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Bookstore Order API
-  version: 2.0.0
+  version: 2.1.0
   description: Available in the demo-integrated profile on the private network.
 security:
   - ReaderToken: []
@@ -18,6 +18,8 @@ paths:
       responses:
         '201':
           description: Frozen quote
+          headers:
+            Location: { $ref: '#/components/headers/ResourceLocation' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Quote' }
@@ -28,12 +30,32 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '502': { $ref: '#/components/responses/UnsafeAmount' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v2/me/order-quotes/{quoteId}:
+    parameters:
+      - name: quoteId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/Id' }
+    get:
+      operationId: getOrderQuote
+      description: Reads the token subject's original quote. Expiry affects submission, not this read.
+      responses:
+        '200':
+          description: Original quote snapshot, including its original expiry.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quote' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/v2/me/order-submissions:
     post:
       operationId: submitOrderQuote
       description: |
         Durably accepts a quote for the token subject. One quote may produce one submission.
         The same subject, quote, and key replay the original submission's current result even after expiry or intake closure.
+        Reusing a key for a different quote returns IDEMPOTENCY_CONFLICT. Read state and the order ID to determine success.
       parameters:
         - name: Idempotency-Key
           in: header
@@ -51,7 +73,16 @@ paths:
                 quoteId: { $ref: '#/components/schemas/Id' }
       responses:
         '202':
-          description: Accepted or replayed submission, including a previously completed submission
+          description: Newly accepted submission or a replay in PROCESSING or RECONCILE_REQUIRED.
+          headers:
+            Location: { $ref: '#/components/headers/ResourceLocation' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Submission' }
+        '200':
+          description: Replay of a PLACED or REJECTED submission.
+          headers:
+            Location: { $ref: '#/components/headers/ResourceLocation' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Submission' }
@@ -82,7 +113,9 @@ paths:
   /api/v2/me/orders:
     get:
       operationId: listMyOrders
-      description: Reads the token subject's orders directly from PostgreSQL, in descending order ID order.
+      description: |
+        Orders for the token subject, newest creation time first, with descending order ID as the stable tie break.
+        Historical orders without a recorded time appear last. Order lines are the original purchased snapshots.
       parameters:
         - name: page
           in: query
@@ -90,6 +123,10 @@ paths:
         - name: size
           in: query
           schema: { type: integer, minimum: 1, maximum: 100, default: 12 }
+        - name: include
+          in: query
+          description: Omit for summaries. Use lines to include the purchased line snapshots with each order on this page.
+          schema: { type: string, enum: [lines] }
       responses:
         '200':
           description: One page of orders
@@ -101,7 +138,7 @@ paths:
                 properties:
                   orders:
                     type: array
-                    items: { $ref: '#/components/schemas/OrderSummary' }
+                    items: { $ref: '#/components/schemas/OrderListEntry' }
                   page: { type: integer, minimum: 1, maximum: 100 }
                   hasNext: { type: boolean }
         '400': { $ref: '#/components/responses/InvalidRequest' }
@@ -124,25 +161,49 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '502': { $ref: '#/components/responses/UnsafeAmount' }
+  /api/v2/me/orders/{orderId}/cancellation:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      operationId: getMyOrderCancellation
+      responses:
+        '200': { $ref: '#/components/responses/Cancellation' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: putMyOrderCancellation
+      description: |
+        Cancels a PLACED or CONFIRMED order at the supplied version. Inventory is released asynchronously.
+        Repeating the original reason and expectedVersion returns the existing result and does not release inventory again.
+      requestBody: { $ref: '#/components/requestBodies/CancellationRequest' }
+      responses:
+        '201':
+          description: A single cancellation and its outbox record committed.
+          headers:
+            Location: { $ref: '#/components/headers/ResourceLocation' }
+          content: &cancellationContent
+            application/json:
+              schema: { $ref: '#/components/schemas/Cancellation' }
+        '200':
+          description: The original cancellation was replayed.
+          headers:
+            Location: { $ref: '#/components/headers/ResourceLocation' }
+          content: *cancellationContent
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /api/v2/me/orders/{orderId}/cancel:
     parameters:
       - $ref: '#/components/parameters/OrderId'
     put:
       operationId: cancelMyOrder
-      description: Cancels a PLACED or CONFIRMED order at the supplied version. Inventory is released asynchronously.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [reason, expectedVersion]
-              properties:
-                reason:
-                  type: string
-                  description: Between 1 and 200 characters after trimming.
-                expectedVersion: { $ref: '#/components/schemas/Version' }
+      deprecated: true
+      description: Compatibility path for the cancellation resource.
+      requestBody: { $ref: '#/components/requestBodies/CancellationRequest' }
       responses:
         '204': { description: Cancellation and its outbox record committed }
         '400': { $ref: '#/components/responses/InvalidRequest' }
@@ -151,6 +212,11 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
 components:
+  headers:
+    ResourceLocation:
+      description: Path of the created or replayed resource.
+      required: true
+      schema: { type: string, format: uri-reference }
   securitySchemes:
     ReaderToken:
       type: http
@@ -163,7 +229,24 @@ components:
       in: path
       required: true
       schema: { $ref: '#/components/schemas/Id' }
+  requestBodies:
+    CancellationRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [reason, expectedVersion]
+            properties:
+              reason:
+                type: string
+                description: Between 1 and 200 characters after trimming.
+              expectedVersion: { $ref: '#/components/schemas/Version' }
   responses:
+    Cancellation:
+      description: The order's persisted cancellation.
+      content: *cancellationContent
     InvalidRequest:
       description: INVALID_REQUEST
       content: &errorContent
@@ -231,12 +314,24 @@ components:
         currency: { type: string, const: CNY }
     OrderSummary:
       type: object
-      required: [orderId, status, totalMinor, currency]
+      required: [orderId, status, totalMinor, currency, createdAt]
       properties:
         orderId: { $ref: '#/components/schemas/Id' }
         status: { type: string, enum: [PENDING, PLACED, CONFIRMED, SHIPPED, CANCELLED] }
         totalMinor: { $ref: '#/components/schemas/MoneyMinor' }
         currency: { type: string, description: New v2 orders use CNY. }
+        createdAt:
+          type: [string, 'null']
+          format: date-time
+          description: UTC creation time. Null only for historical records without a placement timestamp.
+    OrderListEntry:
+      allOf:
+        - $ref: '#/components/schemas/OrderSummary'
+        - type: object
+          properties:
+            lines:
+              type: array
+              items: { $ref: '#/components/schemas/Line' }
     OrderDetail:
       allOf:
         - $ref: '#/components/schemas/OrderSummary'
@@ -247,6 +342,13 @@ components:
             lines:
               type: array
               items: { $ref: '#/components/schemas/Line' }
+    Cancellation:
+      type: object
+      required: [orderId, reason, cancelledAt]
+      properties:
+        orderId: { $ref: '#/components/schemas/Id' }
+        reason: { type: string }
+        cancelledAt: { type: string, format: date-time }
     Submission:
       oneOf:
         - type: object
@@ -254,7 +356,10 @@ components:
           required: [submissionId, state]
           properties:
             submissionId: { $ref: '#/components/schemas/Id' }
-            state: { type: string, enum: [PROCESSING, RECONCILE_REQUIRED] }
+            state:
+              type: string
+              enum: [PROCESSING, RECONCILE_REQUIRED]
+              description: PROCESSING is in progress. RECONCILE_REQUIRED needs operator action. Neither confirms a purchase.
         - type: object
           additionalProperties: false
           required: [submissionId, state, order]

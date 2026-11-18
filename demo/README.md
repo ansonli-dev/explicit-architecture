@@ -19,7 +19,7 @@ Run the seed again with the one-shot job.
 docker compose -f demo/compose.yaml run --rm --no-deps -T catalog-seed
 ```
 
-The seed inserts 13 CNY books across Architecture and Engineering. Conflicting IDs keep their existing titles, versions, and stock. Inspect the single-copy fixture on the private network.
+The seed inserts 13 CNY books across Architecture and Engineering. Conflicting IDs keep their existing titles, versions, and stock. The v2 seed also fills missing sample book descriptions. Inspect the single-copy fixture on the private network.
 
 ```bash
 docker run --rm --network bookstore-demo_default curlimages/curl:8.11.1 \
@@ -30,7 +30,16 @@ Rebuild the affected jar and recreate its container after Java changes. Use `doc
 
 ## Frontend handoff
 
-Join the BFF container to the `bookstore-demo_default` network. A project name supplied with `-p` changes the network name to `<project>_default`. Publish the frontend on loopback at port 3000. The browser reaches the frontend and Keycloak through loopback. Java HTTP, database, Kafka, and Registry traffic stays on Docker's project network.
+The optional [frontend overlay](compose.frontend.yaml) builds the release BFF from a `react-reference-architecture` checkout that supports `JAVA_CONTRACT=v2-integrated`. A sibling checkout is the default. Set `BOOKSTORE_FRONTEND_DIR` to an absolute path to use another checkout. The overlay starts the BFF's own PostgreSQL database and initializes its session and cart tables. The browser reaches the frontend and Keycloak through loopback. Java HTTP, database, Kafka, and Registry traffic stays on Docker's project network.
+
+After building the Java jars described above, run from the Java repository root with ports 3000 and 8180 free. Choose a fresh Compose project name for each browser verification run because the scenarios buy from the seeded inventory.
+
+```bash
+docker compose -p bookstore-browser -f demo/compose.yaml -f demo/compose.frontend.yaml config --quiet
+docker compose -p bookstore-browser -f demo/compose.yaml -f demo/compose.frontend.yaml up -d --wait --build
+```
+
+Open [the book catalog](http://localhost:3000/en/books) and sign in with one of the reader accounts below. Use the exact `localhost` hostname registered for the Keycloak callback.
 
 | Setting | Value |
 | --- | --- |
@@ -53,6 +62,24 @@ Validate tokens against the public issuer, even when retrieving keys and redeemi
 
 The realm, fixture credentials, and plaintext listeners are for the isolated local demo.
 
+### Browser verification
+
+With the overlay running, run from the frontend checkout using Node 24 and the pnpm version specified in its package manifest.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+JAVA_V2_BROWSER=1 pnpm test:e2e:java
+```
+
+Chromium signs in through Keycloak, shops the live Catalog, and verifies a placed order after a quote refresh and an Orders reload. A second case drops the browser response after the real submission is accepted and checks that retrying the same quote creates one order and reserves stock once. Two independent reader sessions then compete for the single-copy fixture, check the losing reader's cart, and verify that private resources return 404 to the other reader. The race cancels its winning order, waits for inventory to return, and clears the losing test cart.
+
+From the Java repository root, stop the browser stack after verification.
+
+```bash
+docker compose -p bookstore-browser -f demo/compose.yaml -f demo/compose.frontend.yaml down
+```
+
 ## Verification
 
 Run the existing Catalog and Order test suites separately from their module directories with `./gradlew test`. Their integration tests require Docker for Testcontainers. Use a fresh Compose project for the private-network verification, with any other stack on port 8180 stopped. The runner authenticates against Keycloak using Code + PKCE and exercises the real Java, PostgreSQL, and Kafka services. It stores synthetic checkout IDs in a project volume to carry the same submission across the Order restart.
@@ -64,12 +91,25 @@ DEMO_V2_INTAKE_ENABLED=false docker compose -p bookstore-verify -f demo/compose.
   up -d --wait --no-deps --force-recreate order
 DEMO_VERIFY_INTAKE_CLOSED=true docker compose -p bookstore-verify -f demo/compose.yaml \
   --profile verify run --rm --no-deps -T e2e
-docker compose -p bookstore-verify -f demo/compose.yaml down
+docker compose -p bookstore-verify -f demo/compose.yaml up -d --wait --no-deps --force-recreate order
 ```
 
-The first phase checks public paging, administrator title versions, role isolation, v1 write rejection, same-key replay, and concurrent checkouts for one copy. The second checks that the original submission survives closing intake, new work receives 503, and the owner can still cancel. It republishes the original Avro cancellation, waits for Catalog to commit the replay offset, and checks that the replacement hold keeps its stock.
+The first phase checks public paging, quote reads, same-key replay, order snapshots across catalog edits, quote expiry, and concurrent checkouts for one copy. The second checks that terminal submissions still replay with HTTP 200 while intake is closed, new work receives 503, and the owner can create and replay a cancellation. It republishes the original Avro cancellation, waits for Catalog to commit the replay offset, and checks that the replacement hold keeps its stock.
 
-For the process crash check, use the [restart verification](recovery.md#verify-a-restart-after-catalog-commits). The [verification record](verification.md) captures the module tests, live fault cases, and runtime versions.
+To exercise reconciliation, first restore intake and keep Catalog running to create a test quote. Run the second case with Catalog stopped so Order exhausts its normal retry budget. After verifying the status, restart Catalog.
+
+```bash
+DEMO_VERIFY_RECONCILE=prepare docker compose -p bookstore-verify -f demo/compose.yaml \
+  --profile verify run --rm --no-deps -T e2e ./gradlew test --rerun --tests '*.prepareReconciliation'
+docker compose -p bookstore-verify -f demo/compose.yaml stop catalog
+DEMO_VERIFY_RECONCILE=verify docker compose -p bookstore-verify -f demo/compose.yaml \
+  --profile verify run --rm --no-deps -T e2e ./gradlew test --rerun --tests '*.aCatalogOutageLeavesSubmissionVisibleForReconciliation'
+docker compose -p bookstore-verify -f demo/compose.yaml up -d --wait catalog
+```
+
+Set `DEMO_VERIFY_CAPTURE_RESPONSES=true` when running the verification cases to save synthetic HTTP response examples in the runner's `/state/responses` directory. Its Compose volume keeps the responses after the runner exits. Use `docker compose -p bookstore-verify -f demo/compose.yaml down` when finished.
+
+For the process crash check, use the [restart verification](recovery.md#verify-a-restart-after-catalog-commits). See the [issue #3 verification record](verification-issue-3.md) and [captured HTTP responses](contracts/order-v2-responses.json).
 
 For a Registry upgrade check, use a disposable project and point `DEMO_AVRO_DIR` at an absolute directory containing the previous release's Avro files. Register them before running the current initializer against the same broker and Registry.
 

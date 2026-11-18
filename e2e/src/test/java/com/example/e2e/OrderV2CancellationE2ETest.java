@@ -22,6 +22,7 @@ import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.DriverManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -49,6 +51,7 @@ class OrderV2CancellationE2ETest {
     private static final String CATALOG_GROUP = "bookstore-demo.catalog";
     private static final Path FIXTURE = Path.of("/state/checkout.json");
     private static final Path CRASH_FIXTURE = Path.of("/state/crash-checkout.json");
+    private static final Path RECONCILE_QUOTE = Path.of("/state/reconcile-quote");
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
@@ -72,6 +75,8 @@ class OrderV2CancellationE2ETest {
         var page1 = get(CATALOG, BOOKS, null, 200);
         var page2 = get(CATALOG, BOOKS + "?page=2", null, 200);
         assertThat(page1.path("books").size()).isEqualTo(12);
+        assertThat(get(CATALOG, BOOKS + "/" + FIRST_BOOK, null, 200).path("description").asText())
+                .contains("service boundaries");
         assertThat(page1.path("hasNext").asBoolean()).isTrue();
         assertThat(page2.path("books").get(0).path("id").asText()).isEqualTo(LAST_COPY);
         assertThat(page2.path("hasNext").asBoolean()).isFalse();
@@ -85,6 +90,9 @@ class OrderV2CancellationE2ETest {
         get(ORDER, ORDERS, null, 401);
         get(ORDER, ORDERS, admin, 403);
         get(ORDER, ORDERS, service, 401);
+        assertThat(request("POST", ORDER, QUOTES, readerA,
+                Map.of("lines", List.of(line(UUID.randomUUID().toString(), 1))), null, 404).path("code").asText())
+                .isEqualTo("BOOK_NOT_FOUND");
         request("POST", CATALOG, "/api/v2/internal/checkout/snapshots", readerA,
                 Map.of("lines", List.of(line(FIRST_BOOK, 1))), null, 403);
         request("POST", CATALOG, "/api/v1/books", admin, Map.of(), null, 403);
@@ -123,7 +131,7 @@ class OrderV2CancellationE2ETest {
         String idB;
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             var first = executor.submit(() -> submit(readerA, quoteA, keyA, 202));
-            var duplicate = executor.submit(() -> submit(readerA, quoteA, keyA, 202));
+            var duplicate = executor.submit(() -> submit(readerA, quoteA, keyA, 202, 200));
             var competitor = executor.submit(() -> submit(readerB, quoteB, keyB, 202));
             idA = first.get().path("submissionId").asText();
             assertThat(duplicate.get().path("submissionId").asText()).isEqualTo(idA);
@@ -132,6 +140,9 @@ class OrderV2CancellationE2ETest {
         }
         get(ORDER, SUBMISSIONS + "/" + idA, readerB, 404);
         get(ORDER, SUBMISSIONS + "/" + idB, readerA, 404);
+        get(ORDER, QUOTES + "/" + quoteA, readerB, 404);
+        get(ORDER, QUOTES + "/" + quoteB, readerA, 404);
+        assertThat(get(ORDER, QUOTES + "/" + quoteA, readerA, 200).path("totalMinor").asLong()).isEqualTo(5500);
         assertThat(submit(readerA, discount.path("quoteId").asText(), keyA, 409).path("code").asText())
                 .isEqualTo("IDEMPOTENCY_CONFLICT");
 
@@ -142,15 +153,32 @@ class OrderV2CancellationE2ETest {
         boolean aWon = resultA.path("state").asText().equals("PLACED");
         var winner = aWon ? resultA : resultB;
         var loser = aWon ? resultB : resultA;
+        assertThat(submit(readerA, quoteA, keyA, 200)).isEqualTo(resultA);
+        assertThat(submit(readerB, quoteB, keyB, 200)).isEqualTo(resultB);
         assertThat(loser.path("reason").asText()).isEqualTo("INSUFFICIENT_STOCK");
         String id = winner.path("submissionId").asText();
         assertThat(winner.path("order").path("orderId").asText()).isEqualTo(id);
         assertThat(stock(LAST_COPY)).isZero();
+        assertThat(request("POST", ORDER, QUOTES, readerA,
+                Map.of("lines", List.of(line(LAST_COPY, 1))), null, 409).path("code").asText())
+                .isEqualTo("INSUFFICIENT_STOCK");
 
         String owner = aWon ? readerA : readerB;
         String other = aWon ? readerB : readerA;
         var placed = get(ORDER, ORDERS + "/" + id, owner, 200);
         assertThat(placed.path("status").asText()).isEqualTo("PLACED");
+        String createdAt = placed.path("createdAt").asText();
+        assertThat(Instant.parse(createdAt)).isBetween(Instant.now().minusSeconds(60), Instant.now().plusSeconds(1));
+        assertThat(winner.at("/order/createdAt").asText()).isEqualTo(createdAt);
+        var expanded = get(ORDER, ORDERS + "?include=lines", owner, 200).path("orders").get(0);
+        assertThat(expanded.path("orderId").asText()).isEqualTo(id);
+        assertThat(expanded.path("createdAt").asText()).isEqualTo(createdAt);
+        assertThat(expanded.path("lines")).isEqualTo(placed.path("lines"));
+        assertThat(expanded.at("/lines/0/title").asText()).isEqualTo("The Last Copy");
+        assertThat(expanded.at("/lines/0/quantity").asInt()).isEqualTo(1);
+        assertThat(expanded.at("/lines/0/unitPriceMinor").asInt()).isEqualTo(5500);
+        assertThat(expanded.path("totalMinor").asInt()).isEqualTo(5500);
+        assertThat(expanded.path("currency").asText()).isEqualTo("CNY");
         assertThat(placed.has("email") || placed.has("customerEmail")).isFalse();
         assertThat(get(ORDER, ORDERS, owner, 200).path("orders").findValuesAsText("orderId")).contains(id);
         assertThat(get(ORDER, ORDERS, other, 200).path("orders").findValuesAsText("orderId")).doesNotContain(id);
@@ -164,6 +192,62 @@ class OrderV2CancellationE2ETest {
     }
 
     @Test
+    @EnabledIfEnvironmentVariable(named = "DEMO_VERIFY_INTAKE_CLOSED", matches = "false")
+    @EnabledIfEnvironmentVariable(named = "DEMO_CATALOG_JDBC_URL", matches = ".+")
+    @EnabledIfEnvironmentVariable(named = "DEMO_ORDER_JDBC_URL", matches = ".+")
+    void checkoutRejectsChangedPricesAndExpiredQuotesButKeepsPurchasedSnapshots() throws Exception {
+        var original = get(CATALOG, BOOKS + "/" + FIRST_BOOK, null, 200);
+        var title = original.path("title").asText();
+        long price = original.path("priceMinor").asLong();
+        int available = original.path("stock").asInt();
+        var bought = submit(readerA, quote(readerA, FIRST_BOOK), UUID.randomUUID().toString(), 202)
+                .path("submissionId").asText();
+        assertThat(terminal(readerA, bought).path("state").asText()).isEqualTo("PLACED");
+        String orderPath = ORDERS + "/" + bought;
+        String oldPriceQuote = quote(readerA, FIRST_BOOK);
+        try {
+            update("DEMO_CATALOG_JDBC_URL", "UPDATE book SET title=?, price_cents=? WHERE id=?",
+                    "Updated for price verification", price + 100, UUID.fromString(FIRST_BOOK));
+            var result = submit(readerA, oldPriceQuote, UUID.randomUUID().toString(), 202).path("submissionId").asText();
+            var rejected = terminal(readerA, result);
+            assertThat(rejected.path("state").asText()).isEqualTo("REJECTED");
+            assertThat(rejected.path("reason").asText()).isEqualTo("PRICE_CHANGED");
+            assertThat(stock(FIRST_BOOK)).isEqualTo(available - 1);
+            var order = get(ORDER, orderPath, readerA, 200);
+            assertThat(order.at("/lines/0/title").asText()).isEqualTo(title);
+            assertThat(order.at("/lines/0/unitPriceMinor").asLong()).isEqualTo(price);
+            var orders = get(ORDER, ORDERS + "?include=lines", readerA, 200).path("orders");
+            assertThat(orders).anySatisfy(row -> {
+                assertThat(row.path("orderId").asText()).isEqualTo(bought);
+                assertThat(row.path("lines")).isEqualTo(order.path("lines"));
+                assertThat(row.path("totalMinor").asLong()).isEqualTo(price);
+            });
+        } finally {
+            update("DEMO_CATALOG_JDBC_URL", "UPDATE book SET title=?, price_cents=? WHERE id=?",
+                    title, price, UUID.fromString(FIRST_BOOK));
+            long version = get(ORDER, orderPath, readerA, 200).path("version").asLong();
+            request("PUT", ORDER, orderPath + "/cancellation", readerA, cancelBody(version), null, 201);
+            await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> assertThat(stock(FIRST_BOOK)).isEqualTo(available));
+        }
+
+        var expired = quote(readerA, FIRST_BOOK);
+        update("DEMO_ORDER_JDBC_URL", "UPDATE checkout_quote SET expires_at=now() - interval '1 second' WHERE id=?",
+                UUID.fromString(expired));
+        assertThat(submit(readerA, expired, UUID.randomUUID().toString(), 409).path("code").asText())
+                .isEqualTo("QUOTE_EXPIRED");
+    }
+
+    private static void update(String urlVariable, String statement, Object... params) throws Exception {
+        try (var connection = DriverManager.getConnection(System.getenv(urlVariable), "bookstore", "bookstore");
+             var update = connection.prepareStatement(statement)) {
+            for (int i = 0; i < params.length; i++) {
+                update.setObject(i + 1, params[i]);
+            }
+            assertThat(update.executeUpdate()).isEqualTo(1);
+        }
+    }
+
+    @Test
     @EnabledIfEnvironmentVariable(named = "DEMO_VERIFY_INTAKE_CLOSED", matches = "true")
     void closedIntakeStillReplaysAndCancelsAndTheKafkaReplayCannotReleaseAnotherHold() throws Exception {
         assertThat(FIXTURE).exists();
@@ -172,7 +256,7 @@ class OrderV2CancellationE2ETest {
         String owner = aWon ? readerA : readerB;
         String other = aWon ? readerB : readerA;
         String orderId = fixture.path("orderId").asText();
-        var replay = submit(owner, fixture.path("quoteId").asText(), fixture.path("key").asText(), 202);
+        var replay = submit(owner, fixture.path("quoteId").asText(), fixture.path("key").asText(), 200);
         assertThat(replay.path("submissionId").asText()).isEqualTo(orderId);
         assertThat(replay.path("state").asText()).isEqualTo("PLACED");
         assertThat(submit(owner, fixture.path("pendingQuoteId").asText(), UUID.randomUUID().toString(), 503)
@@ -181,10 +265,18 @@ class OrderV2CancellationE2ETest {
                 null, 503).path("code").asText()).isEqualTo("INTAKE_CLOSED");
 
         String orderPath = ORDERS + "/" + orderId;
+        String cancellationPath = orderPath + "/cancellation";
         long version = get(ORDER, orderPath, owner, 200).path("version").asLong();
-        request("PUT", ORDER, orderPath + "/cancel", other, cancelBody(version), null, 404);
-        assertThat(request("PUT", ORDER, orderPath + "/cancel", owner, cancelBody(version + 1), null, 409)
+        request("PUT", ORDER, cancellationPath, other, cancelBody(version), null, 404);
+        assertThat(request("PUT", ORDER, cancellationPath, owner, cancelBody(version + 1), null, 409)
                 .path("code").asText()).isEqualTo("VERSION_CONFLICT");
+        var cancellation = request("PUT", ORDER, cancellationPath, owner, cancelBody(version), null, 201);
+        assertThat(cancellation.path("orderId").asText()).isEqualTo(orderId);
+        assertThat(cancellation.path("reason").asText()).isEqualTo("Demo cancellation");
+        assertThat(Instant.parse(cancellation.path("cancelledAt").asText())).isBeforeOrEqualTo(Instant.now());
+        assertThat(request("PUT", ORDER, cancellationPath, owner, cancelBody(version), null, 200)).isEqualTo(cancellation);
+        assertThat(get(ORDER, cancellationPath, owner, 200)).isEqualTo(cancellation);
+        get(ORDER, cancellationPath, other, 404);
         request("PUT", ORDER, orderPath + "/cancel", owner, cancelBody(version), null, 204);
         var cancelled = get(ORDER, orderPath, owner, 200);
         assertThat(cancelled.path("status").asText()).isEqualTo("CANCELLED");
@@ -206,6 +298,28 @@ class OrderV2CancellationE2ETest {
         }
         assertThat(stock(LAST_COPY)).isEqualTo(1);
         Files.delete(FIXTURE);
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "DEMO_VERIFY_RECONCILE", matches = "prepare")
+    void prepareReconciliation() throws Exception {
+        Files.writeString(RECONCILE_QUOTE, quote(readerA, FIRST_BOOK));
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "DEMO_VERIFY_RECONCILE", matches = "verify")
+    void aCatalogOutageLeavesSubmissionVisibleForReconciliation() throws Exception {
+        var quoteId = Files.readString(RECONCILE_QUOTE);
+        var key = UUID.randomUUID().toString();
+        var id = submit(readerA, quoteId, key, 202).path("submissionId").asText();
+        var result = await().atMost(Duration.ofSeconds(90)).pollInterval(Duration.ofSeconds(1))
+                .until(() -> get(ORDER, SUBMISSIONS + "/" + id, readerA, 200),
+                        submission -> submission.path("state").asText().equals("RECONCILE_REQUIRED"));
+        assertThat(result.has("order")).isFalse();
+        assertThat(submit(readerA, quoteId, key, 202)).isEqualTo(result);
+        get(ORDER, SUBMISSIONS + "/" + id, readerB, 404);
+        get(ORDER, ORDERS + "/" + id, readerA, 404);
+        Files.delete(RECONCILE_QUOTE);
     }
 
     @Test
@@ -233,7 +347,7 @@ class OrderV2CancellationE2ETest {
         var completed = terminal(readerA, id);
         assertThat(completed.path("state").asText()).isEqualTo("PLACED");
         assertThat(completed.path("order").path("orderId").asText()).isEqualTo(id);
-        var replay = submit(readerA, fixture.path("quoteId").asText(), fixture.path("key").asText(), 202);
+        var replay = submit(readerA, fixture.path("quoteId").asText(), fixture.path("key").asText(), 200);
         assertThat(replay.path("submissionId").asText()).isEqualTo(id);
         assertThat(replay.path("state").asText()).isEqualTo("PLACED");
         assertThat(stock(LAST_COPY)).isEqualTo(stockBefore - 1);
@@ -256,8 +370,8 @@ class OrderV2CancellationE2ETest {
                 .path("quoteId").asText();
     }
 
-    private static JsonNode submit(String token, String quoteId, String key, int status) throws Exception {
-        return request("POST", ORDER, SUBMISSIONS, token, Map.of("quoteId", quoteId), key, status);
+    private static JsonNode submit(String token, String quoteId, String key, int... statuses) throws Exception {
+        return request("POST", ORDER, SUBMISSIONS, token, Map.of("quoteId", quoteId), key, statuses);
     }
 
     private static int stock(String id) throws Exception {
@@ -277,7 +391,7 @@ class OrderV2CancellationE2ETest {
     }
 
     private static JsonNode request(String method, String base, String path, String token, Object body,
-                                    String key, int status) throws Exception {
+                                    String key, int... statuses) throws Exception {
         var request = HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(10));
         if (token != null) {
             request.header("Authorization", "Bearer " + token);
@@ -293,8 +407,50 @@ class OrderV2CancellationE2ETest {
         var response = HTTP.send(request.method(method, payload).build(), HttpResponse.BodyHandlers.ofString());
         JsonNode json = response.body().isBlank() ? JSON.nullNode() : JSON.readTree(response.body());
         assertThat(response.statusCode()).as("%s %s (code: %s)", method, path, json.path("code").asText())
-                .isEqualTo(status);
+                .isIn(IntStream.of(statuses).boxed().toList());
+        if (response.statusCode() < 300) {
+            if (method.equals("POST") && path.equals(QUOTES)) {
+                assertThat(response.headers().firstValue("Location")).contains(path + "/" + json.path("quoteId").asText());
+            } else if (method.equals("POST") && path.equals(SUBMISSIONS)) {
+                assertThat(response.headers().firstValue("Location")).contains(path + "/" + json.path("submissionId").asText());
+            } else if (method.equals("PUT") && path.endsWith("/cancellation")) {
+                assertThat(response.headers().firstValue("Location")).contains(path);
+            }
+        }
+        if ("true".equals(System.getenv("DEMO_VERIFY_CAPTURE_RESPONSES")) && base.equals(ORDER)) {
+            captureResponse(method, path, response, json);
+        }
         return json;
+    }
+
+    private static void captureResponse(String method, String path, HttpResponse<String> response, JsonNode body) throws Exception {
+        String name = switch (body.path("code").asText()) {
+            case "BOOK_NOT_FOUND", "INSUFFICIENT_STOCK", "QUOTE_EXPIRED", "IDEMPOTENCY_CONFLICT", "INTAKE_CLOSED" ->
+                    body.path("code").asText().toLowerCase(java.util.Locale.ROOT);
+            default -> null;
+        };
+        if (name == null) {
+            if (method.equals("POST") && path.equals(QUOTES) && response.statusCode() == 201) {
+                name = "quote-created";
+            } else if (path.startsWith(SUBMISSIONS) && body.has("state")) {
+                name = switch (body.path("state").asText()) {
+                    case "PROCESSING" -> response.statusCode() == 202 ? "submission-accepted" : null;
+                    case "PLACED" -> method.equals("POST") ? "submission-placed-replay" : null;
+                    case "REJECTED" -> "submission-rejected-" + body.path("reason").asText().toLowerCase(java.util.Locale.ROOT);
+                    case "RECONCILE_REQUIRED" -> "submission-reconcile-required";
+                    default -> null;
+                };
+            } else if (path.endsWith("/cancellation") && response.statusCode() == 201) {
+                name = "cancellation-created";
+            }
+        }
+        if (name != null) {
+            var example = JSON.createObjectNode().put("status", response.statusCode());
+            response.headers().firstValue("Location").ifPresent(location -> example.put("location", location));
+            example.set("body", body);
+            var directory = Files.createDirectories(Path.of("/state/responses"));
+            JSON.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), example);
+        }
     }
 
     private static void replayCancellation(String orderId) throws Exception {

@@ -33,7 +33,7 @@ class CheckoutSubmissionRepository implements CheckoutStore {
     private static final Logger log = LoggerFactory.getLogger(CheckoutSubmissionRepository.class);
     private static final TypeReference<List<Checkout.Line>> LINES = new TypeReference<>() {};
     private static final String SUBMISSION_SELECT = """
-            SELECT s.id, s.quote_id, s.state, s.reason, o.status AS order_status, o.total_cents, o.currency
+            SELECT s.id, s.quote_id, s.state, s.reason, o.status AS order_status, o.total_cents, o.currency, o.created_at
             FROM checkout_submission s LEFT JOIN orders o ON o.id = s.id
             """;
     private static final String CURRENT_CLAIM = """
@@ -59,6 +59,16 @@ class CheckoutSubmissionRepository implements CheckoutStore {
                 .param("id", quote.quoteId()).param("owner", owner.value()).param("email", email)
                 .param("expires", Timestamp.from(quote.expiresAt())).param("lines", encode(quote.lines()))
                 .param("total", quote.totalMinor()).update();
+    }
+
+    @Override
+    public Checkout.Quote getQuote(CustomerId owner, UUID quoteId) {
+        return jdbc.sql("""
+                SELECT expires_at, lines, total_minor FROM checkout_quote WHERE id = :id AND owner = :owner
+                """).param("id", quoteId).param("owner", owner.value())
+                .query((rs, row) -> new Checkout.Quote(quoteId, rs.getTimestamp("expires_at").toInstant(),
+                        decode(rs.getString("lines")), rs.getLong("total_minor"), Checkout.CURRENCY))
+                .optional().orElseThrow(() -> new CheckoutProblem(NOT_FOUND));
     }
 
     @Override
@@ -192,9 +202,12 @@ class CheckoutSubmissionRepository implements CheckoutStore {
         UUID id = rs.getObject("id", UUID.class);
         String state = rs.getString("state");
         var externalState = "COMPENSATING".equals(state) ? Checkout.State.RECONCILE_REQUIRED : Checkout.State.valueOf(state);
-        var order = externalState == Checkout.State.PLACED
-                ? new Checkout.PlacedOrder(id, rs.getString("order_status"), rs.getLong("total_cents"), rs.getString("currency"))
-                : null;
+        Checkout.PlacedOrder order = null;
+        if (externalState == Checkout.State.PLACED) {
+            var createdAt = rs.getTimestamp("created_at");
+            order = new Checkout.PlacedOrder(id, rs.getString("order_status"), rs.getLong("total_cents"),
+                    rs.getString("currency"), createdAt == null ? null : createdAt.toInstant());
+        }
         String reason = rs.getString("reason");
         return new StoredSubmission(rs.getObject("quote_id", UUID.class),
                 new Checkout.Submission(id, externalState, order, reason == null ? null : Checkout.Rejection.valueOf(reason)));

@@ -61,9 +61,10 @@ public class DemoSecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v2/me/order-quotes", "/api/v2/me/order-submissions")
                                 .hasRole(READER)
-                        .requestMatchers(HttpMethod.GET, "/api/v2/me/order-submissions/{id}",
-                                "/api/v2/me/orders", "/api/v2/me/orders/{id}").hasRole(READER)
-                        .requestMatchers(HttpMethod.PUT, "/api/v2/me/orders/{id}/cancel").hasRole(READER)
+                        .requestMatchers(HttpMethod.GET, "/api/v2/me/order-quotes/{id}", "/api/v2/me/order-submissions/{id}",
+                                "/api/v2/me/orders", "/api/v2/me/orders/{id}", "/api/v2/me/orders/{id}/cancellation").hasRole(READER)
+                        .requestMatchers(HttpMethod.PUT, "/api/v2/me/orders/{id}/cancel",
+                                "/api/v2/me/orders/{id}/cancellation").hasRole(READER)
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(unauthorized)

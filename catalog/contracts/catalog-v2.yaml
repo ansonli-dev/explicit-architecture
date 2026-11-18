@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Bookstore Catalog Demo API
-  version: 2.0.0
+  version: 2.1.0
   description: Enabled in the demo-integrated profile. Catalog reads use PostgreSQL.
 security: []
 paths:
@@ -45,10 +45,10 @@ paths:
       operationId: getBook
       responses:
         '200':
-          description: Book and currently available stock.
+          description: Book, optional presentation metadata, and currently available stock.
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/Book'}
+              schema: {$ref: '#/components/schemas/BookDetail'}
         '400': {$ref: '#/components/responses/InvalidRequest'}
         '404': {$ref: '#/components/responses/BookNotFound'}
         '502': {$ref: '#/components/responses/InvalidCatalogData'}
@@ -245,6 +245,13 @@ components:
         priceMinor: {$ref: '#/components/schemas/NonnegativeSafeInteger'}
         currency: {$ref: '#/components/schemas/Currency'}
         stock: {type: integer, minimum: 0, description: Available copies.}
+        coverUrl: {type: string, format: uri, description: Omitted when a cover is unavailable.}
+    BookDetail:
+      allOf:
+        - $ref: '#/components/schemas/Book'
+        - type: object
+          properties:
+            description: {type: string, description: Omitted when a description is unavailable.}
     AdminBook:
       allOf:
         - $ref: '#/components/schemas/Book'

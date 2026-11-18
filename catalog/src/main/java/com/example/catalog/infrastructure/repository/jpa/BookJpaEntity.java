@@ -29,6 +29,12 @@ public class BookJpaEntity extends AbstractAggregateRootEntity {
     @Column(name = "author_biography", columnDefinition = "TEXT")
     private String authorBiography;
 
+    @Column(name = "cover_url", columnDefinition = "TEXT")
+    private String coverUrl;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "price_cents", nullable = false)
     private long priceCents;
 

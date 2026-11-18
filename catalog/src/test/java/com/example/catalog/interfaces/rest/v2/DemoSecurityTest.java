@@ -74,7 +74,7 @@ class DemoSecurityTest {
     @Test
     void signedIdentitiesCannotCrossAdminAndInternalBoundaries() throws Exception {
         when(queries.dispatch(any(GetBookV2Query.class)))
-                .thenReturn(new BookV2Result(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L));
+                .thenReturn(new BookV2Result(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L, null, null));
         when(queries.dispatch(any(CheckoutSnapshotQuery.class))).thenReturn(List.of());
         mvc.perform(get(ADMIN)).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -91,7 +91,7 @@ class DemoSecurityTest {
     @Test
     void adminWriteSwitchKeepsReadsAndServicePathsAvailable() throws Exception {
         when(queries.dispatch(any(GetBookV2Query.class)))
-                .thenReturn(new BookV2Result(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L));
+                .thenReturn(new BookV2Result(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L, null, null));
         when(queries.dispatch(any(CheckoutSnapshotQuery.class))).thenReturn(List.of());
         mvc.perform(bearer(patch(ADMIN).contentType("application/json")
                         .content("""

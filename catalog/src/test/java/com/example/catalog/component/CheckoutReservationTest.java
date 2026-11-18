@@ -114,6 +114,23 @@ class CheckoutReservationTest {
     }
 
     @Test
+    void includesOptionalBookPresentationInThePublicContract() throws Exception {
+        jdbc.update("UPDATE book SET cover_url=?, description=? WHERE id=CAST(? AS uuid)",
+                "https://example.test/book.png", "A book about transactions.", book(1));
+        mvc.perform(get("/api/v2/books"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.books[0].coverUrl").value("https://example.test/book.png"))
+                .andExpect(jsonPath("$.books[0].description").doesNotExist())
+                .andExpect(jsonPath("$.books[1].coverUrl").doesNotExist());
+        mvc.perform(get("/api/v2/books/{id}", book(1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverUrl").value("https://example.test/book.png"))
+                .andExpect(jsonPath("$.description").value("A book about transactions."));
+        mvc.perform(get("/api/v2/books/{id}", book(2)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.description").doesNotExist());
+    }
+
+    @Test
     void publicPagesUseDeterministicOffsetsAndLiteralCaseInsensitiveSearch() throws Exception {
         mvc.perform(get("/api/v2/books"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.books.length()").value(12))

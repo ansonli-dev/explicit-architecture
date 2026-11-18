@@ -19,7 +19,8 @@ class BookReadAdapter implements BookReadRepository {
 
     private static final String BOOK = """
             select new com.example.catalog.application.query.book.BookV2Result(
-                b.id, b.title, b.authorName, c.name, b.priceCents, b.currency, b.stockTotal - b.stockReserved, b.version)
+                b.id, b.title, b.authorName, c.name, b.priceCents, b.currency, b.stockTotal - b.stockReserved, b.version,
+                b.coverUrl, b.description)
             from BookJpaEntity b join b.category c
             """;
 
