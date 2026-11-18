@@ -1,4 +1,4 @@
-package com.example.order.interfaces.rest.v2;
+package com.example.order.interfaces.rest.checkout;
 
 import com.example.order.application.checkout.Checkout;
 import com.example.order.application.command.order.CancelOwnedOrderCommand;
@@ -28,15 +28,15 @@ import java.util.UUID;
 
 @RestController
 @Profile("demo-integrated")
-@RequestMapping("/api/v2/me/orders")
-class MyOrdersV2Controller {
+@RequestMapping("/api/v1/me/orders")
+class MyOrdersController {
 
-    private static final String ORDERS = "/api/v2/me/orders";
+    private static final String ORDERS = "/api/v1/me/orders";
 
     private final CommandBus commands;
     private final QueryBus queries;
 
-    MyOrdersV2Controller(CommandBus commands, QueryBus queries) {
+    MyOrdersController(CommandBus commands, QueryBus queries) {
         this.commands = commands;
         this.queries = queries;
     }
@@ -47,7 +47,7 @@ class MyOrdersV2Controller {
                       @RequestParam(defaultValue = "12") @Min(1) @Max(100) int size,
                       @RequestParam(required = false) @Pattern(regexp = "lines") String include) {
         var result = queries.dispatch(new MyOrders.ListPage(CustomerId.from(principal.getSubject()), page, size, include != null));
-        var orders = result.orders().stream().map(order -> new OrderSummaryResponseV2(
+        var orders = result.orders().stream().map(order -> new OrderSummaryResponse(
                 order.orderId(), order.status(), order.totalMinor(), order.currency(), order.createdAt(),
                 order.lines() == null ? null : order.lines().stream().map(OrderLineResponse::from).toList())).toList();
         return new PageResponse(orders, result.page(), result.hasNext());
@@ -75,15 +75,8 @@ class MyOrdersV2Controller {
         return queries.dispatch(new MyOrders.GetCancellation(CustomerId.from(principal.getSubject()), OrderId.of(orderId)));
     }
 
-    @PutMapping("/{orderId}/cancel")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    void cancel(@AuthenticationPrincipal Jwt principal, @PathVariable UUID orderId, @Valid @RequestBody CancelRequest request) {
-        commands.dispatch(new CancelOwnedOrderCommand(CustomerId.from(principal.getSubject()), OrderId.of(orderId),
-                request.reason(), request.expectedVersion()));
-    }
-
     record CancelRequest(@NotBlank String reason, @NotNull @Min(0) @Max(Checkout.MAX_MINOR) Long expectedVersion) {}
-    record PageResponse(List<OrderSummaryResponseV2> orders, int page, boolean hasNext) {}
+    record PageResponse(List<OrderSummaryResponse> orders, int page, boolean hasNext) {}
     record DetailResponse(UUID orderId, String status, long totalMinor, String currency, Instant createdAt, long version,
                           List<OrderLineResponse> lines) {}
 }

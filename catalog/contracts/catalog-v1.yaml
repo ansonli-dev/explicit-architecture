@@ -1,11 +1,11 @@
 openapi: 3.1.0
 info:
-  title: Bookstore Catalog Demo API
-  version: 2.1.0
-  description: Enabled in the demo-integrated profile. Catalog reads use PostgreSQL.
+  title: Bookstore Catalog API
+  version: 1.0.0
+  description: Catalog reads use PostgreSQL. Administration and internal checkout require the demo-integrated profile.
 security: []
 paths:
-  /api/v2/books:
+  /api/v1/books:
     get:
       operationId: listBooks
       summary: List books in UUID order with an optional category or literal text filter
@@ -38,7 +38,7 @@ paths:
                   hasNext: {type: boolean}
         '400': {$ref: '#/components/responses/InvalidRequest'}
         '502': {$ref: '#/components/responses/InvalidCatalogData'}
-  /api/v2/books/{bookId}:
+  /api/v1/books/{bookId}:
     parameters:
       - $ref: '#/components/parameters/BookId'
     get:
@@ -52,7 +52,7 @@ paths:
         '400': {$ref: '#/components/responses/InvalidRequest'}
         '404': {$ref: '#/components/responses/BookNotFound'}
         '502': {$ref: '#/components/responses/InvalidCatalogData'}
-  /api/v2/categories:
+  /api/v1/categories:
     get:
       operationId: listCategories
       responses:
@@ -65,7 +65,7 @@ paths:
                 required: [categories]
                 properties:
                   categories: {type: array, items: {type: string}}
-  /api/v2/admin/books/{bookId}:
+  /api/v1/admin/books/{bookId}:
     parameters:
       - $ref: '#/components/parameters/BookId'
     get:
@@ -106,7 +106,7 @@ paths:
           description: ADMIN_WRITES_CLOSED when the operator disables title editing.
           content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
         '502': {$ref: '#/components/responses/InvalidCatalogData'}
-  /api/v2/internal/checkout/snapshots:
+  /api/v1/internal/checkout/snapshots:
     post:
       operationId: snapshotCheckoutBooks
       description: Return current catalog title, unit price and available stock for each requested SKU in UUID order.
@@ -141,7 +141,7 @@ paths:
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/BookNotFound'}
         '502': {$ref: '#/components/responses/InvalidCatalogData'}
-  /api/v2/internal/checkout/reservations/{submissionId}:
+  /api/v1/internal/checkout/reservations/{submissionId}:
     parameters:
       - name: submissionId
         in: path
@@ -219,7 +219,7 @@ components:
       description: BOOK_NOT_FOUND
       content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
     InvalidCatalogData:
-      description: CATALOG_DATA_INVALID – Stored money or version cannot be represented by the v2 API.
+      description: CATALOG_DATA_INVALID – Stored money or version cannot be represented by the API.
       content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
     AdminBook:
       description: Authoritative book with its current version.

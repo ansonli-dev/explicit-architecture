@@ -36,17 +36,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @EnabledIfEnvironmentVariable(named = "DEMO_OIDC_BASE_URL", matches = ".+")
-class OrderV2CancellationE2ETest {
+class CheckoutE2ETest {
     private static final String CATALOG = E2EConfig.CATALOG_BASE_URL;
     private static final String ORDER = E2EConfig.ORDER_BASE_URL;
     private static final String FIRST_BOOK = "00000000-0000-4000-8000-000000000101";
     private static final String SECOND_BOOK = "00000000-0000-4000-8000-000000000102";
     private static final String LAST_COPY = "00000000-0000-4000-8000-00000000010d";
-    private static final String QUOTES = "/api/v2/me/order-quotes";
-    private static final String SUBMISSIONS = "/api/v2/me/order-submissions";
-    private static final String ORDERS = "/api/v2/me/orders";
-    private static final String BOOKS = "/api/v2/books";
-    private static final String INTERNAL_RESERVATIONS = "/api/v2/internal/checkout/reservations";
+    private static final String QUOTES = "/api/v1/me/order-quotes";
+    private static final String SUBMISSIONS = "/api/v1/me/order-submissions";
+    private static final String ORDERS = "/api/v1/me/orders";
+    private static final String BOOKS = "/api/v1/books";
+    private static final String INTERNAL_RESERVATIONS = "/api/v1/internal/checkout/reservations";
     private static final String CANCEL_TOPIC = "bookstore.order.cancelled";
     private static final String CATALOG_GROUP = "bookstore-demo.catalog";
     private static final Path FIXTURE = Path.of("/state/checkout.json");
@@ -81,10 +81,10 @@ class OrderV2CancellationE2ETest {
         assertThat(page2.path("books").get(0).path("id").asText()).isEqualTo(LAST_COPY);
         assertThat(page2.path("hasNext").asBoolean()).isFalse();
         assertThat(get(CATALOG, BOOKS + "?page=100", null, 200).path("books")).isEmpty();
-        var categories = get(CATALOG, "/api/v2/categories", null, 200).path("categories");
+        var categories = get(CATALOG, "/api/v1/categories", null, 200).path("categories");
         assertThat(JSON.convertValue(categories, String[].class)).contains("Architecture", "Engineering");
 
-        String adminPath = "/api/v2/admin/books/" + FIRST_BOOK;
+        String adminPath = "/api/v1/admin/books/" + FIRST_BOOK;
         get(CATALOG, adminPath, null, 401);
         get(CATALOG, adminPath, readerA, 403);
         get(ORDER, ORDERS, null, 401);
@@ -93,7 +93,7 @@ class OrderV2CancellationE2ETest {
         assertThat(request("POST", ORDER, QUOTES, readerA,
                 Map.of("lines", List.of(line(UUID.randomUUID().toString(), 1))), null, 404).path("code").asText())
                 .isEqualTo("BOOK_NOT_FOUND");
-        request("POST", CATALOG, "/api/v2/internal/checkout/snapshots", readerA,
+        request("POST", CATALOG, "/api/v1/internal/checkout/snapshots", readerA,
                 Map.of("lines", List.of(line(FIRST_BOOK, 1))), null, 403);
         request("POST", CATALOG, "/api/v1/books", admin, Map.of(), null, 403);
         request("POST", CATALOG, "/api/v1/books/" + FIRST_BOOK + "/stock/release", admin, Map.of(), null, 403);
@@ -277,11 +277,11 @@ class OrderV2CancellationE2ETest {
         assertThat(request("PUT", ORDER, cancellationPath, owner, cancelBody(version), null, 200)).isEqualTo(cancellation);
         assertThat(get(ORDER, cancellationPath, owner, 200)).isEqualTo(cancellation);
         get(ORDER, cancellationPath, other, 404);
-        request("PUT", ORDER, orderPath + "/cancel", owner, cancelBody(version), null, 204);
+        request("PUT", ORDER, orderPath + "/cancel", owner, cancelBody(version), null, 403);
         var cancelled = get(ORDER, orderPath, owner, 200);
         assertThat(cancelled.path("status").asText()).isEqualTo("CANCELLED");
         assertThat(cancelled.path("version").asLong()).isEqualTo(version + 1);
-        assertThat(request("PUT", ORDER, orderPath + "/cancel", owner, cancelBody(version + 1), null, 409)
+        assertThat(request("PUT", ORDER, cancellationPath, owner, cancelBody(version + 1), null, 409)
                 .path("code").asText()).isEqualTo("ORDER_STATE_CONFLICT");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> assertThat(stock(LAST_COPY)).isEqualTo(1));
 
@@ -354,7 +354,7 @@ class OrderV2CancellationE2ETest {
         String path = ORDERS + "/" + id;
         var order = get(ORDER, path, readerA, 200);
         assertThat(order.path("status").asText()).isEqualTo("PLACED");
-        request("PUT", ORDER, path + "/cancel", readerA, cancelBody(order.path("version").asLong()), null, 204);
+        request("PUT", ORDER, path + "/cancellation", readerA, cancelBody(order.path("version").asLong()), null, 201);
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> assertThat(stock(LAST_COPY)).isEqualTo(stockBefore));
         Files.delete(CRASH_FIXTURE);
     }
@@ -417,40 +417,7 @@ class OrderV2CancellationE2ETest {
                 assertThat(response.headers().firstValue("Location")).contains(path);
             }
         }
-        if ("true".equals(System.getenv("DEMO_VERIFY_CAPTURE_RESPONSES")) && base.equals(ORDER)) {
-            captureResponse(method, path, response, json);
-        }
         return json;
-    }
-
-    private static void captureResponse(String method, String path, HttpResponse<String> response, JsonNode body) throws Exception {
-        String name = switch (body.path("code").asText()) {
-            case "BOOK_NOT_FOUND", "INSUFFICIENT_STOCK", "QUOTE_EXPIRED", "IDEMPOTENCY_CONFLICT", "INTAKE_CLOSED" ->
-                    body.path("code").asText().toLowerCase(java.util.Locale.ROOT);
-            default -> null;
-        };
-        if (name == null) {
-            if (method.equals("POST") && path.equals(QUOTES) && response.statusCode() == 201) {
-                name = "quote-created";
-            } else if (path.startsWith(SUBMISSIONS) && body.has("state")) {
-                name = switch (body.path("state").asText()) {
-                    case "PROCESSING" -> response.statusCode() == 202 ? "submission-accepted" : null;
-                    case "PLACED" -> method.equals("POST") ? "submission-placed-replay" : null;
-                    case "REJECTED" -> "submission-rejected-" + body.path("reason").asText().toLowerCase(java.util.Locale.ROOT);
-                    case "RECONCILE_REQUIRED" -> "submission-reconcile-required";
-                    default -> null;
-                };
-            } else if (path.endsWith("/cancellation") && response.statusCode() == 201) {
-                name = "cancellation-created";
-            }
-        }
-        if (name != null) {
-            var example = JSON.createObjectNode().put("status", response.statusCode());
-            response.headers().firstValue("Location").ifPresent(location -> example.put("location", location));
-            example.set("body", body);
-            var directory = Files.createDirectories(Path.of("/state/responses"));
-            JSON.writerWithDefaultPrettyPrinter().writeValue(directory.resolve(name + ".json").toFile(), example);
-        }
     }
 
     private static void replayCancellation(String orderId) throws Exception {

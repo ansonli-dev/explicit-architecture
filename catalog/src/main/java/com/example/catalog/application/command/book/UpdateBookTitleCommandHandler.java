@@ -12,14 +12,14 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-class UpdateBookTitleV2CommandHandler implements
-        CommandHandler<UpdateBookTitleV2Command, UpdateBookTitleV2Command.Result> {
+class UpdateBookTitleCommandHandler implements
+        CommandHandler<UpdateBookTitleCommand, UpdateBookTitleCommand.Result> {
 
     private final LockedBookPersistence books;
     private final CatalogWriteTransaction transaction;
 
     @Override
-    public UpdateBookTitleV2Command.Result handle(UpdateBookTitleV2Command command) {
+    public UpdateBookTitleCommand.Result handle(UpdateBookTitleCommand command) {
         var title = new Title(command.title());
         return transaction.run(() -> {
             var locked = books.lock(BookId.of(command.bookId()))
@@ -29,7 +29,7 @@ class UpdateBookTitleV2CommandHandler implements
             CatalogDataException.checkPrice(book.getPrice().cents(), book.getPrice().currency());
             long version = books.saveLocked(book);
             CatalogDataException.checkInteger(version);
-            return new UpdateBookTitleV2Command.Result(book.getId().value(), book.getTitle().value(),
+            return new UpdateBookTitleCommand.Result(book.getId().value(), book.getTitle().value(),
                     book.getAuthor().name(), book.getCategory().getName(), book.getPrice().cents(),
                     book.getPrice().currency(), book.getStockLevel().available(), version);
         });

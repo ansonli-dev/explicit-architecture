@@ -2,7 +2,7 @@
 
 ## 服务定位
 
-`order` 是订单管理领域的边界上下文，采用 CQRS 模式：写模型基于 PostgreSQL，读模型基于 ElasticSearch（见 [ADR-002](../docs/architecture/ADR-002-cqrs-scope-order.md)）。
+`order` 是订单管理领域的边界上下文，采用 CQRS 模式：写模型基于 PostgreSQL，读模型基于 ElasticSearch（见 [ADR-002](../docs/architecture/adr/ADR-002-cqrs-scope-order-service-zh.md)）。
 
 **对外提供：**
 - REST API（下单、取消、查询订单）
@@ -10,6 +10,10 @@
 
 **消费：**
 - Kafka 事件（`bookstore.order.*` → 由 `OrderReadModelProjector` 投影到 ElasticSearch）
+
+## 集成演示
+
+`demo-integrated` 配置通过 [Order v1 契约](contracts/order-v1.yaml) 提供报价、提交、订单历史和取消接口。顾客需要使用已认证的读者令牌，订单数据按令牌中的顾客身份查询。参见[演示运行指南](../demo/README.md)。
 
 ---
 
@@ -170,7 +174,7 @@ server:
 
 ## Debezium Connect（Outbox Relay）
 
-order 是 Outbox 模式的**核心用户**（见 [ADR-005](../docs/architecture/ADR-005-outbox-pattern.md)）。
+order 是 Outbox 模式的**核心用户**（见 [ADR-005](../docs/architecture/adr/ADR-005-outbox-pattern-zh.md)）。
 
 ### Outbox 表
 

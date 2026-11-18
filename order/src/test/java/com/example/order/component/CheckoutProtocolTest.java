@@ -98,8 +98,8 @@ class CheckoutProtocolTest {
 
     @Test
     void quoteAndSubmissionLocationsResolveToOwnerResourcesWithStateBasedReplayStatus() throws Exception {
-        String quotes = "/api/v2/me/order-quotes";
-        String submissionsPath = "/api/v2/me/order-submissions";
+        String quotes = "/api/v1/me/order-quotes";
+        String submissionsPath = "/api/v1/me/order-submissions";
         var created = mvc.perform(post(quotes).with(reader(OWNER)).contentType("application/json").content("""
                 {"lines":[{"bookId":"%s","quantity":2}]}
                 """.formatted(FIRST))).andExpect(status().isCreated()).andReturn().getResponse();
@@ -130,13 +130,13 @@ class CheckoutProtocolTest {
                 .andReturn().getResponse();
         String createdAt = json.readTree(replay.getContentAsByteArray()).at("/order/createdAt").asText();
         assertThat(Instant.parse(createdAt)).isBeforeOrEqualTo(Instant.now());
-        var order = "/api/v2/me/orders/" + id;
+        var order = "/api/v1/me/orders/" + id;
         mvc.perform(get(order).with(reader(OWNER))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.createdAt").value(createdAt));
-        mvc.perform(get("/api/v2/me/orders").with(reader(OWNER))).andExpect(status().isOk())
+        mvc.perform(get("/api/v1/me/orders").with(reader(OWNER))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.orders[0].createdAt").value(createdAt))
                 .andExpect(jsonPath("$.orders[0].lines").doesNotExist());
-        mvc.perform(get("/api/v2/me/orders").param("include", "lines").with(reader(OWNER))).andExpect(status().isOk())
+        mvc.perform(get("/api/v1/me/orders").param("include", "lines").with(reader(OWNER))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.orders[0].lines[0].title").value("First"))
                 .andExpect(jsonPath("$.orders[0].lines[0].unitPriceMinor").value(4900))
                 .andExpect(jsonPath("$.orders[0].lines[0].quantity").value(2));
@@ -148,7 +148,7 @@ class CheckoutProtocolTest {
         when(catalog.reserve(eq(id), anyList()))
                 .thenReturn(new Checkout.Reservation(Checkout.ReservationState.HELD, null));
         resolver.processNext();
-        String path = "/api/v2/me/orders/" + id + "/cancellation";
+        String path = "/api/v1/me/orders/" + id + "/cancellation";
         String body = """
                 {"reason":"Changed plans","expectedVersion":0}
                 """;
@@ -172,7 +172,7 @@ class CheckoutProtocolTest {
 
     @Test
     void rejectedSubmissionReplaysAsOkAndExpiredQuotesKeepTheirReadResource() throws Exception {
-        String submissionsPath = "/api/v2/me/order-submissions";
+        String submissionsPath = "/api/v1/me/order-submissions";
         var quote = quote(1);
         var key = UUID.randomUUID();
         var id = submit(quote, key).submissionId();
@@ -187,7 +187,7 @@ class CheckoutProtocolTest {
 
         var expired = quote(1);
         jdbc.update("UPDATE checkout_quote SET expires_at = now() - interval '1 second' WHERE id = ?", expired.quoteId());
-        mvc.perform(get("/api/v2/me/order-quotes/" + expired.quoteId()).with(reader(OWNER))).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/me/order-quotes/" + expired.quoteId()).with(reader(OWNER))).andExpect(status().isOk());
         mvc.perform(post(submissionsPath).with(reader(OWNER)).contentType("application/json")
                 .header("Idempotency-Key", UUID.randomUUID()).content("{\"quoteId\":\"" + expired.quoteId() + "\"}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("QUOTE_EXPIRED"));
@@ -202,7 +202,7 @@ class CheckoutProtocolTest {
                     """, new UUID(0, i), OWNER.value(), i < 3 ? "2026-11-18T00:01:00Z" : "2026-11-18T00:00:00Z");
         }
         for (int i = 1; i <= 3; i++) {
-            mvc.perform(get("/api/v2/me/orders").param("page", "" + i).param("size", "1").with(reader(OWNER)))
+            mvc.perform(get("/api/v1/me/orders").param("page", "" + i).param("size", "1").with(reader(OWNER)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.orders[0].orderId").value(new UUID(0, i == 1 ? 2 : i == 2 ? 1 : 3).toString()))
                     .andExpect(jsonPath("$.hasNext").value(i < 3));
@@ -335,7 +335,7 @@ class CheckoutProtocolTest {
             jdbc.update("UPDATE checkout_submission SET next_attempt_at = now() WHERE id=?", id);
         }
         assertThat(submissions.get(OWNER, id).state()).isEqualTo(Checkout.State.RECONCILE_REQUIRED);
-        mvc.perform(get("/api/v2/me/order-submissions/" + id).with(reader(OWNER))).andExpect(status().isOk())
+        mvc.perform(get("/api/v1/me/order-submissions/" + id).with(reader(OWNER))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value("RECONCILE_REQUIRED")).andExpect(jsonPath("$.order").doesNotExist());
         assertThat(submissions.claimDue()).isEmpty();
 

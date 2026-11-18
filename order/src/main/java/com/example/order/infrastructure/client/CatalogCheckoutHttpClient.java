@@ -34,7 +34,7 @@ import static com.example.order.application.checkout.CheckoutProblem.Code.CATALO
 public class CatalogCheckoutHttpClient implements CheckoutCatalog {
 
     private static final Duration BUDGET = Duration.ofSeconds(4);
-    private static final String CHECKOUT_PATH = "/api/v2/internal/checkout";
+    private static final String CHECKOUT_PATH = "/api/v1/internal/checkout";
 
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(BUDGET).build();
     private final ObjectMapper json;

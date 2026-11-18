@@ -1,4 +1,4 @@
-package com.example.order.interfaces.rest.v2;
+package com.example.order.interfaces.rest.checkout;
 
 import com.example.order.application.checkout.Checkout;
 import com.example.order.application.checkout.CheckoutMessages;
@@ -26,16 +26,16 @@ import java.util.UUID;
 
 @RestController
 @Profile("demo-integrated")
-@RequestMapping("/api/v2/me")
-class CheckoutV2Controller {
+@RequestMapping("/api/v1/me")
+class CheckoutController {
 
-    private static final String QUOTES = "/api/v2/me/order-quotes";
-    private static final String SUBMISSIONS = "/api/v2/me/order-submissions";
+    private static final String QUOTES = "/api/v1/me/order-quotes";
+    private static final String SUBMISSIONS = "/api/v1/me/order-submissions";
 
     private final CommandBus commands;
     private final QueryBus queries;
 
-    CheckoutV2Controller(CommandBus commands, QueryBus queries) {
+    CheckoutController(CommandBus commands, QueryBus queries) {
         this.commands = commands;
         this.queries = queries;
     }
@@ -93,11 +93,11 @@ class CheckoutV2Controller {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record SubmissionResponse(UUID submissionId, Checkout.State state, OrderSummaryResponseV2 order, Checkout.Rejection reason) {
+    record SubmissionResponse(UUID submissionId, Checkout.State state, OrderSummaryResponse order, Checkout.Rejection reason) {
         static SubmissionResponse from(Checkout.Submission submission) {
             var placed = submission.order();
             var order = placed == null ? null
-                    : new OrderSummaryResponseV2(placed.orderId(), placed.status(), placed.totalMinor(), placed.currency(),
+                    : new OrderSummaryResponse(placed.orderId(), placed.status(), placed.totalMinor(), placed.currency(),
                             placed.createdAt(), null);
             return new SubmissionResponse(submission.submissionId(), submission.state(), order, submission.reason());
         }

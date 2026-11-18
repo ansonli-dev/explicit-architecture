@@ -1,4 +1,4 @@
-package com.example.order.interfaces.rest.v2;
+package com.example.order.interfaces.rest.checkout;
 
 import com.example.order.application.checkout.CheckoutProblem;
 import org.springframework.context.annotation.Profile;
@@ -16,8 +16,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @Profile("demo-integrated")
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(basePackageClasses = CheckoutV2Controller.class)
-class OrderV2Errors {
+@RestControllerAdvice(basePackageClasses = CheckoutController.class)
+class CheckoutErrors {
 
     @ExceptionHandler(CheckoutProblem.class)
     ResponseEntity<ErrorResponse> problem(CheckoutProblem problem) {

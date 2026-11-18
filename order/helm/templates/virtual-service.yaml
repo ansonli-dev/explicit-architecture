@@ -11,6 +11,17 @@ spec:
     - infra/platform-gateway
     - mesh
   http:
+    - match:
+        - gateways:
+            - mesh
+          uri:
+            prefix: /api/v1/me/
+      timeout: 10s
+      route:
+        - destination:
+            host: {{ include "order.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}
     # 写操作路径（Outbox 事务，允许较长超时）
     - match:
         - uri:

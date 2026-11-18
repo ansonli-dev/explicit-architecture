@@ -20,9 +20,9 @@ If the submission must be abandoned, transition it to compensation with that sam
 bash demo/recover-submission.sh compensate "$SUBMISSION_ID" "$CLAIM_VERSION"
 ```
 
-The transition commits the new fence before the worker can release the hold. Catalog records a tombstone even when no hold exists. While compensation retries, the API reports `RECONCILE_REQUIRED`. After release succeeds, it reports `REJECTED` with `PLACEMENT_ABORTED`. A placed order uses the standard v2 cancellation endpoint and Kafka release path.
+The transition commits the new fence before the worker can release the hold. Catalog records a tombstone even when no hold exists. While compensation retries, the API reports `RECONCILE_REQUIRED`. After release succeeds, it reports `REJECTED` with `PLACEMENT_ABORTED`. A placed order uses `PUT /api/v1/me/orders/{orderId}/cancellation` and Kafka release path.
 
-Keep both databases and the Kafka consumer group when closing intake. `DEMO_V2_INTAKE_ENABLED=false` still allows existing key replays, polling, worker recovery and cancellation. Keep the compatible Catalog consumer active for every live v2 order and replayable cancellation event.
+Keep both databases and the Kafka consumer group when closing intake. `DEMO_CHECKOUT_INTAKE_ENABLED=false` still allows existing key replays, polling, worker recovery and cancellation. Keep the compatible Catalog consumer active for every live checkout order and replayable cancellation event.
 
 ## Verify a restart after Catalog commits
 

@@ -30,10 +30,8 @@ services:
       context: ${BOOKSTORE_FRONTEND_DIR:-../../react-reference-architecture}
     environment:
       APP_ORIGIN: http://localhost:3000
-      JAVA_CONTRACT: v2-integrated
       JAVA_CATALOG_BASE_URL: http://catalog:8081
       JAVA_ORDER_BASE_URL: http://order:8082
-      CATALOG_CATEGORIES_JSON: '["Architecture","Engineering"]'
       OIDC_ISSUER: http://localhost:8180/realms/bookstore
       OIDC_INTERNAL_BASE_URL: http://keycloak:8080/realms/bookstore
       OIDC_CLIENT_ID: bookstore-bff

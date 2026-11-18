@@ -10,10 +10,11 @@
 
 ## Integrated demo
 
-The `demo-integrated` profile enables the [Catalog v2 contract](contracts/catalog-v2.yaml)
-and restricts the service to those routes and health checks. Public reads go to
-PostgreSQL. The admin PATCH requires the current book version, and
-`DEMO_V2_ADMIN_WRITES_ENABLED=false` can pause it while reads and checkout remain available.
+The public [Catalog v1 reads](contracts/catalog-v1.yaml) use PostgreSQL in every
+profile. The `demo-integrated` profile enables the authenticated administration
+and internal checkout routes and restricts access to contract routes and health
+checks. The admin PATCH requires the current book version, and
+`DEMO_CATALOG_ADMIN_WRITES_ENABLED=false` can pause it while reads and checkout remain available.
 The [demo runbook](../demo/README.md) describes the Keycloak issuer, service tokens,
 and Compose setup.
 
@@ -69,7 +70,6 @@ classDiagram
 | Middleware | Purpose | Required |
 |---|---|---|
 | PostgreSQL | Book/stock data persistence (write model) | Yes |
-| Redis | Hot cache for book list / detail | Yes |
 | Kafka + Schema Registry | Publish Stock events (StockReserved, StockReleased) | Yes |
 | Debezium Connect | Outbox Relay (reliable stock event delivery) | Yes |
 | SigNoz / OTel | Traces + Metrics + Logs | Yes |
@@ -96,7 +96,7 @@ The database and user are created by `infrastructure/db/init.sql` on the first c
 src/main/resources/db/migration/
 ├── V0100__catalog_schema.sql               # books, categories, stock tables
 ├── V0101__fix_currency_column_type.sql
-└── V0102__checkout_reservations.sql       # durable v2 decisions and held lines
+└── V0102__checkout_reservations.sql       # durable reservation decisions and held lines
 
 # Provided by seedwork (loaded via classpath:db/seedwork):
 ├── V0001__seedwork_outbox_events.sql       # Outbox table (read by Debezium)
@@ -119,34 +119,6 @@ spring:
     enabled: true
     locations: classpath:db/seedwork,classpath:db/migration
 ```
-
----
-
-## Redis
-
-### Cache Key Reference
-
-| Key Pattern | Content | TTL |
-|---|---|---|
-| `catalog:book:{bookId}` | Book detail (JSON) | 30 min |
-| `catalog:books:page:{hash}` | Paginated query result | 5 min |
-| `catalog:stock:{bookId}` | Available stock quantity | 1 min (high-read, short TTL) |
-
-> **Event-driven cache invalidation**: After `StockReserved` is published, the adapter actively calls `DEL catalog:stock:{bookId}` so that the next read reloads from the database.
-
-### Spring Configuration
-
-```yaml
-spring:
-  data:
-    redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
-```
-
-### Cache Degradation Strategy
-
-When Redis is unavailable the service **does not fail**; queries fall through to PostgreSQL automatically (`@Cacheable` fallback). Redis is a pure cache — no business source-of-truth data is stored there.
 
 ---
 
@@ -178,7 +150,7 @@ spring:
 
 ## Debezium Connect (Outbox Relay)
 
-`catalog` uses the **Outbox Pattern** to guarantee reliable delivery of stock events (see [ADR-005](../docs/architecture/ADR-005-outbox-pattern.md)).
+`catalog` uses the **Outbox Pattern** to guarantee reliable delivery of stock events (see [ADR-005](../docs/architecture/adr/ADR-005-outbox-pattern.md)).
 
 ### Outbox Table
 
@@ -200,7 +172,7 @@ Debezium reads the PostgreSQL WAL, routes events through the Outbox Event Router
 
 ## ElasticSearch
 
-**catalog does not use ElasticSearch.** Book list queries are served by PostgreSQL with a Redis cache; full-text search read models are not required.
+**catalog does not use ElasticSearch.** PostgreSQL handles book listings and title or author searches.
 
 ---
 
@@ -225,7 +197,7 @@ OTEL_EXPORTER_OTLP_PROTOCOL: grpc
 
 | Signal | Automatically covered |
 |---|---|
-| **Traces** | Spring MVC HTTP requests, JDBC SQL, Kafka produce, Redis commands |
+| **Traces** | Spring MVC HTTP requests, JDBC SQL, Kafka produce |
 | **Metrics** | JVM heap/GC, HTTP request rate/latency, HikariCP connection pool, Kafka producer metrics |
 | **Logs** | Logback logs automatically enriched with `trace_id` and `span_id` (linked to traces) |
 
@@ -258,7 +230,7 @@ catalog.stock.release
 | `deployment.yaml` | Single replica (local) / HPA-managed (prod) |
 | `service.yaml` | ClusterIP, port 8081 |
 | `hpa.yaml` | Scale out when CPU > 70%, max 3 replicas |
-| `networkpolicy.yaml` | Allow: Ingress Gateway → 8081; Egress → PostgreSQL:5432, Redis:6379, Kafka:29092, Schema Registry:8081 |
+| `networkpolicy.yaml` | Allow: Ingress Gateway → 8081; Egress → PostgreSQL:5432, Kafka:29092, Schema Registry:8081 |
 | `virtual.yaml` | Route to catalog, 5 s timeout, 3 retries on 5xx |
 | `destination-rule.yaml` | Circuit breaker: eject instance after 5 consecutive 5xx errors, recover after 30 s |
 | `configmap.yaml` | Non-sensitive configuration (`OTEL_SERVICE_NAME`, etc.) |

@@ -57,9 +57,9 @@ class DemoSecurityTest {
     private static final String ISSUER = "https://issuer.example/realms/bookstore";
     private static final String READER_ID = "aaaaaaaa-0000-0000-0000-000000000001";
     private static final String ORDER_ID = "bbbbbbbb-0000-0000-0000-000000000002";
-    private static final String ORDERS = "/api/v2/me/orders";
-    private static final String SUBMISSIONS = "/api/v2/me/order-submissions";
-    private static final String QUOTES = "/api/v2/me/order-quotes";
+    private static final String ORDERS = "/api/v1/me/orders";
+    private static final String SUBMISSIONS = "/api/v1/me/order-submissions";
+    private static final String QUOTES = "/api/v1/me/order-quotes";
     private static final RSAKey TRUSTED_KEY = key();
     private static final MockWebServer JWKS = jwks();
 
@@ -93,7 +93,8 @@ class DemoSecurityTest {
     @CsvSource({
             "GET, " + ORDERS,
             "GET, " + ORDERS + "/" + ORDER_ID,
-            "PUT, " + ORDERS + "/" + ORDER_ID + "/cancel",
+            "GET, " + ORDERS + "/" + ORDER_ID + "/cancellation",
+            "PUT, " + ORDERS + "/" + ORDER_ID + "/cancellation",
             "POST, " + QUOTES,
             "POST, " + SUBMISSIONS,
             "GET, " + SUBMISSIONS + "/" + ORDER_ID
@@ -110,7 +111,8 @@ class DemoSecurityTest {
             "PUT, /api/v1/orders/" + ORDER_ID + "/cancel",
             "GET, /api/v1/orders",
             "POST, " + ORDERS,
-            "POST, " + ORDERS + "/" + ORDER_ID + "/cancel",
+            "PUT, " + ORDERS + "/" + ORDER_ID + "/cancel",
+            "GET, /api/v2/me/orders",
             "GET, " + SUBMISSIONS,
             "POST, " + QUOTES + "/extra",
             "GET, " + ORDERS + "/" + ORDER_ID + "/extra",
@@ -248,7 +250,7 @@ class DemoSecurityTest {
             return "UP";
         }
 
-        @RequestMapping({ORDERS, ORDERS + "/{id}", ORDERS + "/{id}/cancel", QUOTES, SUBMISSIONS,
+        @RequestMapping({ORDERS, ORDERS + "/{id}", ORDERS + "/{id}/cancellation", QUOTES, SUBMISSIONS,
                 SUBMISSIONS + "/{id}", "/api/v1/orders", "/api/v1/orders/{id}/cancel"})
         String probe(@AuthenticationPrincipal Jwt jwt) {
             return jwt.getSubject();

@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
   title: Bookstore Order API
-  version: 2.1.0
+  version: 1.0.0
   description: Available in the demo-integrated profile on the private network.
 security:
   - ReaderToken: []
 paths:
-  /api/v2/me/order-quotes:
+  /api/v1/me/order-quotes:
     post:
       operationId: createOrderQuote
       description: Quotes authoritative Catalog data in CNY for the token subject. Requires a verified email claim. Valid for ten minutes.
@@ -30,7 +30,7 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '502': { $ref: '#/components/responses/UnsafeAmount' }
         '503': { $ref: '#/components/responses/Unavailable' }
-  /api/v2/me/order-quotes/{quoteId}:
+  /api/v1/me/order-quotes/{quoteId}:
     parameters:
       - name: quoteId
         in: path
@@ -49,7 +49,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-  /api/v2/me/order-submissions:
+  /api/v1/me/order-submissions:
     post:
       operationId: submitOrderQuote
       description: |
@@ -92,7 +92,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '503': { $ref: '#/components/responses/Unavailable' }
-  /api/v2/me/order-submissions/{submissionId}:
+  /api/v1/me/order-submissions/{submissionId}:
     parameters:
       - name: submissionId
         in: path
@@ -110,7 +110,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-  /api/v2/me/orders:
+  /api/v1/me/orders:
     get:
       operationId: listMyOrders
       description: |
@@ -145,7 +145,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '502': { $ref: '#/components/responses/UnsafeAmount' }
-  /api/v2/me/orders/{orderId}:
+  /api/v1/me/orders/{orderId}:
     parameters:
       - $ref: '#/components/parameters/OrderId'
     get:
@@ -161,7 +161,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '502': { $ref: '#/components/responses/UnsafeAmount' }
-  /api/v2/me/orders/{orderId}/cancellation:
+  /api/v1/me/orders/{orderId}/cancellation:
     parameters:
       - $ref: '#/components/parameters/OrderId'
     get:
@@ -191,21 +191,6 @@ paths:
           headers:
             Location: { $ref: '#/components/headers/ResourceLocation' }
           content: *cancellationContent
-        '400': { $ref: '#/components/responses/InvalidRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-  /api/v2/me/orders/{orderId}/cancel:
-    parameters:
-      - $ref: '#/components/parameters/OrderId'
-    put:
-      operationId: cancelMyOrder
-      deprecated: true
-      description: Compatibility path for the cancellation resource.
-      requestBody: { $ref: '#/components/requestBodies/CancellationRequest' }
-      responses:
-        '204': { description: Cancellation and its outbox record committed }
         '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -319,7 +304,7 @@ components:
         orderId: { $ref: '#/components/schemas/Id' }
         status: { type: string, enum: [PENDING, PLACED, CONFIRMED, SHIPPED, CANCELLED] }
         totalMinor: { $ref: '#/components/schemas/MoneyMinor' }
-        currency: { type: string, description: New v2 orders use CNY. }
+        currency: { type: string, description: New orders use CNY. }
         createdAt:
           type: [string, 'null']
           format: date-time

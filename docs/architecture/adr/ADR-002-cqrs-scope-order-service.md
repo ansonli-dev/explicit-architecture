@@ -18,7 +18,7 @@ We need to decide:
 
 | Service | Write Patterns | Read Patterns | Verdict |
 |---|---|---|---|
-| `catalog` | Low-frequency admin ops (add/update books) | High-frequency reads (browse, search) | Redis cache suffices; CQRS overhead not justified |
+| `catalog` | Low-frequency admin ops (add/update books) | High-frequency reads (browse, search) | Direct PostgreSQL reads provide current prices and inventory |
 | `order` | Transactional order lifecycle; strict consistency on write | Complex queries: by customer, date range, status, full-text; history view | **CQRS justified** |
 | `notification` | Insert-only (append log) | Simple read by customer ID | Too simple for CQRS |
 
@@ -30,6 +30,8 @@ We need to decide:
 
 - **Write side**: PostgreSQL — transactional, strongly consistent, normalized schema. Commands (`PlaceOrderCommand`, `CancelOrderCommand`) are handled by dedicated `CommandHandler` classes (`PlaceOrderCommandHandler`, `CancelOrderCommandHandler`), which mutate the `Order` aggregate and persist via `OrderPersistence` (JPA).
 - **Read side**: ElasticSearch — denormalized, optimized for search. Queries (`FindOrdersByCustomerQuery`) are handled by dedicated `QueryHandler` classes (`GetOrderQueryHandler`, `ListOrdersQueryHandler`) that go directly to `OrderSearchRepository` (ElasticSearch adapter), bypassing the domain layer entirely.
+
+The authenticated purchase flow reads `/api/v1/me/orders` from PostgreSQL so a newly placed order is immediately visible to its owner. Search continues to use the ElasticSearch projection.
 
 ### Projection Mechanism
 
@@ -57,7 +59,7 @@ When a `CommandHandler` persists a command, it also publishes a domain event (e.
 ## Consequences
 
 ### Positive
-- `order` read queries (customer history, full-text search, faceted filtering) are served by ElasticSearch without putting load on the transactional PostgreSQL.
+- ElasticSearch serves full-text and faceted order searches without putting load on transactional PostgreSQL.
 - The write path remains strongly consistent and ACID-compliant.
 - The separation is visible in the package structure (`application/command/` and `application/query/` are distinct subtrees; `infrastructure/search/` holds the ES adapter).
 

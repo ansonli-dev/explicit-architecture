@@ -2,8 +2,8 @@ demo:
     jwt:
         issuer: ${DEMO_JWT_ISSUER}
         jwk-set-uri: ${DEMO_JWT_JWK_SET_URI}
-    v2:
-        admin-writes-enabled: ${DEMO_V2_ADMIN_WRITES_ENABLED:true}
+    catalog:
+        admin-writes-enabled: ${DEMO_CATALOG_ADMIN_WRITES_ENABLED:true}
 
 springdoc:
     api-docs:
