@@ -7,8 +7,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        // Local dev: run `./gradlew publishToMavenLocal` in seedwork/ and shared-events/
-        // CI: artifacts resolved from GitHub Packages below
+        // Local development and PR CI publish seedwork and shared-events first.
         mavenLocal()
         maven {
             name = "GitHubPackages"
@@ -17,6 +16,9 @@ dependencyResolutionManagement {
                     ?: providers.gradleProperty("githubOwner").orNull
                     ?: "YOUR_GITHUB_ORG"
             }/*")
+            content {
+                includeGroup("com.example")
+            }
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                     ?: providers.gradleProperty("githubActor").orNull ?: ""
@@ -24,8 +26,8 @@ dependencyResolutionManagement {
                     ?: providers.gradleProperty("githubToken").orNull ?: ""
             }
         }
-        maven { url = uri("https://packages.confluent.io/maven/") }
         mavenCentral()
+        maven { url = uri("https://packages.confluent.io/maven/") }
     }
 }
 

@@ -82,7 +82,7 @@ configurations.all {
 extra["commons-lang3.version"] = "3.17.0"
 
 dependencies {
-    // Internal libraries — resolved from GitHub Packages in CI, mavenLocal in local dev
+    // Shared libraries are published to Maven Local for PR CI.
     implementation("com.example:seedwork:0.1.0")
     implementation("com.example:shared-events:0.1.1")
 
