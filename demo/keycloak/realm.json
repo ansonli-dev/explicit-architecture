@@ -1,14 +1,29 @@
 {
   "realm": "bookstore",
   "enabled": true,
-  "registrationAllowed": false,
-  "resetPasswordAllowed": false,
+  "registrationAllowed": true,
+  "verifyEmail": true,
+  "resetPasswordAllowed": true,
+  "loginTheme": "bookstore",
   "sslRequired": "none",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "zh-CN"],
+  "defaultLocale": "en",
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "bookstore@example.test"
+  },
+  "defaultRole": {"name": "default-roles-bookstore"},
   "roles": {
     "realm": [
       {"name": "bookstore-reader"},
       {"name": "bookstore-admin"},
-      {"name": "bookstore-order-service"}
+      {"name": "bookstore-order-service"},
+      {
+        "name": "default-roles-bookstore",
+        "composites": {"realm": ["bookstore-reader"]}
+      }
     ]
   },
   "clients": [
@@ -23,6 +38,7 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
+      "baseUrl": "http://localhost:3000",
       "redirectUris": ["http://localhost:3000/api/auth/oauth2/callback/keycloak"],
       "attributes": {"pkce.code.challenge.method": "S256"},
       "protocolMappers": [

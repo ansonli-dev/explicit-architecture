@@ -69,7 +69,17 @@ services:
       timeout: 5s
       retries: 30
     volumes:
+      - keycloak-data:/opt/keycloak/data
       - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+      - ./keycloak/themes/bookstore:/opt/keycloak/themes/bookstore:ro
+    depends_on:
+      mailpit:
+        condition: service_started
+
+  mailpit:
+    image: ghcr.io/axllent/mailpit:v1.34.0
+    ports:
+      - "127.0.0.1:8025:8025"
 
   kafka:
     image: *kafka-image
@@ -238,6 +248,7 @@ services:
         condition: service_healthy
 
 volumes:
+  keycloak-data:
   catalog-data:
   order-data:
   order-search:
