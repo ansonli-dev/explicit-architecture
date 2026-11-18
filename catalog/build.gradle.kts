@@ -78,7 +78,6 @@ dependencies {
     // Spring Boot
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.data.jpa)
-    implementation(libs.spring.boot.starter.data.redis)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.spring.boot.starter.validation)
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")

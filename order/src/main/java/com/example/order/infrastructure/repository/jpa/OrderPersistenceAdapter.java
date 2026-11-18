@@ -9,11 +9,15 @@ import com.example.order.application.query.order.OrderDetailResult;
 import com.example.order.application.query.order.OrderItemResult;
 import com.example.order.application.query.order.MyOrders;
 import com.example.order.domain.model.*;
+import com.example.order.domain.event.OrderCancelled;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -61,7 +65,13 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository, 
                     return e;
                 });
 
-        entity.attachDomainEvents(order.peekDomainEvents());
+        var events = order.peekDomainEvents();
+        for (var event : events) {
+            if (event instanceof OrderCancelled cancelled) {
+                entity.setCancelledAt(cancelled.occurredAt().truncatedTo(ChronoUnit.MICROS));
+            }
+        }
+        entity.attachDomainEvents(events);
         orderJpaRepository.save(entity);
         order.clearDomainEvents();
         return order;
@@ -93,29 +103,47 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository, 
 
     @Override
     @Transactional(readOnly = true)
-    public MyOrders.PageResult listOwned(CustomerId owner, int page, int size) {
-        var slice = orderJpaRepository.findAllByCustomerIdOrderByIdDesc(owner.value(), PageRequest.of(page - 1, size));
-        var orders = slice.stream().map(row -> new MyOrders.SummaryResult(
-                row.getId(), row.getStatus(), safeMinor(row.getTotalCents()), row.getCurrency())).toList();
-        return new MyOrders.PageResult(orders, page, page < 100 && slice.hasNext());
+    public MyOrders.PageResult listOwned(CustomerId owner, int page, int size, boolean includeLines) {
+        var pageRequest = PageRequest.of(page - 1, size);
+        Slice<MyOrders.SummaryResult> slice = includeLines
+                ? orderJpaRepository.findOwnedWithLines(owner.value(), pageRequest).map(row -> new MyOrders.SummaryResult(
+                        row.getId(), row.getStatus(), safeMinor(row.getTotalCents()), row.getCurrency(), row.getCreatedAt(), lines(row)))
+                : orderJpaRepository.findOwnedSummaries(owner.value(), pageRequest).map(row -> new MyOrders.SummaryResult(
+                        row.getId(), row.getStatus(), safeMinor(row.getTotalCents()), row.getCurrency(), row.getCreatedAt(), null));
+        return new MyOrders.PageResult(slice.getContent(), page, page < 100 && slice.hasNext());
     }
 
     @Override
     @Transactional(readOnly = true)
     public MyOrders.DetailResult findOwned(CustomerId owner, OrderId id) {
+        var entity = ownedOrder(owner, id);
+        return new MyOrders.DetailResult(entity.getId(), entity.getStatus(), safeMinor(entity.getTotalCents()),
+                entity.getCurrency(), entity.getCreatedAt(), entity.getVersion(), lines(entity));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Cancellation findCancellation(CustomerId owner, OrderId id) {
+        var entity = ownedOrder(owner, id);
+        if (entity.getCancelledAt() == null || !"CANCELLED".equals(entity.getStatus())) {
+            throw new CheckoutProblem(CheckoutProblem.Code.NOT_FOUND);
+        }
+        return cancellation(entity);
+    }
+
+    private OrderJpaEntity ownedOrder(CustomerId owner, OrderId id) {
         return orderJpaRepository.findByIdAndCustomerId(id.value(), owner.value())
-                .map(entity -> new MyOrders.DetailResult(entity.getId(), entity.getStatus(), safeMinor(entity.getTotalCents()),
-                        entity.getCurrency(), entity.getVersion(), entity.getItems().stream()
-                                .map(item -> new Checkout.Line(item.bookId(), item.bookTitle(), item.quantity(), safeMinor(item.unitPriceCents())))
-                                .toList()))
                 .orElseThrow(() -> new CheckoutProblem(CheckoutProblem.Code.NOT_FOUND));
     }
 
     @Override
     @Transactional
-    public void cancelOwned(OrderId id, CustomerId owner, String reason, long expectedVersion) {
+    public CancellationResult cancelOwned(OrderId id, CustomerId owner, String reason, long expectedVersion) {
         var entity = orderJpaRepository.lockOwnedOrder(id.value(), owner.value())
                 .orElseThrow(() -> new CheckoutProblem(CheckoutProblem.Code.NOT_FOUND));
+        if (Objects.equals(entity.getCancellationExpectedVersion(), expectedVersion) && reason.equals(entity.getCancelReason())) {
+            return new CancellationResult(cancellation(entity), false);
+        }
         if (entity.getVersion() != expectedVersion) {
             throw new CheckoutProblem(CheckoutProblem.Code.VERSION_CONFLICT);
         }
@@ -125,7 +153,19 @@ class OrderPersistenceAdapter implements OrderPersistence, OrderReadRepository, 
         } catch (OrderStateException e) {
             throw new CheckoutProblem(CheckoutProblem.Code.ORDER_STATE_CONFLICT);
         }
+        entity.setCancellationExpectedVersion(expectedVersion);
         save(order);
+        return new CancellationResult(cancellation(entity), true);
+    }
+
+    private static Cancellation cancellation(OrderJpaEntity entity) {
+        return new Cancellation(entity.getId(), entity.getCancelReason(), entity.getCancelledAt());
+    }
+
+    private static List<Checkout.Line> lines(OrderJpaEntity entity) {
+        return entity.getItems().stream()
+                .map(item -> new Checkout.Line(item.bookId(), item.bookTitle(), item.quantity(), safeMinor(item.unitPriceCents())))
+                .toList();
     }
 
     private static long safeMinor(long minor) {

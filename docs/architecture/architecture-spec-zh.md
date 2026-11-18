@@ -265,7 +265,7 @@ com.example.{service}/
 
 ### 3.2 各服务实际结构
 
-**catalog**（端口 8081 | PostgreSQL + Redis）：
+**catalog**（端口 8081 | PostgreSQL）：
 
 ```
 domain/model/    Book, BookId, Author, Title, Category, Money, StockLevel, InsufficientStockException
@@ -273,11 +273,10 @@ domain/event/    BookAdded, StockReserved, StockReleased
 domain/ports/    BookPersistence
 application/command/book/    AddBook, UpdateBook, ReserveStock, ReleaseStock (+ Results)
 application/query/book/      GetBook, ListBooks, GetStock (+ Responses)
-application/port/outbound/   BookCache
-infrastructure/repository/jpa/   BookJpaEntity, BookJpaRepository, BookPersistenceAdapter, BookEntityMapper
-infrastructure/cache/        RedisBookCache, BookCacheInvalidationListener, BookPersistedEvent
+application/port/outbound/   BookReadRepository
+infrastructure/repository/jpa/   BookPersistenceAdapter, BookReadAdapter, BookEntityMapper
 infrastructure/messaging/outbox/ CatalogOutboxMapper
-interfaces/rest/             BookCommandController, BookQueryController
+interfaces/rest/             BookCommandController, BookQueryController, StockQueryController, BookAdminController, CheckoutInventoryController
 interfaces/messaging/consumer/   OrderEventConsumer, OrderCancelledHandler
 ```
 
@@ -355,7 +354,7 @@ interfaces/messaging/consumer/     OrderEventConsumer, OrderPlacedHandler, Order
 
 CQRS（物理分离读写存储）**仅应用于 `order`**（参见 [ADR-002](adr/ADR-002-cqrs-scope-order-service.md)）。
 
-- `catalog`：单一 PostgreSQL 加 Redis 缓存层 — 无 CQRS 开销的理由。
+- `catalog`：PostgreSQL 负责读取和写入图书数据。
 - `notification`：仅插入的日志，简单读取 — 无需 CQRS。
 - `order`：针对高频写入工作负载的复杂查询（按客户、日期范围、状态、全文检索）— CQRS 有充分理由。
 
@@ -553,21 +552,7 @@ PlaceOrderCommandHandler.handle():
 | **跨服务响应** | 领域事件 → 通过发件箱的集成事件（强制） | `OrderCancelled` → 目录服务释放库存 |
 | **基础设施操作（缓存、搜索索引）** | 在持久化适配器 `save()` 内部 | 缓存驱逐 — 处理器不感知 |
 
-**缓存失效模式（catalog）：**
-
-`BookPersistenceAdapter.save()` 在 JPA 保存后立即发布一个 `BookPersistedEvent`（Spring 应用事件，不是领域事件）。`BookCacheInvalidationListener` 使用 `@TransactionalEventListener(phase = AFTER_COMMIT)` 处理它，确保缓存驱逐仅在 DB 提交确认后发生。
-
-```java
-// 在 BookPersistenceAdapter.save() 内部
-BookJpaEntity saved = bookJpaRepository.save(entity);
-eventPublisher.publishEvent(new BookPersistedEvent(book.getId().value()));
-
-// BookCacheInvalidationListener
-@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-public void onBookPersisted(BookPersistedEvent event) {
-    bookCache.evict(event.bookId());
-}
-```
+当服务使用缓存时，可通过 `@TransactionalEventListener(phase = AFTER_COMMIT)` 在数据库确认提交后驱逐缓存条目。
 
 ### 6.3 同服务领域事件监听器分类
 
@@ -578,7 +563,6 @@ public void onBookPersisted(BookPersistedEvent event) {
 | 监听器 | 位置 | 职责 |
 |--------|------|------|
 | `OutboxWriteListener` | `seedwork/.../infrastructure/outbox/` | 序列化领域事件 → 写入 outbox 行（BEFORE_COMMIT） |
-| `BookCacheInvalidationListener` | `catalog/.../infrastructure/cache/` | 失效 Redis 缓存条目（AFTER_COMMIT） |
 
 注意：order 服务的 ES 读模型同步由外部 Debezium CDC → ES Sink Connector 管道处理，不是应用内监听器。
 
@@ -661,7 +645,7 @@ order 消费 StockReservationFailed:
 | ES 适配器 | `infrastructure/repository/elasticsearch/` | `{Agg}SearchAdapter` | `OrderSearchAdapter` |
 | 发件箱映射器 | `infrastructure/messaging/outbox/` | `{Service}OutboxMapper` | `CatalogOutboxMapper` |
 | HTTP 客户端适配器 | `infrastructure/client/` | `{Target}RestClient` | `CatalogRestClient` |
-| 缓存适配器 | `infrastructure/cache/` | `{Technology}{Agg}Cache` | `RedisBookCache` |
+| 缓存适配器 | `infrastructure/cache/` | `{Technology}{Agg}Cache` | `Redis{Agg}Cache` |
 | REST 控制器（写） | `interfaces/rest/` | `{Agg}CommandController` | `OrderCommandController` |
 | REST 控制器（读） | `interfaces/rest/` | `{Agg}QueryController` | `OrderQueryController` |
 | HTTP 请求 DTO | `interfaces/rest/request/` | `{Action}{Agg}Request` | `PlaceOrderRequest` |
@@ -669,7 +653,7 @@ order 消费 StockReservationFailed:
 | Kafka 消费者 | `interfaces/messaging/consumer/` | `{Topic}EventConsumer` | `OrderEventConsumer` |
 | Kafka 事件处理器 | `interfaces/messaging/consumer/` | `{Event}Handler` | `OrderPlacedHandler` |
 | 同服务事件监听器（业务） | `interfaces/event/` | `{Event}{Reaction}Listener` | `OrderPlacedAutoConfirmListener` |
-| 同服务事件监听器（技术） | `infrastructure/{concern}/` | `{Aggregate}{Concern}Listener` | `BookCacheInvalidationListener` |
+| 同服务事件监听器（技术） | `infrastructure/{concern}/` | `{Aggregate}{Concern}Listener` | `{Aggregate}CacheInvalidationListener` |
 
 ---
 
@@ -820,7 +804,6 @@ cd catalog / order / notification
 | 构建工具 | Gradle（每服务独立项目，无多项目根） |
 | 容器镜像 | Jib（无 Dockerfile；基础镜像：`eclipse-temurin:21-jre-alpine`） |
 | 写数据库 | PostgreSQL（每服务独立） |
-| 缓存 | Redis（仅 catalog） |
 | 搜索 | Elasticsearch（order 读模型） |
 | 消息 | Kafka + Confluent Avro + Schema Registry |
 | 事件中继 | Debezium CDC（生产环境）/ `OutboxRelayScheduler`（本地开发） |

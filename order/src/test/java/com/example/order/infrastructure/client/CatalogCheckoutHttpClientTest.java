@@ -27,6 +27,9 @@ class CatalogCheckoutHttpClientTest {
                 assertThatThrownBy(() -> client.snapshot(List.of(new Checkout.RequestedLine(UUID.randomUUID(), 1))))
                         .isInstanceOfSatisfying(CheckoutProblem.class,
                                 p -> assertThat(p.code()).isEqualTo(CheckoutProblem.Code.CATALOG_DATA_INVALID));
+                var request = catalog.takeRequest(1, TimeUnit.SECONDS);
+                assertThat(request).isNotNull();
+                assertThat(request.getPath()).isEqualTo("/api/v1/internal/checkout/snapshots");
             } finally {
                 client.close();
             }

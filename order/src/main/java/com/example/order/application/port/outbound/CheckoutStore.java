@@ -13,6 +13,7 @@ public interface CheckoutStore {
     int MAX_ATTEMPTS = 6;
 
     void saveQuote(CustomerId owner, String email, Checkout.Quote quote);
+    Checkout.Quote getQuote(CustomerId owner, UUID quoteId);
     Checkout.Submission accept(CustomerId owner, UUID quoteId, UUID idempotencyKey, boolean intakeEnabled);
     Checkout.Submission get(CustomerId owner, UUID submissionId);
 

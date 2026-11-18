@@ -33,6 +33,7 @@ public final class CheckoutMessages {
     public record SubmitOrder(CustomerId owner, UUID quoteId, UUID idempotencyKey)
             implements Command<Checkout.Submission> {}
 
+    public record GetQuote(CustomerId owner, UUID quoteId) implements Query<Checkout.Quote> {}
     public record GetSubmission(CustomerId owner, UUID submissionId) implements Query<Checkout.Submission> {}
 
     @Service
@@ -98,7 +99,8 @@ public final class CheckoutMessages {
                 quotedLines.add(new Checkout.Line(line.bookId(), snapshot.title(), line.quantity(), snapshot.unitPriceMinor()));
             }
             var totals = pricing.calculate(quotedLines.stream().map(Checkout.Line::toOrderItem).toList(), Checkout.CURRENCY);
-            var quote = new Checkout.Quote(UUID.randomUUID(), Instant.now().plus(10, ChronoUnit.MINUTES),
+            var quote = new Checkout.Quote(UUID.randomUUID(),
+                    Instant.now().plus(10, ChronoUnit.MINUTES).truncatedTo(ChronoUnit.MICROS),
                     List.copyOf(quotedLines), totals.finalTotal().cents(), Checkout.CURRENCY);
             store.saveQuote(command.owner(), command.email(), quote);
             return quote;
@@ -112,6 +114,15 @@ public final class CheckoutMessages {
         @Override
         public Checkout.Submission handle(SubmitOrder command) {
             return store.accept(command.owner(), command.quoteId(), command.idempotencyKey(), intake.intakeEnabled());
+        }
+    }
+
+    @Service
+    @Profile("demo-integrated")
+    record GetQuoteHandler(CheckoutStore store) implements QueryHandler<GetQuote, Checkout.Quote> {
+        @Override
+        public Checkout.Quote handle(GetQuote query) {
+            return store.getQuote(query.owner(), query.quoteId());
         }
     }
 

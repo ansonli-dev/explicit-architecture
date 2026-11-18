@@ -48,8 +48,6 @@ spec:
       ports:
         - port: 5432   # PostgreSQL
           protocol: TCP
-        - port: 6379   # Redis
-          protocol: TCP
         - port: 39092  # Kafka (SASL_APP)
           protocol: TCP
         - port: 8081   # Schema Registry

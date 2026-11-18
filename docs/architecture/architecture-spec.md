@@ -265,7 +265,7 @@ com.example.{service}/
 
 ### 3.2 Actual Service Structures
 
-**catalog** (port 8081 | PostgreSQL + Redis):
+**catalog** (port 8081 | PostgreSQL):
 
 ```
 domain/model/    Book, BookId, Author, Title, Category, Money, StockLevel, InsufficientStockException
@@ -273,11 +273,10 @@ domain/event/    BookAdded, StockReserved, StockReleased
 domain/ports/    BookPersistence
 application/command/book/    AddBook, UpdateBook, ReserveStock, ReleaseStock (+ Results)
 application/query/book/      GetBook, ListBooks, GetStock (+ Responses)
-application/port/outbound/   BookCache
-infrastructure/repository/jpa/   BookJpaEntity, BookJpaRepository, BookPersistenceAdapter, BookEntityMapper
-infrastructure/cache/        RedisBookCache, BookCacheInvalidationListener, BookPersistedEvent
+application/port/outbound/   BookReadRepository
+infrastructure/repository/jpa/   BookPersistenceAdapter, BookReadAdapter, BookEntityMapper
 infrastructure/messaging/outbox/ CatalogOutboxMapper
-interfaces/rest/             BookCommandController, BookQueryController
+interfaces/rest/             BookCommandController, BookQueryController, StockQueryController, BookAdminController, CheckoutInventoryController
 interfaces/messaging/consumer/   OrderEventConsumer, OrderCancelledHandler
 ```
 
@@ -353,7 +352,7 @@ interfaces/messaging/consumer/     OrderEventConsumer, OrderPlacedHandler, Order
 
 CQRS (physically separated read and write storage) is applied **exclusively to `order`** (see [ADR-002](adr/ADR-002-cqrs-scope-order-service.md)).
 
-- `catalog`: single PostgreSQL with Redis cache layer — no CQRS overhead justified.
+- `catalog`: PostgreSQL serves book reads and writes.
 - `notification`: insert-only log, simple reads — no CQRS needed.
 - `order`: complex queries (by customer, date range, status, full-text) against high-frequency write workload — CQRS justified.
 
@@ -551,21 +550,7 @@ PlaceOrderCommandHandler.handle():
 | **Cross-service reaction** | Domain Event → Integration Event via Outbox (mandatory) | `OrderCancelled` → catalog releases stock |
 | **Infrastructure operation (cache, search index)** | Inside Persistence Adapter `save()` | Cache eviction — Handler is unaware |
 
-**Cache invalidation pattern (catalog):**
-
-The `BookPersistenceAdapter.save()` publishes a `BookPersistedEvent` (a Spring application event, not a domain event) immediately after the JPA save. `BookCacheInvalidationListener` handles it with `@TransactionalEventListener(phase = AFTER_COMMIT)`, ensuring cache eviction only happens after the DB commit is confirmed.
-
-```java
-// inside BookPersistenceAdapter.save()
-BookJpaEntity saved = bookJpaRepository.save(entity);
-eventPublisher.publishEvent(new BookPersistedEvent(book.getId().value()));
-
-// BookCacheInvalidationListener
-@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-public void onBookPersisted(BookPersistedEvent event) {
-    bookCache.evict(event.bookId());
-}
-```
+When a service uses a cache, an `@TransactionalEventListener(phase = AFTER_COMMIT)` can evict entries after the database confirms the write.
 
 ### 6.3 Same-Service Domain Event Listener Classification
 
@@ -576,7 +561,6 @@ Same-service domain event listeners serve two fundamentally different architectu
 | Listener | Location | What it does |
 |----------|----------|--------------|
 | `OutboxWriteListener` | `seedwork/.../infrastructure/outbox/` | Serializes domain event → writes outbox row (BEFORE_COMMIT) |
-| `BookCacheInvalidationListener` | `catalog/.../infrastructure/cache/` | Invalidates Redis cache entry (AFTER_COMMIT) |
 
 Note: ES read model sync in the order service is handled externally by the Debezium CDC → ES Sink Connector pipeline, not by an in-application listener.
 
@@ -659,7 +643,7 @@ order consumes StockReservationFailed:
 | ES Adapter | `infrastructure/repository/elasticsearch/` | `{Agg}SearchAdapter` | `OrderSearchAdapter` |
 | Outbox Mapper | `infrastructure/messaging/outbox/` | `{Service}OutboxMapper` | `CatalogOutboxMapper` |
 | HTTP Client Adapter | `infrastructure/client/` | `{Target}RestClient` | `CatalogRestClient` |
-| Cache Adapter | `infrastructure/cache/` | `{Technology}{Agg}Cache` | `RedisBookCache` |
+| Cache Adapter | `infrastructure/cache/` | `{Technology}{Agg}Cache` | `Redis{Agg}Cache` |
 | REST Controller (write) | `interfaces/rest/` | `{Agg}CommandController` | `OrderCommandController` |
 | REST Controller (read) | `interfaces/rest/` | `{Agg}QueryController` | `OrderQueryController` |
 | HTTP Request DTO | `interfaces/rest/request/` | `{Action}{Agg}Request` | `PlaceOrderRequest` |
@@ -667,7 +651,7 @@ order consumes StockReservationFailed:
 | Kafka Consumer | `interfaces/messaging/consumer/` | `{Topic}EventConsumer` | `OrderEventConsumer` |
 | Kafka Event Handler | `interfaces/messaging/consumer/` | `{Event}Handler` | `OrderPlacedHandler` |
 | Same-service event listener (business) | `interfaces/event/` | `{Event}{Reaction}Listener` | `OrderPlacedAutoConfirmListener` |
-| Same-service event listener (technical) | `infrastructure/{concern}/` | `{Aggregate}{Concern}Listener` | `BookCacheInvalidationListener` |
+| Same-service event listener (technical) | `infrastructure/{concern}/` | `{Aggregate}{Concern}Listener` | `{Aggregate}CacheInvalidationListener` |
 
 ---
 
@@ -818,7 +802,6 @@ cd catalog / order / notification
 | Build | Gradle (independent project per service, no multi-project root) |
 | Container images | Jib (no Dockerfile; base: `eclipse-temurin:21-jre-alpine`) |
 | Write DB | PostgreSQL (per service) |
-| Cache | Redis (catalog only) |
 | Search | Elasticsearch (order read model) |
 | Messaging | Kafka + Confluent Avro + Schema Registry |
 | Event relay | Debezium CDC (production) / `OutboxRelayScheduler` (local dev) |

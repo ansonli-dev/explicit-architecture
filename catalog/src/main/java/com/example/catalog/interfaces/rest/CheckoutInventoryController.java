@@ -1,4 +1,4 @@
-package com.example.catalog.interfaces.rest.v2;
+package com.example.catalog.interfaces.rest;
 
 import com.example.catalog.application.CatalogDataException;
 import com.example.catalog.application.command.book.ReleaseCheckoutCommand;
@@ -33,7 +33,7 @@ import java.util.UUID;
 
 @Profile("demo-integrated")
 @RestController
-@RequestMapping("/api/v2/internal/checkout")
+@RequestMapping("/api/v1/internal/checkout")
 @RequiredArgsConstructor
 class CheckoutInventoryController {
 

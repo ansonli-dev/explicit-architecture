@@ -2,7 +2,7 @@
 
 ## Service Overview
 
-`order` is the bounded context for order management, implementing CQRS: the write model is backed by PostgreSQL; the read model is backed by ElasticSearch (see [ADR-002](../docs/architecture/ADR-002-cqrs-scope-order.md)).
+`order` is the bounded context for order management, implementing CQRS: the write model is backed by PostgreSQL; the read model is backed by ElasticSearch (see [ADR-002](../docs/architecture/adr/ADR-002-cqrs-scope-order-service.md)).
 
 **Publishes:**
 - REST API (place order, cancel order, query orders)
@@ -10,6 +10,14 @@
 
 **Consumes:**
 - Kafka events (`bookstore.order.*` → projected into ElasticSearch by `OrderReadModelProjector`)
+
+## Integrated demo
+
+The `demo-integrated` profile serves quotes, submissions, order history, and
+cancellation through the [Order v1 contract](contracts/order-v1.yaml).
+Customer requests require a reader token. Order uses the token's subject to
+scope queries and commands to the customer. The [demo runbook](../demo/README.md)
+describes setup and recovery.
 
 ---
 
@@ -170,7 +178,7 @@ server:
 
 ## Debezium Connect (Outbox Relay)
 
-`order` is the primary user of the Outbox pattern (see [ADR-005](../docs/architecture/ADR-005-outbox-pattern.md)).
+`order` is the primary user of the Outbox pattern (see [ADR-005](../docs/architecture/adr/ADR-005-outbox-pattern.md)).
 
 ### Outbox Table
 

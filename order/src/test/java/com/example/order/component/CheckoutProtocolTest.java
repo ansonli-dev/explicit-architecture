@@ -15,19 +15,25 @@ import com.example.order.domain.model.Order;
 import com.example.order.domain.model.OrderId;
 import com.example.seedwork.application.bus.CommandBus;
 import com.example.seedwork.application.bus.QueryBus;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -39,6 +45,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:tc:postgresql:16-alpine:///checkout",
@@ -56,6 +65,7 @@ import static org.mockito.Mockito.*;
         "demo.catalog.client-secret=checkout-test"
 })
 @ActiveProfiles("demo-integrated")
+@AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class CheckoutProtocolTest {
 
@@ -68,6 +78,8 @@ class CheckoutProtocolTest {
     @Autowired CheckoutStore submissions;
     @Autowired ResolveCheckoutSubmission resolver;
     @Autowired JdbcTemplate jdbc;
+    @Autowired MockMvc mvc;
+    @Autowired ObjectMapper json;
     @MockBean CheckoutCatalog catalog;
     @MockBean OrderSearchRepository search;
 
@@ -82,6 +94,125 @@ class CheckoutProtocolTest {
             return items.stream().map(item -> new Checkout.Snapshot(item.bookId(), "First", item.quantity(),
                     4_900, "CNY", 10)).toList();
         });
+    }
+
+    @Test
+    void quoteAndSubmissionLocationsResolveToOwnerResourcesWithStateBasedReplayStatus() throws Exception {
+        String quotes = "/api/v1/me/order-quotes";
+        String submissionsPath = "/api/v1/me/order-submissions";
+        var created = mvc.perform(post(quotes).with(reader(OWNER)).contentType("application/json").content("""
+                {"lines":[{"bookId":"%s","quantity":2}]}
+                """.formatted(FIRST))).andExpect(status().isCreated()).andReturn().getResponse();
+        var quote = json.readTree(created.getContentAsByteArray());
+        String quoteId = quote.path("quoteId").asText();
+        String quotePath = quotes + "/" + quoteId;
+        assertThat(created.getHeader("Location")).isEqualTo(quotePath);
+        mvc.perform(get(quotePath)).andExpect(status().isUnauthorized());
+        mvc.perform(get(quotePath).with(reader(CustomerId.of(UUID.randomUUID())))).andExpect(status().isNotFound());
+        mvc.perform(get(quotePath).with(reader(OWNER))).andExpect(status().isOk())
+                .andExpect(content().json(quote.toString()));
+        var key = UUID.randomUUID();
+        var request = post(submissionsPath).with(reader(OWNER)).contentType("application/json")
+                .header("Idempotency-Key", key).content("{\"quoteId\":\"" + quoteId + "\"}");
+        var accepted = mvc.perform(request).andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.state").value("PROCESSING")).andReturn().getResponse();
+        var id = json.readTree(accepted.getContentAsByteArray()).path("submissionId").asText();
+        var submissionPath = submissionsPath + "/" + id;
+        assertThat(accepted.getHeader("Location")).isEqualTo(submissionPath);
+        mvc.perform(request).andExpect(status().isAccepted()).andExpect(header().string("Location", submissionPath))
+                .andExpect(jsonPath("$.submissionId").value(id));
+
+        when(catalog.reserve(eq(UUID.fromString(id)), anyList()))
+                .thenReturn(new Checkout.Reservation(Checkout.ReservationState.HELD, null));
+        resolver.processNext();
+        var replay = mvc.perform(request).andExpect(status().isOk()).andExpect(header().string("Location", submissionPath))
+                .andExpect(jsonPath("$.state").value("PLACED")).andExpect(jsonPath("$.order.orderId").value(id))
+                .andReturn().getResponse();
+        String createdAt = json.readTree(replay.getContentAsByteArray()).at("/order/createdAt").asText();
+        assertThat(Instant.parse(createdAt)).isBeforeOrEqualTo(Instant.now());
+        var order = "/api/v1/me/orders/" + id;
+        mvc.perform(get(order).with(reader(OWNER))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.createdAt").value(createdAt));
+        mvc.perform(get("/api/v1/me/orders").with(reader(OWNER))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.orders[0].createdAt").value(createdAt))
+                .andExpect(jsonPath("$.orders[0].lines").doesNotExist());
+        mvc.perform(get("/api/v1/me/orders").param("include", "lines").with(reader(OWNER))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.orders[0].lines[0].title").value("First"))
+                .andExpect(jsonPath("$.orders[0].lines[0].unitPriceMinor").value(4900))
+                .andExpect(jsonPath("$.orders[0].lines[0].quantity").value(2));
+    }
+
+    @Test
+    void cancellationResourceReplaysOriginalResultBeforeCheckingVersion() throws Exception {
+        var id = submit(quote(1), UUID.randomUUID()).submissionId();
+        when(catalog.reserve(eq(id), anyList()))
+                .thenReturn(new Checkout.Reservation(Checkout.ReservationState.HELD, null));
+        resolver.processNext();
+        String path = "/api/v1/me/orders/" + id + "/cancellation";
+        String body = """
+                {"reason":"Changed plans","expectedVersion":0}
+                """;
+        var stranger = CustomerId.of(UUID.randomUUID());
+        mvc.perform(get(path).with(reader(OWNER))).andExpect(status().isNotFound());
+        mvc.perform(put(path).with(reader(stranger)).contentType("application/json").content(body))
+                .andExpect(status().isNotFound());
+        var created = mvc.perform(put(path).with(reader(OWNER)).contentType("application/json").content(body))
+                .andExpect(status().isCreated()).andExpect(header().string("Location", path))
+                .andExpect(jsonPath("$.reason").value("Changed plans")).andReturn().getResponse();
+        assertThat(Instant.parse(json.readTree(created.getContentAsByteArray()).path("cancelledAt").asText()))
+                .isBeforeOrEqualTo(Instant.now());
+        mvc.perform(put(path).with(reader(OWNER)).contentType("application/json").content(body))
+                .andExpect(status().isOk()).andExpect(content().json(created.getContentAsString()));
+        mvc.perform(get(path).with(reader(OWNER))).andExpect(status().isOk())
+                .andExpect(content().json(created.getContentAsString()));
+        mvc.perform(get(path).with(reader(stranger))).andExpect(status().isNotFound());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM outbox_event WHERE aggregate_id=? AND topic='bookstore.order.cancelled'",
+                Long.class, id)).isEqualTo(1L);
+    }
+
+    @Test
+    void rejectedSubmissionReplaysAsOkAndExpiredQuotesKeepTheirReadResource() throws Exception {
+        String submissionsPath = "/api/v1/me/order-submissions";
+        var quote = quote(1);
+        var key = UUID.randomUUID();
+        var id = submit(quote, key).submissionId();
+        when(catalog.reserve(eq(id), anyList()))
+                .thenReturn(new Checkout.Reservation(Checkout.ReservationState.REJECTED, Checkout.Rejection.PRICE_CHANGED));
+        resolver.processNext();
+        mvc.perform(post(submissionsPath).with(reader(OWNER)).contentType("application/json")
+                .header("Idempotency-Key", key).content("{\"quoteId\":\"" + quote.quoteId() + "\"}"))
+                .andExpect(status().isOk()).andExpect(header().string("Location", submissionsPath + "/" + id))
+                .andExpect(jsonPath("$.state").value("REJECTED")).andExpect(jsonPath("$.reason").value("PRICE_CHANGED"))
+                .andExpect(jsonPath("$.order").doesNotExist());
+
+        var expired = quote(1);
+        jdbc.update("UPDATE checkout_quote SET expires_at = now() - interval '1 second' WHERE id = ?", expired.quoteId());
+        mvc.perform(get("/api/v1/me/order-quotes/" + expired.quoteId()).with(reader(OWNER))).andExpect(status().isOk());
+        mvc.perform(post(submissionsPath).with(reader(OWNER)).contentType("application/json")
+                .header("Idempotency-Key", UUID.randomUUID()).content("{\"quoteId\":\"" + expired.quoteId() + "\"}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("QUOTE_EXPIRED"));
+    }
+
+    @Test
+    void pagesUseCreationTimeThenOrderIdAcrossPageBoundaries() throws Exception {
+        for (int i = 1; i <= 3; i++) {
+            jdbc.update("""
+                    INSERT INTO orders(id, customer_id, customer_email, status, total_cents, currency, items, created_at)
+                    VALUES (?, ?, 'reader@example.test', 'PLACED', 4900, 'CNY', '[]', CAST(? AS timestamptz))
+                    """, new UUID(0, i), OWNER.value(), i < 3 ? "2026-11-18T00:01:00Z" : "2026-11-18T00:00:00Z");
+        }
+        for (int i = 1; i <= 3; i++) {
+            mvc.perform(get("/api/v1/me/orders").param("page", "" + i).param("size", "1").with(reader(OWNER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.orders[0].orderId").value(new UUID(0, i == 1 ? 2 : i == 2 ? 1 : 3).toString()))
+                    .andExpect(jsonPath("$.hasNext").value(i < 3));
+        }
+    }
+
+    private static RequestPostProcessor reader(CustomerId owner) {
+        return jwt().jwt(token -> token.subject(owner.value().toString())
+                        .claim("email", "reader@example.test").claim("email_verified", true))
+                .authorities(new SimpleGrantedAuthority("ROLE_bookstore-reader"));
     }
 
     @Test
@@ -195,7 +326,7 @@ class CheckoutProtocolTest {
     }
 
     @Test
-    void exhaustedAttemptsAreDurableAndOperatorCanResumeTheSameReservation() {
+    void exhaustedAttemptsAreDurableAndOperatorCanResumeTheSameReservation() throws Exception {
         var quote = quote(1);
         var id = submit(quote, UUID.randomUUID()).submissionId();
         when(catalog.reserve(id, quote.lines())).thenThrow(new CheckoutProblem(CATALOG_UNAVAILABLE));
@@ -204,6 +335,8 @@ class CheckoutProtocolTest {
             jdbc.update("UPDATE checkout_submission SET next_attempt_at = now() WHERE id=?", id);
         }
         assertThat(submissions.get(OWNER, id).state()).isEqualTo(Checkout.State.RECONCILE_REQUIRED);
+        mvc.perform(get("/api/v1/me/order-submissions/" + id).with(reader(OWNER))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("RECONCILE_REQUIRED")).andExpect(jsonPath("$.order").doesNotExist());
         assertThat(submissions.claimDue()).isEmpty();
 
         jdbc.update("""

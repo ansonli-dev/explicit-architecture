@@ -22,4 +22,4 @@ demo:
         issuer: ${DEMO_JWT_ISSUER}
         jwk-set-uri: ${DEMO_JWT_JWK_SET_URI}
     checkout:
-        intake-enabled: ${DEMO_V2_INTAKE_ENABLED:true}
+        intake-enabled: ${DEMO_CHECKOUT_INTAKE_ENABLED:true}

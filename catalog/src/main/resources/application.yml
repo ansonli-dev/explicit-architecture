@@ -22,10 +22,6 @@ spring:
     flyway:
         enabled: true
         locations: classpath:db/seedwork,classpath:db/migration
-    data:
-        redis:
-            host: ${SPRING_DATA_REDIS_HOST:localhost}
-            port: ${SPRING_DATA_REDIS_PORT:6379}
     kafka:
         bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
         producer:

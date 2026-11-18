@@ -31,8 +31,6 @@ hpa:
 env:
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres.infra.svc.cluster.local:5432/catalog"
   SPRING_DATASOURCE_USERNAME: "catalog"
-  SPRING_DATA_REDIS_HOST: "redis.infra.svc.cluster.local"
-  SPRING_DATA_REDIS_PORT: "6379"
   SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka.infra.svc.cluster.local:39092"
   SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: "http://schema-registry.infra.svc.cluster.local:8081"
   SPRING_KAFKA_PROPERTIES_SECURITY_PROTOCOL: "SASL_PLAINTEXT"

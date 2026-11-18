@@ -1,8 +1,8 @@
-package com.example.catalog.interfaces.rest.v2;
+package com.example.catalog.interfaces.rest;
 
-import com.example.catalog.application.query.book.BookV2Result;
-import com.example.catalog.application.query.book.GetBookV2Query;
-import com.example.catalog.application.query.book.ListBooksV2Query;
+import com.example.catalog.application.query.book.BookReadResult;
+import com.example.catalog.application.query.book.GetBookQuery;
+import com.example.catalog.application.query.book.ListBooksQuery;
 import com.example.catalog.application.query.book.CheckoutSnapshotQuery;
 import com.example.catalog.interfaces.rest.security.DemoJwtProperties;
 import com.example.catalog.interfaces.rest.security.DemoSecurityConfiguration;
@@ -36,16 +36,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {BookV2Controller.class, CheckoutInventoryController.class},
-        properties = "demo.v2.admin-writes-enabled=false")
+@WebMvcTest(controllers = {BookQueryController.class, BookAdminController.class, CheckoutInventoryController.class},
+        properties = "demo.catalog.admin-writes-enabled=false")
 @Import(DemoSecurityConfiguration.class)
 @ActiveProfiles("demo-integrated")
 class DemoSecurityTest {
 
     private static final DemoTokens TOKENS = new DemoTokens();
     private static final UUID BOOK = UUID.randomUUID();
-    private static final String ADMIN = "/api/v2/admin/books/" + BOOK;
-    private static final String SNAPSHOT = "/api/v2/internal/checkout/snapshots";
+    private static final String ADMIN = "/api/v1/admin/books/" + BOOK;
+    private static final String SNAPSHOT = "/api/v1/internal/checkout/snapshots";
 
     @Autowired MockMvc mvc;
     @MockBean QueryBus queries;
@@ -62,19 +62,20 @@ class DemoSecurityTest {
     }
 
     @Test
-    void publicPathsAreGetOnlyAndLegacyAndUnlistedPathsStayClosed() throws Exception {
-        when(queries.dispatch(any(ListBooksV2Query.class))).thenReturn(new ListBooksV2Query.Result(List.of(), 1, false));
-        mvc.perform(get("/api/v2/books")).andExpect(status().isOk());
-        mvc.perform(post("/api/v2/books")).andExpect(status().isUnauthorized());
+    void publicPathsAreGetOnlyAndUnlistedPathsStayClosed() throws Exception {
+        when(queries.dispatch(any(ListBooksQuery.class))).thenReturn(new ListBooksQuery.Result(List.of(), 1, false));
+        mvc.perform(get("/api/v1/books")).andExpect(status().isOk());
+        mvc.perform(post("/api/v1/books")).andExpect(status().isUnauthorized());
         mvc.perform(bearer(post("/api/v1/books"), TOKENS.admin())).andExpect(status().isForbidden());
-        mvc.perform(bearer(get("/api/v1/books"), TOKENS.admin())).andExpect(status().isForbidden());
+        mvc.perform(bearer(get("/api/v1/books/{id}/stock", BOOK), TOKENS.admin())).andExpect(status().isForbidden());
+        mvc.perform(bearer(get("/api/v2/books"), TOKENS.admin())).andExpect(status().isForbidden());
         mvc.perform(bearer(get("/actuator/env"), TOKENS.admin())).andExpect(status().isForbidden());
     }
 
     @Test
     void signedIdentitiesCannotCrossAdminAndInternalBoundaries() throws Exception {
-        when(queries.dispatch(any(GetBookV2Query.class)))
-                .thenReturn(new BookV2Result(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L));
+        when(queries.dispatch(any(GetBookQuery.class)))
+                .thenReturn(new BookReadResult(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L, null, null));
         when(queries.dispatch(any(CheckoutSnapshotQuery.class))).thenReturn(List.of());
         mvc.perform(get(ADMIN)).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -90,8 +91,8 @@ class DemoSecurityTest {
 
     @Test
     void adminWriteSwitchKeepsReadsAndServicePathsAvailable() throws Exception {
-        when(queries.dispatch(any(GetBookV2Query.class)))
-                .thenReturn(new BookV2Result(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L));
+        when(queries.dispatch(any(GetBookQuery.class)))
+                .thenReturn(new BookReadResult(BOOK, "Title", "Author", "Category", 1200, "CNY", 3, 0L, null, null));
         when(queries.dispatch(any(CheckoutSnapshotQuery.class))).thenReturn(List.of());
         mvc.perform(bearer(patch(ADMIN).contentType("application/json")
                         .content("""

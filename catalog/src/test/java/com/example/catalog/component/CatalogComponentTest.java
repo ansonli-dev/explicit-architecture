@@ -1,7 +1,6 @@
 package com.example.catalog.component;
 
 import com.example.events.KafkaResourceConstants;
-import com.example.catalog.application.port.outbound.BookCache;
 import com.example.events.v1.StockReleased;
 import com.example.events.v1.StockReserved;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -17,7 +16,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
@@ -34,6 +32,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -48,8 +47,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CatalogComponentTest {
 
     @LocalServerPort int port;
-
-    @MockBean BookCache bookCache;
 
     @Autowired JdbcTemplate jdbc;
     @Autowired EmbeddedKafkaBroker embeddedKafka;
@@ -117,7 +114,9 @@ class CatalogComponentTest {
         // Act + Assert
         given()
                 .get("/api/v1/books/{id}", id)
-                .then().statusCode(200);
+                .then().statusCode(200)
+                .body("priceMinor", equalTo(4500))
+                .body("stock", equalTo(5));
     }
 
     @Test
@@ -128,15 +127,33 @@ class CatalogComponentTest {
     }
 
     @Test
-    void givenBooksExist_whenListBooks_thenReturns200() {
+    void givenBooksExist_whenListBooks_thenReturnsFilteredPage() {
         // Arrange
         createBook("Book A", 3);
         createBook("Book B", 7);
 
         // Act + Assert
-        given()
+        given().queryParam("q", "book b").queryParam("category", "Tech")
                 .get("/api/v1/books")
-                .then().statusCode(200);
+                .then().statusCode(200)
+                .body("page", equalTo(1))
+                .body("hasNext", equalTo(false))
+                .body("books.size()", equalTo(1))
+                .body("books[0].title", equalTo("Book B"))
+                .body("books[0].priceMinor", equalTo(4500));
+    }
+
+    @Test
+    void checkoutAndAdminRoutesAreAbsentOutsideTheIntegratedProfile() {
+        UUID bookId = createBook("Private fixture", 5);
+
+        given()
+                .get("/api/v1/admin/books/{id}", bookId)
+                .then().statusCode(404);
+        given().contentType(ContentType.JSON)
+                .body(Map.of("lines", List.of(Map.of("bookId", bookId, "quantity", 1))))
+                .post("/api/v1/internal/checkout/snapshots")
+                .then().statusCode(404);
     }
 
     @Test

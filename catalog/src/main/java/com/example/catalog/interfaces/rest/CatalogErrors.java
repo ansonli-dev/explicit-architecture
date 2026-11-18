@@ -1,11 +1,10 @@
-package com.example.catalog.interfaces.rest.v2;
+package com.example.catalog.interfaces.rest;
 
 import com.example.catalog.application.BookNotFoundException;
 import com.example.catalog.application.CatalogDataException;
 import com.example.catalog.domain.model.CheckoutReservation;
 import com.example.catalog.domain.model.VersionedBook;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -18,9 +17,8 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
-@Profile("demo-integrated")
-@RestControllerAdvice(basePackageClasses = BookV2Controller.class)
-class CatalogV2Errors {
+@RestControllerAdvice(assignableTypes = {BookQueryController.class, BookAdminController.class, CheckoutInventoryController.class})
+class CatalogErrors {
 
     @ExceptionHandler(BookNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -70,7 +68,7 @@ class CatalogV2Errors {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     ErrorResponse unexpected(Exception failure) {
-        log.error("Catalog v2 request failed", failure);
+        log.error("Catalog request failed", failure);
         return new ErrorResponse("INTERNAL_ERROR");
     }
 

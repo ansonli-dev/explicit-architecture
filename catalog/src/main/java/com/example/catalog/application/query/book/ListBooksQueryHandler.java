@@ -1,25 +1,23 @@
 package com.example.catalog.application.query.book;
 
-import com.example.catalog.domain.ports.BookPersistence;
-import com.example.catalog.application.port.inbound.ListBooksUseCase;
+import com.example.catalog.application.port.outbound.BookReadRepository;
+import com.example.seedwork.application.query.QueryHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ListBooksQueryHandler implements ListBooksUseCase {
+class ListBooksQueryHandler implements QueryHandler<ListBooksQuery, ListBooksQuery.Result> {
 
-    private final BookPersistence repository;
+    private final BookReadRepository books;
 
     @Override
-    public List<BookSummaryResult> handle(ListBooksQuery query) {
-        return repository.findAll(query.page(), query.size(), query.category()).stream()
-                .map(b -> new BookSummaryResult(b.getId().value(), b.getTitle().value(), b.getAuthor().name(),
-                        b.getCategory().getName(), b.getPrice() != null ? b.getPrice().cents() : 0,
-                        b.getPrice() != null ? b.getPrice().currency() : "USD", b.getStockLevel().available()))
-                .collect(Collectors.toList());
+    public ListBooksQuery.Result handle(ListBooksQuery query) {
+        int size = query.size();
+        var rows = books.search(query.category(), query.query(), (query.page() - 1) * size, size + 1);
+        return new ListBooksQuery.Result(
+                List.copyOf(rows.subList(0, Math.min(size, rows.size()))), query.page(), rows.size() > size);
     }
 }

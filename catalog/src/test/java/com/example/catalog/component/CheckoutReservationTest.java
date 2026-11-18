@@ -1,6 +1,5 @@
 package com.example.catalog.component;
 
-import com.example.catalog.application.port.outbound.BookCache;
 import com.example.catalog.interfaces.messaging.consumer.OrderEventConsumer;
 import com.example.catalog.support.DemoTokens;
 import com.example.events.KafkaResourceConstants;
@@ -21,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
@@ -66,7 +64,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = {
-        "spring.kafka.consumer.group-id=catalog-v2-component", "outbox.relay.strategy=disabled"
+        "spring.kafka.consumer.group-id=catalog-checkout-component", "outbox.relay.strategy=disabled"
 })
 @ActiveProfiles({"test", "demo-integrated"})
 @AutoConfigureMockMvc
@@ -74,8 +72,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         bootstrapServersProperty = "spring.kafka.bootstrap-servers")
 class CheckoutReservationTest {
     private static final DemoTokens TOKENS = new DemoTokens();
-    private static final String INTERNAL = "/api/v2/internal/checkout";
-    private static final String GROUP = "catalog-v2-component";
+    private static final String INTERNAL = "/api/v1/internal/checkout";
+    private static final String GROUP = "catalog-checkout-component";
     private static final String TOPIC = KafkaResourceConstants.TOPIC_ORDER_CANCELLED;
 
     @DynamicPropertySource
@@ -96,7 +94,6 @@ class CheckoutReservationTest {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @Autowired DataSource dataSource;
-    @MockBean BookCache bookCache;
 
     @BeforeEach
     void fixtures() {
@@ -114,24 +111,41 @@ class CheckoutReservationTest {
     }
 
     @Test
+    void includesOptionalBookPresentationInThePublicContract() throws Exception {
+        jdbc.update("UPDATE book SET cover_url=?, description=? WHERE id=CAST(? AS uuid)",
+                "https://example.test/book.png", "A book about transactions.", book(1));
+        mvc.perform(get("/api/v1/books"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.books[0].coverUrl").value("https://example.test/book.png"))
+                .andExpect(jsonPath("$.books[0].description").doesNotExist())
+                .andExpect(jsonPath("$.books[1].coverUrl").doesNotExist());
+        mvc.perform(get("/api/v1/books/{id}", book(1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverUrl").value("https://example.test/book.png"))
+                .andExpect(jsonPath("$.description").value("A book about transactions."));
+        mvc.perform(get("/api/v1/books/{id}", book(2)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.description").doesNotExist());
+    }
+
+    @Test
     void publicPagesUseDeterministicOffsetsAndLiteralCaseInsensitiveSearch() throws Exception {
-        mvc.perform(get("/api/v2/books"))
+        mvc.perform(get("/api/v1/books"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.books.length()").value(12))
                 .andExpect(jsonPath("$.hasNext").value(true))
                 .andExpect(jsonPath("$.books[0].id").value(book(1)))
                 .andExpect(jsonPath("$.books[0].priceMinor").value(4900));
-        mvc.perform(get("/api/v2/books").param("page", "2"))
+        mvc.perform(get("/api/v1/books").param("page", "2"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.books.length()").value(1))
                 .andExpect(jsonPath("$.hasNext").value(false)).andExpect(jsonPath("$.books[0].id").value(book(13)));
-        mvc.perform(get("/api/v2/books").param("page", "100"))
+        mvc.perform(get("/api/v1/books").param("page", "100"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.books.length()").value(0));
-        mvc.perform(get("/api/v2/books").param("q", "lItErAl %_\\").param("category", "Architecture"))
+        mvc.perform(get("/api/v1/books").param("q", "lItErAl %_\\").param("category", "Architecture"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.books[0].id").value(book(1)));
-        mvc.perform(get("/api/v2/books").param("q", "%_\\").param("category", "architecture"))
+        mvc.perform(get("/api/v1/books").param("q", "%_\\").param("category", "architecture"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.books.length()").value(0));
-        mvc.perform(get("/api/v2/books/{id}", book(99)))
+        mvc.perform(get("/api/v1/books/{id}", book(99)))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
-        mvc.perform(get("/api/v2/categories"))
+        mvc.perform(get("/api/v1/categories"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.categories[0]").value("Architecture"));
     }
 
@@ -147,24 +161,23 @@ class CheckoutReservationTest {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
         mvc.perform(service(json(post(INTERNAL + "/snapshots"), lines(line(1, 1, 0, false), line(1, 1, 0, false)))))
                 .andExpect(status().isBadRequest());
-        mvc.perform(admin(get("/api/v2/admin/books/{bookId}", book(1))))
+        mvc.perform(admin(get("/api/v1/admin/books/{bookId}", book(1))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(0));
-        mvc.perform(admin(json(patch("/api/v2/admin/books/{bookId}", book(1)),
+        mvc.perform(admin(json(patch("/api/v1/admin/books/{bookId}", book(1)),
                 "{\"title\":\"wrong\",\"expectedVersion\":0,\"stock\":9}"))).andExpect(status().isBadRequest());
         mvc.perform(rename(1, "First Edit", 0)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").value(1)).andExpect(jsonPath("$.stock").value(1));
         mvc.perform(rename(1, "Stale Edit", 0)).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("VERSION_CONFLICT"));
-        mvc.perform(get("/api/v2/books/{id}", book(1)))
+        mvc.perform(get("/api/v1/books/{id}", book(1)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.title").value("First Edit"))
                 .andExpect(jsonPath("$.version").doesNotExist());
-        verifyNoInteractions(bookCache);
     }
 
     @Test
     void unsafeStoredAmountIsRejectedAndDoesNotAllowAnAdminWrite() throws Exception {
         jdbc.update("UPDATE book SET price_cents = 9007199254740992 WHERE id = CAST(? AS UUID)", book(1));
-        mvc.perform(get("/api/v2/books/{id}", book(1))).andExpect(status().isBadGateway())
+        mvc.perform(get("/api/v1/books/{id}", book(1))).andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.code").value("CATALOG_DATA_INVALID"));
         mvc.perform(service(json(post(INTERNAL + "/snapshots"), lines(line(1, 1, 0, false)))))
                 .andExpect(status().isBadGateway()).andExpect(jsonPath("$.code").value("CATALOG_DATA_INVALID"));
@@ -312,7 +325,7 @@ class CheckoutReservationTest {
                 commit.countDown();
             }
         }
-        mvc.perform(admin(get("/api/v2/admin/books/{id}", book(1)))).andExpect(status().isOk())
+        mvc.perform(admin(get("/api/v1/admin/books/{id}", book(1)))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Final")).andExpect(jsonPath("$.stock").value(0))
                 .andExpect(jsonPath("$.version").value(3));
     }
@@ -423,7 +436,7 @@ class CheckoutReservationTest {
     }
 
     private static MockHttpServletRequestBuilder rename(int book, String title, long version) {
-        return admin(json(patch("/api/v2/admin/books/{bookId}", book(book)), """
+        return admin(json(patch("/api/v1/admin/books/{bookId}", book(book)), """
                 {"title":"%s","expectedVersion":%d}
                 """.formatted(title, version)));
     }

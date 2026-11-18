@@ -1,12 +1,12 @@
 package com.example.catalog.application;
 
-/** Stored Catalog data that cannot be represented in the v2 contract. */
+/** Stored Catalog data that cannot be represented in the Catalog contract. */
 public final class CatalogDataException extends RuntimeException {
 
     public static final long MAX_SAFE_INTEGER = 9_007_199_254_740_991L;
 
     private CatalogDataException() {
-        super("Catalog value is outside the v2 contract");
+        super("Catalog value is outside the Catalog contract");
     }
 
     public static void checkPrice(long amount, String currency) {

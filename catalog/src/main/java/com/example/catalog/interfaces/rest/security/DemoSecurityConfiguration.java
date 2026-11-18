@@ -49,17 +49,17 @@ public class DemoSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(cache -> cache.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/api/v2/books",
-                                "/api/v2/books/{bookId}", "/api/v2/categories").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v2/admin/books/{bookId}")
+                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/api/v1/books",
+                                "/api/v1/books/{bookId}", "/api/v1/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/books/{bookId}")
                                 .access(requires(BFF, USER_AUDIENCE, "bookstore-admin"))
-                        .requestMatchers(HttpMethod.PATCH, "/api/v2/admin/books/{bookId}")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/admin/books/{bookId}")
                                 .access(requires(BFF, USER_AUDIENCE, "bookstore-admin"))
-                        .requestMatchers(HttpMethod.POST, "/api/v2/internal/checkout/snapshots")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/internal/checkout/snapshots")
                                 .access(requires(ORDER, INTERNAL_AUDIENCE, "bookstore-order-service"))
-                        .requestMatchers(HttpMethod.PUT, "/api/v2/internal/checkout/reservations/{submissionId}")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/internal/checkout/reservations/{submissionId}")
                                 .access(requires(ORDER, INTERNAL_AUDIENCE, "bookstore-order-service"))
-                        .requestMatchers(HttpMethod.DELETE, "/api/v2/internal/checkout/reservations/{submissionId}")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/internal/checkout/reservations/{submissionId}")
                                 .access(requires(ORDER, INTERNAL_AUDIENCE, "bookstore-order-service"))
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex

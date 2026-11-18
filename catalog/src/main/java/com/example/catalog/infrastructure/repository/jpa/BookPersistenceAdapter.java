@@ -6,18 +6,14 @@ import com.example.catalog.domain.model.VersionedBook;
 import com.example.catalog.domain.model.Book;
 import com.example.catalog.domain.model.BookId;
 import com.example.catalog.domain.model.Category;
-import com.example.catalog.infrastructure.cache.BookPersistedEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,7 +23,6 @@ class BookPersistenceAdapter implements BookPersistence, LockedBookPersistence {
 
     private final BookJpaRepository bookJpaRepository;
     private final CategoryJpaRepository categoryJpaRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final BookEntityMapper mapper;
     private final PlatformTransactionManager txManager;
 
@@ -46,9 +41,6 @@ class BookPersistenceAdapter implements BookPersistence, LockedBookPersistence {
         // Clear after a confirmed successful save; keeps events available for retry if save throws.
         book.clearDomainEvents();
 
-        // Publish after save so the AFTER_COMMIT listener can evict the cache.
-        eventPublisher.publishEvent(new BookPersistedEvent(book.getId().value()));
-
         return mapper.toDomain(saved);
     }
 
@@ -66,7 +58,6 @@ class BookPersistenceAdapter implements BookPersistence, LockedBookPersistence {
         mapper.updateEntity(book, entity.getCategory(), entity);
         BookJpaEntity saved = bookJpaRepository.saveAndFlush(entity);
         book.clearDomainEvents();
-        eventPublisher.publishEvent(new BookPersistedEvent(book.getId().value()));
         return saved.getVersion();
     }
 
@@ -107,16 +98,6 @@ class BookPersistenceAdapter implements BookPersistence, LockedBookPersistence {
     @Transactional(readOnly = true)
     public Optional<Book> findById(BookId id) {
         return bookJpaRepository.findById(id.value()).map(mapper::toDomain);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Book> findAll(int page, int size, String category) {
-        return bookJpaRepository
-                .findAllWithCategory(category, PageRequest.of(page, size))
-                .stream()
-                .map(mapper::toDomain)
-                .toList();
     }
 
     @Override

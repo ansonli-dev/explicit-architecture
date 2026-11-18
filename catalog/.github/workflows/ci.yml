@@ -19,7 +19,7 @@ env:
 jobs:
   # ─── 1. test ──────────────────────────────────────────────────────────────────
   # Unit tests (domain/application, no Spring context) +
-  # integration tests (Testcontainers: Postgres, Redis, Kafka)
+  # integration tests (Testcontainers: Postgres, Kafka)
   test:
     name: Test
     runs-on: ubuntu-latest

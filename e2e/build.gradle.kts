@@ -47,6 +47,7 @@ dependencies {
     testImplementation("org.awaitility:awaitility:4.2.2")
     testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation("org.apache.kafka:kafka-clients:3.7.1")
+    testRuntimeOnly("org.postgresql:postgresql:42.7.4")
 
     testCompileOnly("org.projectlombok:lombok:1.18.34")
     testAnnotationProcessor("org.projectlombok:lombok:1.18.34")

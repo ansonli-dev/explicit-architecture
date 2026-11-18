@@ -1,4 +1,4 @@
-package com.example.order.interfaces.rest.v2;
+package com.example.order.interfaces.rest.checkout;
 
 import com.example.order.application.checkout.Checkout;
 

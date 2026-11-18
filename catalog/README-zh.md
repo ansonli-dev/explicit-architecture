@@ -8,6 +8,10 @@
 - REST API（书籍查询、库存预留）
 - Kafka 事件（`StockReserved`、`StockReleased`）
 
+## 集成演示
+
+所有配置都通过 PostgreSQL 提供 [Catalog v1 查询](contracts/catalog-v1.yaml)。`demo-integrated` 配置启用认证后的管理和内部结账接口，并仅允许访问契约接口和健康检查。设置 `DEMO_CATALOG_ADMIN_WRITES_ENABLED=false` 可暂停管理员修改标题。参见[演示运行指南](../demo/README.md)。
+
 ---
 
 ## Domain Model
@@ -53,7 +57,6 @@ classDiagram
 | 中间件 | 用途 | 必须 |
 |---|---|---|
 | PostgreSQL | 书籍/库存数据持久化（写模型） | ✅ |
-| Redis | 书籍列表/详情热点缓存 | ✅ |
 | Kafka + Schema Registry | 发布 Stock 事件（StockReserved、StockReleased） | ✅ |
 | Debezium Connect | Outbox Relay（库存事件可靠投递） | ✅ |
 | SigNoz / OTel | Traces + Metrics + Logs | ✅ |
@@ -102,35 +105,6 @@ spring:
     enabled: true
     locations: classpath:db/seedwork,classpath:db/migration
 ```
-
----
-
-## Redis
-
-### 用途
-
-| 缓存键模式 | 内容 | TTL |
-|---|---|---|
-| `catalog:book:{bookId}` | 书籍详情（JSON） | 30 min |
-| `catalog:books:page:{hash}` | 分页查询结果 | 5 min |
-| `catalog:stock:{bookId}` | 库存可用量 | 1 min（高频读，短 TTL） |
-
-> **缺货事件驱动失效**：`StockReserved` 发布后，适配器主动 `DEL catalog:stock:{bookId}`，下次读取时重新加载。
-
-### Spring 配置
-
-```yaml
-spring:
-  data:
-    redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
-```
-
-### 缓存降级策略
-
-Redis 不可用时服务**不降级为错误**，直接穿透查询 PostgreSQL（`@Cacheable` 自动 fallback）。
-Redis 为纯缓存，不存储任何业务 Source of Truth 数据。
 
 ---
 
@@ -184,7 +158,7 @@ Debezium 读取 PostgreSQL WAL → 经 Outbox Event Router SMT 路由 → 写入
 
 ## ElasticSearch
 
-**catalog 不使用 ElasticSearch。** 书籍列表查询由 PostgreSQL + Redis 缓存承担，不需要全文搜索读模型。
+**catalog 不使用 ElasticSearch。** PostgreSQL 负责图书列表和标题、作者搜索。
 
 ---
 
@@ -209,7 +183,7 @@ OTEL_EXPORTER_OTLP_PROTOCOL: grpc
 
 | 信号 | 自动覆盖内容 |
 |---|---|
-| **Traces** | Spring MVC HTTP 请求、JDBC SQL、Kafka produce/consume、Redis 命令 |
+| **Traces** | Spring MVC HTTP 请求、JDBC SQL、Kafka produce/consume |
 | **Metrics** | JVM 堆/GC、HTTP 请求率/延迟、HikariCP 连接池、Kafka consumer lag |
 | **Logs** | Logback 日志自动注入 `trace_id`、`span_id`（与 Trace 关联） |
 
@@ -242,7 +216,7 @@ catalog.stock.release
 | `deployment.yaml` | 单副本（本地）/ HPA 托管（prod） |
 | `service.yaml` | ClusterIP，端口 8081 |
 | `hpa.yaml` | CPU > 70% 触发扩容，最大 3 副本 |
-| `networkpolicy.yaml` | 放行：Ingress Gateway → 8081；Egress → PostgreSQL:5432、Redis:6379、Kafka:29092、Schema Registry:8081 |
+| `networkpolicy.yaml` | 放行：Ingress Gateway → 8081；Egress → PostgreSQL:5432、Kafka:29092、Schema Registry:8081 |
 | `virtual.yaml` | 路由到 catalog，超时 5s，重试 3 次（5xx 时） |
 | `destination-rule.yaml` | 熔断器：连续 5 次 5xx 后驱逐实例，30s 恢复 |
 | `configmap.yaml` | 非敏感配置（`OTEL_SERVICE_NAME` 等） |

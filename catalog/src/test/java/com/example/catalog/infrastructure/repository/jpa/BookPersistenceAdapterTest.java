@@ -14,7 +14,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,24 +68,6 @@ class BookPersistenceAdapterTest {
         // Act + Assert
         assertThat(bookPersistence.existsById(book.getId())).isTrue();
         assertThat(bookPersistence.existsById(BookId.generate())).isFalse();
-    }
-
-    @Test
-    void givenBooksInDifferentCategories_whenFindAllWithCategoryFilter_thenOnlyMatchingReturned() {
-        // Arrange
-        bookPersistence.save(buildBook("Book A", "Science", 3));
-        bookPersistence.save(buildBook("Book B", "History", 5));
-        bookPersistence.save(buildBook("Book C", "Science", 7));
-
-        // Act
-        List<Book> scienceBooks = bookPersistence.findAll(0, 20, "Science");
-        List<Book> historyBooks = bookPersistence.findAll(0, 20, "History");
-        List<Book> allBooks = bookPersistence.findAll(0, 20, null);
-
-        // Assert
-        assertThat(scienceBooks).hasSize(2);
-        assertThat(historyBooks).hasSize(1);
-        assertThat(allBooks.size()).isGreaterThanOrEqualTo(3);
     }
 
     @Test

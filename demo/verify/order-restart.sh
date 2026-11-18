@@ -17,7 +17,7 @@ release_test_lock() {
 
 run_case() {
     docker compose --profile verify run --rm --no-deps -T e2e ./gradlew --offline --no-daemon \
-        test --rerun --tests "*OrderV2CancellationE2ETest.$1"
+        test --rerun --tests "*CheckoutE2ETest.$1"
 }
 
 docker compose exec -T -e PGAPPNAME=bookstore-restart-fixture order-db \

@@ -18,7 +18,7 @@ CQRS（命令查询职责分离）将写模型与读模型分离。它引入了�
 
 | 服务 | 写操作特征 | 读操作特征 | 结论 |
 |---|---|---|---|
-| `catalog` | 低频管理操作（新增/更新书籍） | 高频读取（浏览、搜索） | Redis 缓存已足够；CQRS 开销不合算 |
+| `catalog` | 低频管理操作（新增/更新书籍） | 高频读取（浏览、搜索） | 直接查询 PostgreSQL，获取当前价格和库存 |
 | `order` | 事务性订单生命周期；写侧强一致性 | 复杂查询：按客户、日期范围、状态、全文搜索；历史视图 | **CQRS 合理** |
 | `notification` | 仅追加（追加日志） | 按客户 ID 简单读取 | 过于简单，不适合 CQRS |
 
@@ -30,6 +30,8 @@ CQRS（命令查询职责分离）将写模型与读模型分离。它引入了�
 
 - **写侧**：PostgreSQL——事务性、强一致性、规范化 schema。命令（`PlaceOrderCommand`、`CancelOrderCommand`）由专用 `CommandHandler` 类（`PlaceOrderCommandHandler`、`CancelOrderCommandHandler`）处理，这些类变更 `Order` 聚合并通过 `OrderPersistence`（JPA）持久化。
 - **读侧**：ElasticSearch——非规范化，针对搜索优化。查询（`FindOrdersByCustomerQuery`）由专用 `QueryHandler` 类（`GetOrderQueryHandler`、`ListOrdersQueryHandler`）处理，这些类直接访问 `OrderSearchRepository`（ElasticSearch 适配器），完全绕过领域层。
+
+登录后的购书流程通过 `/api/v1/me/orders` 直接查询 PostgreSQL，读者下单后可立即看到自己的订单。订单搜索继续使用 ElasticSearch 投影。
 
 ### 投影机制
 
@@ -57,7 +59,7 @@ CQRS（命令查询职责分离）将写模型与读模型分离。它引入了�
 ## 影响
 
 ### 积极影响
-- `order` 的读查询（客户历史、全文搜索、分面过滤）由 ElasticSearch 提供服务，不会对事务性 PostgreSQL 造成压力。
+- 全文搜索和分面过滤由 ElasticSearch 提供服务，不会增加事务数据库的查询负载。
 - 写路径保持强一致性和 ACID 合规性。
 - 分离在包结构中清晰可见（`application/command/` 和 `application/query/` 是独立的子树；`infrastructure/search/` 存放 ES 适配器）。
 

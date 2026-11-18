@@ -41,14 +41,6 @@ services:
     volumes:
       - order-data:/var/lib/postgresql/data
 
-  redis:
-    image: redis:7-alpine
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 3s
-      timeout: 3s
-      retries: 30
-
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
     environment:
@@ -155,8 +147,7 @@ services:
     environment:
       <<: *java-environment
       SPRING_DATASOURCE_URL: jdbc:postgresql://catalog-db:5432/catalog
-      SPRING_DATA_REDIS_HOST: redis
-      DEMO_V2_ADMIN_WRITES_ENABLED: ${DEMO_V2_ADMIN_WRITES_ENABLED:-true}
+      DEMO_CATALOG_ADMIN_WRITES_ENABLED: ${DEMO_CATALOG_ADMIN_WRITES_ENABLED:-true}
       SPRING_KAFKA_CONSUMER_GROUP_ID: bookstore-demo.catalog
     volumes:
       - type: bind
@@ -173,8 +164,6 @@ services:
     depends_on:
       catalog-db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       keycloak:
         condition: service_healthy
       schema-init:
@@ -182,11 +171,11 @@ services:
 
   catalog-seed:
     image: postgres:16-alpine
-    command: ["psql", "-h", "catalog-db", "-U", "bookstore", "-d", "catalog", "-v", "ON_ERROR_STOP=1", "-f", "/seed/catalog.sql"]
+    command: ["psql", "-h", "catalog-db", "-U", "bookstore", "-d", "catalog", "-v", "ON_ERROR_STOP=1", "-f", "/seed/catalog.sql", "-f", "/seed/catalog-presentation.sql"]
     environment:
       PGPASSWORD: bookstore
     volumes:
-      - ./seed/catalog.sql:/seed/catalog.sql:ro
+      - ./seed:/seed:ro
     depends_on:
       catalog:
         condition: service_healthy
@@ -202,7 +191,7 @@ services:
       DEMO_CATALOG_URL: http://catalog:8081
       DEMO_OIDC_TOKEN_URL: http://keycloak:8080/realms/bookstore/protocol/openid-connect/token
       DEMO_ORDER_CLIENT_SECRET: bookstore-order-local
-      DEMO_V2_INTAKE_ENABLED: ${DEMO_V2_INTAKE_ENABLED:-true}
+      DEMO_CHECKOUT_INTAKE_ENABLED: ${DEMO_CHECKOUT_INTAKE_ENABLED:-true}
     volumes:
       - type: bind
         source: ../order/build/libs/order-0.0.1-SNAPSHOT.jar
@@ -227,7 +216,7 @@ services:
     profiles: [verify]
     image: *java-image
     working_dir: /repo/e2e
-    command: ["./gradlew", "--no-daemon", "test", "--tests", "*OrderV2CancellationE2ETest", "--rerun"]
+    command: ["./gradlew", "--no-daemon", "test", "--tests", "*CheckoutE2ETest", "--rerun"]
     environment:
       GRADLE_USER_HOME: /gradle
       CATALOG_BASE_URL: http://catalog:8081
@@ -235,8 +224,11 @@ services:
       DEMO_OIDC_BASE_URL: http://keycloak:8080/realms/bookstore
       DEMO_KAFKA_BOOTSTRAP: kafka:9092
       DEMO_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      DEMO_CATALOG_JDBC_URL: jdbc:postgresql://catalog-db:5432/catalog
+      DEMO_ORDER_JDBC_URL: jdbc:postgresql://order-db:5432/order
       DEMO_VERIFY_INTAKE_CLOSED: ${DEMO_VERIFY_INTAKE_CLOSED:-false}
       DEMO_VERIFY_CRASH_RECOVERY: ${DEMO_VERIFY_CRASH_RECOVERY:-false}
+      DEMO_VERIFY_RECONCILE: ${DEMO_VERIFY_RECONCILE:-off}
     volumes:
       - ../e2e:/repo/e2e
       - verify-gradle:/gradle

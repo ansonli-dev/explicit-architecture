@@ -41,7 +41,7 @@ public final class Checkout {
         }
     }
 
-    public record PlacedOrder(UUID orderId, String status, long totalMinor, String currency) {}
+    public record PlacedOrder(UUID orderId, String status, long totalMinor, String currency, Instant createdAt) {}
 
     public record Submission(UUID submissionId, State state, PlacedOrder order, Rejection reason) {}
 }
